@@ -11,7 +11,7 @@ import SwiftUI
 struct TiloApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            HomeView()
         }
     }
 }

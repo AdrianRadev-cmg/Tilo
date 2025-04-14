@@ -40,7 +40,8 @@ struct HomeView: View {
                     )
                     Color.black.opacity(0.20)
                 }
-                // Don't ignore safe area for now
+                .ignoresSafeArea(edges: .top)
+                // Don't ignore safe area for the VStack itself
             )
             
             // === Bottom Grey Section ===
@@ -50,10 +51,10 @@ struct HomeView: View {
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity) // Fill remaining space
-            .background(Color("grey200")) // Apply correct grey background
 
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // Background on outer VStack removed
         // Important: Apply ignoresSafeArea to the *entire* VStack 
         // if we want the backgrounds (but not necessarily content) 
         // to go edge-to-edge later. For now, we keep it off.

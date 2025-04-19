@@ -7,100 +7,98 @@
 
 import SwiftUI
 
-// PreferenceKey to store Y-coordinates of card edges
-private struct SwapButtonPlacementPreferenceKey: PreferenceKey {
-    // Store dictionary: [isTopCardBottomEdge: Anchor]
-    typealias Value = [Bool: Anchor<CGRect>]
-    
-    static var defaultValue: Value = [:]
-    
-    static func reduce(value: inout Value, nextValue: () -> Value) {
-        // Merge the dictionaries, storing anchors for both top and bottom cards
-        value.merge(nextValue()) { $1 } 
-    }
-}
+// PreferenceKey Removed
 
+@available(iOS 16.0, *) // Mark View as requiring iOS 16+
 struct HomeView: View {
     
-    // Coordinate Space Name
-    private let coordinateSpaceName = "TopSectionSpace"
+    // State for top card amount
+    @State private var topCardAmountString: String = "50.00"
+    // Remove base/target currency state
     
-    // State to store calculated button Y position
-    @State private var swapButtonY: CGFloat? = nil
+    // State & Coordinate Space Name Removed
     
-    // Define gradient stops using named colors from Assets.xcassets
-    // Based on Figma Dev Mode snippet
+    // Helper to format amounts (adapted from CurrencyCard)
+    private func formatAmount(_ string: String) -> String? {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.usesGroupingSeparator = true
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        if let number = Decimal(string: string.replacingOccurrences(of: formatter.groupingSeparator, with: "")) {
+            return formatter.string(from: number as NSDecimalNumber)
+        }
+        return nil
+    }
+
     let gradientStops = [
-        // Using descriptive names matching updated Assets
         Gradient.Stop(color: Color("primary600"), location: 0.00),
-        Gradient.Stop(color: Color("gradientPurpleMid"), location: 0.06), // #5636B5
+        Gradient.Stop(color: Color("gradientPurpleMid"), location: 0.06),
         Gradient.Stop(color: Color("primary500"), location: 0.09),
-        Gradient.Stop(color: Color("gradientPurpleDark"), location: 0.38), // #341B7D
-        Gradient.Stop(color: Color("gradientPurpleDeep"), location: 1.00) // #1D0041
+        Gradient.Stop(color: Color("gradientPurpleDark"), location: 0.38),
+        Gradient.Stop(color: Color("gradientPurpleDeep"), location: 1.00)
     ]
 
     var body: some View {
+        // Remove columns definition
+        
         VStack(spacing: 0) { 
             // === Top Gradient Section ===
-            // Use GeometryReader for dynamic positioning
-            GeometryReader { geometry in 
-                ZStack(alignment: .top) { 
-                    VStack(spacing: 8) { // Cards VStack
-                        CurrencyCard(
-                            currencyName: "British Pound",
-                            amount: "50.00",
-                            flagEmoji: "🇬🇧",
-                            currencyCode: "GBP",
-                            exchangeRateInfo: "1 GBP = 1.1700 EUR"
-                        )
-                        // Capture the bottom edge of the first card
-                        .anchorPreference(key: SwapButtonPlacementPreferenceKey.self, value: .bounds) { anchor in
-                            [true: anchor] 
-                        }
-                    
-                        CurrencyCard(
-                            currencyName: "Euro",
-                            amount: "58.50",
-                            flagEmoji: "🇪🇺",
-                            currencyCode: "EUR",
-                            exchangeRateInfo: "1 EUR = 0.8547 GBP"
-                        )
-                        // Capture the top edge of the second card
-                        .anchorPreference(key: SwapButtonPlacementPreferenceKey.self, value: .bounds) { anchor in
-                            [false: anchor] 
-                        }
-                    }
-                    .padding(.horizontal, 16) 
-                    .padding(.top, 40)       
-                    .padding(.bottom, 40)    
-                    .frame(maxWidth: .infinity)
-                    
-                    // --- Swap Button --- 
-                    if let swapButtonY = swapButtonY { // Only show if position calculated
-                        SwapButton()
-                            // Position button at calculated Y, centered X
-                            .position(x: geometry.size.width / 2, y: swapButtonY)
-                            .zIndex(1) // Ensure button is drawn on top
-                    }
+            VStack(alignment: .leading, spacing: 8) {
+                CurrencyCard(
+                    currencyName: "British Pound", // Hardcoded
+                    amount: topCardAmountString,
+                    flagEmoji: "🇬🇧", // Hardcoded
+                    currencyCode: "GBP", // Hardcoded
+                    exchangeRateInfo: "1 GBP = 1.1700 EUR" // Hardcoded example
+                )
+                // Apply padding individually to card
+                .padding(.horizontal, 16)
+                .overlay(alignment: .bottom) {
+                    SwapButton()
+                        .zIndex(1) // Ensure button is on top
+                        .offset(y: 22) // Nudge down 2 more points again
                 }
-                .coordinateSpace(name: coordinateSpaceName)
-                // Read the preference key values and calculate position
-                .onPreferenceChange(SwapButtonPlacementPreferenceKey.self) { anchors in
-                    guard let topCardBottomAnchor = anchors[true], 
-                          let bottomCardTopAnchor = anchors[false] else { return }
+                
+                CurrencyCard(
+                    currencyName: "Euro", // Hardcoded
+                    amount: "58.50", // Hardcoded example amount
+                    flagEmoji: "🇪🇺", // Hardcoded
+                    currencyCode: "EUR", // Hardcoded
+                    exchangeRateInfo: "1 EUR = 0.8547 GBP" // Hardcoded example
+                )
+                // Apply padding individually to card
+                .padding(.horizontal, 16)
+                
+                // Quick Conversions section
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Quick conversions")
+                        .font(.title3)
+                        .foregroundColor(.white)
                     
-                    let topY = geometry[topCardBottomAnchor].maxY
-                    let bottomY = geometry[bottomCardTopAnchor].minY
-                    let midpointY = topY + (bottomY - topY) / 2
+                    // Define amounts for the chips (Hardcoded JPY)
+                    let chipAmounts: [Double] = [1000, 2000, 5000, 10000, 20000] // JPY amounts
                     
-                    DispatchQueue.main.async {
-                        self.swapButtonY = midpointY
+                    // Use custom FlowLayout
+                    FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) { 
+                        // Use hardcoded symbol and amounts
+                        ForEach(chipAmounts, id: \.self) { amount in
+                             QuickAmountChip(symbol: "¥", amount: amount) // JPY symbol
+                        }
                     }
+                    // NO .frame() modifier directly on FlowLayout here
+
                 }
+                .frame(maxWidth: .infinity, alignment: .topLeading) // Frame on parent VStack is correct
+                .padding(.top, 40) // Apply 40pt spacing above the VStack
+                .padding(.horizontal, 16) // Apply horizontal alignment padding to the VStack
+
             }
-            .frame(maxWidth: .infinity) // Keep max width for GeoReader/ZStack area
-            // Apply the gradient background to this structure
-            .background(
+            // Padding removed from outer VStack
+            .padding(.top, 40) // Keep top padding
+            .padding(.bottom, 40) // Keep bottom padding
+            .frame(maxWidth: .infinity) // Allow VStack content to determine height
+            .background( // Apply background to VStack
                 ZStack {
                     LinearGradient(
                         gradient: Gradient(stops: gradientStops),
@@ -113,14 +111,15 @@ struct HomeView: View {
             )
             
             // === Bottom Grey Section ===
-            VStack { // Container for content on grey bg
+            VStack { 
                 Spacer()
                 Text("Actual Bottom Content Placeholder")
                 Spacer()
             }
-            .padding(.horizontal, 16) // Add L/R padding: 16
-            .frame(maxWidth: .infinity, maxHeight: .infinity) // Fill remaining space
-            .background(Color("grey200")) // Apply correct grey background
+            .padding(.horizontal, 16) 
+            // Restore maxHeight constraint
+            .frame(maxWidth: .infinity, maxHeight: .infinity) 
+            .background(Color("grey200")) 
 
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

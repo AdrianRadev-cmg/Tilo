@@ -27,9 +27,8 @@ struct CurrencySelectorChip: View {
                 .font(.system(size: 16))
                 .foregroundColor(Color("grey100"))
         }
-        // Removed explicit height for the chip
         // Restore styling to the overall HStack
-        .padding(.horizontal, 8) 
+        .padding(.horizontal, 8)
         // Removed vertical padding to allow divider to reach edges
         .background( // Apply manual frosted glass effect
             RoundedRectangle(cornerRadius: 8)
@@ -37,9 +36,9 @@ struct CurrencySelectorChip: View {
                 .blur(radius: 30) // Apply background blur
         )
         .cornerRadius(8) // Clip the main content to the shape
-        .overlay( // Add diagonal gradient overlay for subtle depth/bevel effect
+        .overlay( // Re-add diagonal gradient overlay
             LinearGradient(
-                gradient: Gradient(colors: [Color.white.opacity(0.10), Color.black.opacity(0.10)]),
+                gradient: Gradient(colors: [Color.white.opacity(0.05), Color.black.opacity(0.05)]),
                 startPoint: .topLeading, 
                 endPoint: .bottomTrailing
             )
@@ -63,7 +62,6 @@ struct CurrencySelectorChip: View {
     ]
     
     CurrencySelectorChip(flagEmoji: "🇬🇧", currencyCode: "GBP")
-        .frame(height: 39) // Constrain height for preview only
         .padding() // Keep padding to center the chip slightly in preview
         // Apply the actual gradient background for accurate preview
         .background(

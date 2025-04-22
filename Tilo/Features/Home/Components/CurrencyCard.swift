@@ -36,13 +36,12 @@ struct CurrencyCard: View {
                 .foregroundColor(Color("grey100"))
             
             // Unified HStack Structure
-            HStack(spacing: 16) { // Remove alignment: .top
-                ZStack(alignment: .leading) { // ZStack for amount display
-                    // Apply background always
+            HStack(spacing: 16) {
+                ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(Color("grey800").opacity(0.15)) 
+                        .fill(Color("grey800").opacity(0.15))
                         .blur(radius: 30)
-                        .overlay( // Apply diagonal gradient always
+                        .overlay(
                             LinearGradient(
                                 gradient: Gradient(colors: [Color.white.opacity(0.05), Color.black.opacity(0.05)]),
                                 startPoint: .topLeading, 
@@ -51,33 +50,32 @@ struct CurrencyCard: View {
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                         )
 
-                    // Conditional Text or TextField
                     if isAmountFocused {
-                        TextField("", text: $amountInput) // Use empty placeholder
+                        TextField("", text: $amountInput)
                             .font(.system(size: 26, weight: .semibold))
                             .foregroundColor(Color("grey100"))
                             .padding(.vertical, 4) 
                             .padding(.horizontal, 8)
-                            .keyboardType(.decimalPad) // Numeric keyboard
-                            .tint(.white) // Set cursor/accent color to white
-                            .focused($amountFieldIsFocused) // Link focus state
-                            .onSubmit { // Format on submit
+                            .keyboardType(.decimalPad)
+                            .tint(.white)
+                            .focused($amountFieldIsFocused)
+                            .onSubmit {
                                 if let formatted = formatAmount(amountInput) {
                                     amountInput = formatted
-                                    isInputError = false // Clear error if format succeeds
+                                    isInputError = false
                                 } else {
                                     isInputError = true 
                                 }
                                 isAmountFocused = false 
                             }
-                            .onAppear { // Request focus when appearing
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { // Small delay needed sometimes
+                            .onAppear {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                     amountFieldIsFocused = true
                                 }
                             }
                             .accessibilityLabel("Amount to convert: \(currencyName)")
                     } else {
-                        Text(amountInput.isEmpty ? amount : amountInput) // Show input or initial value
+                        Text(amountInput.isEmpty ? amount : amountInput)
                             .font(.system(size: 26, weight: .semibold))
                             .foregroundColor(Color("grey100"))
                             .padding(.vertical, 4) 
@@ -86,35 +84,25 @@ struct CurrencyCard: View {
                             .accessibilityHint("Tap to edit amount")
                     }
                 }
-                // Conditional Border Overlay
                 .overlay {
                     if isAmountFocused {
-                        // Active State: Full border (Keep as is: primary100 @ 25%)
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color("primary100").opacity(0.25), lineWidth: 1) 
+                            .stroke(Color("primary100").opacity(0.25), lineWidth: 1)
                     } else {
-                        // Default State: Border shape/color depends on error
                         if isInputError {
-                            // Error State: Full border using error200
                             RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color("error200"), lineWidth: 1) // Use error200
+                                .stroke(Color("error200"), lineWidth: 1)
                         } else {
-                            // Normal Default State: Curved left path using primary100
                             Path { path in
                                 let cornerRadius: CGFloat = 8
                                 let h = path.boundingRect.height
-                                
-                                // Move to start of top-left arc
                                 path.move(to: CGPoint(x: cornerRadius, y: 0))
-                                // Top-left arc
                                 path.addArc(center: CGPoint(x: cornerRadius, y: cornerRadius),
                                             radius: cornerRadius,
                                             startAngle: Angle(degrees: -90),
                                             endAngle: Angle(degrees: 180),
                                             clockwise: true)
-                                // Vertical line down
                                 path.addLine(to: CGPoint(x: 0, y: h - cornerRadius))
-                                // Bottom-left arc
                                 path.addArc(center: CGPoint(x: cornerRadius, y: h - cornerRadius),
                                             radius: cornerRadius,
                                             startAngle: Angle(degrees: 180),
@@ -125,53 +113,46 @@ struct CurrencyCard: View {
                         }
                     }
                 }
-                .clipShape(RoundedRectangle(cornerRadius: 8)) // Clip ZStack content
-                .frame(maxWidth: isAmountFocused ? .infinity : nil) // Conditional width
-                .frame(height: 39) // Restore fixed height for ZStack
-                .contentShape(Rectangle()) // Make tappable
-                .onTapGesture { // Tapping the amount area
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .frame(maxWidth: isAmountFocused ? .infinity : nil)
+                .frame(height: 39)
+                .contentShape(Rectangle())
+                .onTapGesture {
                     if !isAmountFocused {
-                        amountInput = "" // Clear field when starting edit
-                        isInputError = false // Clear error state on new focus
-                        isAmountFocused = true // Activate focus state
+                        amountInput = ""
+                        isInputError = false
+                        isAmountFocused = true
                     }
                 }
                 
                 CurrencySelectorChip(flagEmoji: flagEmoji, currencyCode: currencyCode)
-                    // Remove fixed height from the chip instance
-                // No Spacer needed here
             }
-            // Removed fixed height from HStack
             
-            // Conditional Error Message
             if isInputError {
                 Text("Invalid amount")
                     .font(.footnote)
-                    .foregroundColor(Color("error200")) // Use error200
-                    .padding(.leading, 8) // Indent slightly like the field
+                    .foregroundColor(Color("error200"))
+                    .padding(.leading, 8)
             }
             
             Text(exchangeRateInfo)
                 .font(.system(size: 17, weight: .regular))
                 .foregroundColor(Color("grey400"))
         }
-        // Move onChange before other modifiers
-        .onChange(of: amount) { oldAmount, newAmount in // Updated signature
+        .onChange(of: amount) { oldAmount, newAmount in
             amountInput = newAmount
-            isInputError = false // Clear error when amount is externally updated
+            isInputError = false
         }
-        .contentShape(Rectangle()) 
-        .onTapGesture { // Tapping card background
-             if isAmountFocused { // Only act if dismissing focus
+        .contentShape(Rectangle())
+        .onTapGesture {
+             if isAmountFocused {
                  let currentInput = amountInput.trimmingCharacters(in: .whitespacesAndNewlines)
-                 // Format or reset to 0.00 on background tap dismiss
                  if let formatted = formatAmount(currentInput), !currentInput.isEmpty {
                      amountInput = formatted
                  } else {
-                     // If formatting fails OR input was empty, reset to 0.00
-                     amountInput = formatAmount("0") ?? "0.00" // Format 0 to get locale correct 0.00
+                     amountInput = formatAmount("0") ?? "0.00"
                  }
-                 isInputError = false // ALWAYS clear error on background tap dismiss
+                 isInputError = false
                  isAmountFocused = false
                  amountFieldIsFocused = false 
              }

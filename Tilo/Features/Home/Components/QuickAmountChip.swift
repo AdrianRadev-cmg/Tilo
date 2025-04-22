@@ -18,19 +18,15 @@ struct QuickAmountChip: View {
         // Display symbol + formatted amount
         Text(symbol + formattedAmount)
             .font(.custom("SF Pro", size: 17))
-            .foregroundColor(.white)
+            .foregroundColor(Color("grey100"))
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            // Use a solid background for testing
-            .background(Color.gray.opacity(0.3))
-            // .background(.ultraThinMaterial) // Apply material background first
-            // .blur(radius: 20) // Apply blur AFTER background - COMMENTED OUT FOR TESTING
-            .cornerRadius(8) // Apply corner radius AFTER background/blur
-            .overlay( // Apply overlay/stroke AFTER cornerRadius
+            .background(Color("grey800").opacity(0.3))
+            .cornerRadius(8)
+            .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .inset(by: 0.5) // Inset slightly for stroke alignment
-                    // Using raw RGB for now - replace with named color (e.g., grey100 opacity 0.5) if available
-                    .stroke(Color(red: 0.95, green: 0.94, blue: 0.97).opacity(0.5), lineWidth: 1)
+                    .inset(by: 0.5)
+                    .stroke(Color("primary100").opacity(0.5), lineWidth: 1)
             )
     }
 }

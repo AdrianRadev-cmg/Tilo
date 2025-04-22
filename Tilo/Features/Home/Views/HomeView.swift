@@ -9,16 +9,35 @@ import SwiftUI
 
 // PreferenceKey Removed
 
+struct StatusBarGradient: View {
+    let gradientStops: [Gradient.Stop]
+    
+    var body: some View {
+        GeometryReader { geometry in
+            LinearGradient(
+                gradient: Gradient(stops: gradientStops),
+                startPoint: .topTrailing,
+                endPoint: .bottomLeading
+            )
+            .overlay(Color.black.opacity(0.20))
+            .frame(height: geometry.safeAreaInsets.top)
+            .edgesIgnoringSafeArea(.top)
+        }
+    }
+}
+
 @available(iOS 16.0, *) // Mark View as requiring iOS 16+
 struct HomeView: View {
-    
-    // State for top card amount
     @State private var topCardAmountString: String = "50.00"
-    // Remove base/target currency state
     
-    // State & Coordinate Space Name Removed
+    private let gradientStops = [
+        Gradient.Stop(color: Color("primary600"), location: 0.00),
+        Gradient.Stop(color: Color("gradientPurpleMid"), location: 0.06),
+        Gradient.Stop(color: Color("primary500"), location: 0.09),
+        Gradient.Stop(color: Color("gradientPurpleDark"), location: 0.38),
+        Gradient.Stop(color: Color("gradientPurpleDeep"), location: 1.00)
+    ]
     
-    // Helper to format amounts (adapted from CurrencyCard)
     private func formatAmount(_ string: String) -> String? {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
@@ -30,102 +49,103 @@ struct HomeView: View {
         }
         return nil
     }
-
-    let gradientStops = [
-        Gradient.Stop(color: Color("primary600"), location: 0.00),
-        Gradient.Stop(color: Color("gradientPurpleMid"), location: 0.06),
-        Gradient.Stop(color: Color("primary500"), location: 0.09),
-        Gradient.Stop(color: Color("gradientPurpleDark"), location: 0.38),
-        Gradient.Stop(color: Color("gradientPurpleDeep"), location: 1.00)
-    ]
-
+    
     var body: some View {
-        // Remove columns definition
-        
-        VStack(spacing: 0) { 
-            // === Top Gradient Section ===
-            VStack(alignment: .leading, spacing: 8) {
-                CurrencyCard(
-                    currencyName: "British Pound", // Hardcoded
-                    amount: topCardAmountString,
-                    flagEmoji: "🇬🇧", // Hardcoded
-                    currencyCode: "GBP", // Hardcoded
-                    exchangeRateInfo: "1 GBP = 1.1700 EUR" // Hardcoded example
-                )
-                // Apply padding individually to card
-                .padding(.horizontal, 16)
-                .overlay(alignment: .bottom) {
-                    SwapButton()
-                        .zIndex(1) // Ensure button is on top
-                        .offset(y: 22) // Nudge down 2 more points again
-                }
-                
-                CurrencyCard(
-                    currencyName: "Euro", // Hardcoded
-                    amount: "58.50", // Hardcoded example amount
-                    flagEmoji: "🇪🇺", // Hardcoded
-                    currencyCode: "EUR", // Hardcoded
-                    exchangeRateInfo: "1 EUR = 0.8547 GBP" // Hardcoded example
-                )
-                // Apply padding individually to card
-                .padding(.horizontal, 16)
-                
-                // Quick Conversions section
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Quick conversions")
-                        .font(.title3)
-                        .foregroundColor(.white)
-                    
-                    // Define amounts for the chips (Hardcoded JPY)
-                    let chipAmounts: [Double] = [1000, 2000, 5000, 10000, 20000] // JPY amounts
-                    
-                    // Use custom FlowLayout
-                    FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) { 
-                        // Use hardcoded symbol and amounts
-                        ForEach(chipAmounts, id: \.self) { amount in
-                             QuickAmountChip(symbol: "¥", amount: amount) // JPY symbol
-                        }
-                    }
-                    // NO .frame() modifier directly on FlowLayout here
-
-                }
-                .frame(maxWidth: .infinity, alignment: .topLeading) // Frame on parent VStack is correct
-                .padding(.top, 40) // Apply 40pt spacing above the VStack
-                .padding(.horizontal, 16) // Apply horizontal alignment padding to the VStack
-
-            }
-            // Padding removed from outer VStack
-            .padding(.top, 40) // Keep top padding
-            .padding(.bottom, 40) // Keep bottom padding
-            .frame(maxWidth: .infinity) // Allow VStack content to determine height
-            .background( // Apply background to VStack
-                ZStack {
-                    LinearGradient(
-                        gradient: Gradient(stops: gradientStops),
-                        startPoint: .topTrailing, 
-                        endPoint: .bottomLeading
-                    )
-                    Color.black.opacity(0.20)
-                }
-                .ignoresSafeArea(edges: .top)
-            )
+        ZStack(alignment: .top) {
+            // Status bar gradient
+            StatusBarGradient(gradientStops: gradientStops)
             
-            // === Bottom Grey Section ===
-            VStack { 
-                Spacer()
-                Text("Actual Bottom Content Placeholder")
-                Spacer()
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Purple content section
+                    VStack(alignment: .leading, spacing: 8) {
+                        currencyCards
+                        quickConversions
+                    }
+                    .padding(.vertical, 40)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(stops: gradientStops),
+                            startPoint: .topTrailing,
+                            endPoint: .bottomLeading
+                        )
+                        .overlay(Color.black.opacity(0.20))
+                    )
+                    
+                    // Grey section
+                    greySection
+                        .background(Color("grey200"))
+                }
             }
-            .padding(.horizontal, 16) 
-            // Restore maxHeight constraint
-            .frame(maxWidth: .infinity, maxHeight: .infinity) 
-            .background(Color("grey200")) 
-
+            .background(Color("grey200"))
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var currencyCards: some View {
+        VStack(spacing: 8) {
+            CurrencyCard(
+                currencyName: "British Pound",
+                amount: topCardAmountString,
+                flagEmoji: "🇬🇧",
+                currencyCode: "GBP",
+                exchangeRateInfo: "1 GBP = 1.1700 EUR"
+            )
+            .overlay(alignment: .bottom) {
+                SwapButton()
+                    .zIndex(1)
+                    .offset(y: 22)
+            }
+            
+            CurrencyCard(
+                currencyName: "Euro",
+                amount: "58.50",
+                flagEmoji: "🇪🇺",
+                currencyCode: "EUR",
+                exchangeRateInfo: "1 EUR = 0.8547 GBP"
+            )
+        }
+        .padding(.horizontal, 16)
+    }
+    
+    private var quickConversions: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Quick conversions")
+                .font(.title3)
+                .foregroundColor(.white)
+            
+            FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
+                ForEach([1000, 2000, 5000, 10000, 20000], id: \.self) { amount in
+                    QuickAmountChip(symbol: "¥", amount: amount)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .padding(.top, 40)
+        .padding(.horizontal, 16)
+    }
+    
+    private var greySection: some View {
+        VStack(spacing: 16) {
+            Text("Actual Bottom Content Placeholder")
+            Text("More content can go here")
+            Text("And even more content")
+            Text("Keep adding content")
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
+        .padding(.horizontal, 16)
     }
 }
 
 #Preview {
     HomeView()
+}
+
+// Add preference key for height measurement
+private struct HeightPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
 }

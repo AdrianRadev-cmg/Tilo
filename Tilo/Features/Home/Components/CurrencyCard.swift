@@ -2,10 +2,10 @@ import SwiftUI
 
 struct CurrencyCard: View {
     // Properties
-    let currencyName: String
+    @Binding var currencyName: String
+    @Binding var flagEmoji: String
+    @Binding var currencyCode: String
     let amount: String
-    let flagEmoji: String
-    let currencyCode: String
     let exchangeRateInfo: String
     
     // State for focus and text input
@@ -13,6 +13,7 @@ struct CurrencyCard: View {
     @State private var amountInput: String = ""
     @FocusState private var amountFieldIsFocused: Bool
     @State private var isInputError: Bool = false // State for error tracking
+    @State private var showCurrencySelector: Bool = false // Add state for currency selector
     
     // Helper to format the input string
     private func formatAmount(_ string: String) -> String? {
@@ -33,13 +34,13 @@ struct CurrencyCard: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(currencyName)
                 .font(.system(size: 20, weight: .regular))
-                .foregroundColor(Color("grey100"))
+                .foregroundColor(.white)
             
             // Unified HStack Structure
             HStack(spacing: 16) {
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(Color("grey800").opacity(0.15))
+                        .fill(Color(red: 0.2, green: 0.2, blue: 0.2).opacity(0.15))
                         .blur(radius: 30)
                         .overlay(
                             LinearGradient(
@@ -53,7 +54,7 @@ struct CurrencyCard: View {
                     if isAmountFocused {
                         TextField("", text: $amountInput)
                             .font(.system(size: 26, weight: .semibold))
-                            .foregroundColor(Color("grey100"))
+                            .foregroundColor(.white)
                             .padding(.vertical, 4) 
                             .padding(.horizontal, 8)
                             .keyboardType(.decimalPad)
@@ -77,7 +78,7 @@ struct CurrencyCard: View {
                     } else {
                         Text(amountInput.isEmpty ? amount : amountInput)
                             .font(.system(size: 26, weight: .semibold))
-                            .foregroundColor(Color("grey100"))
+                            .foregroundColor(.white)
                             .padding(.vertical, 4) 
                             .padding(.horizontal, 8) 
                             .accessibilityLabel("Amount to convert: \(currencyName)")
@@ -87,11 +88,11 @@ struct CurrencyCard: View {
                 .overlay {
                     if isAmountFocused {
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color("primary100").opacity(0.25), lineWidth: 1)
+                            .stroke(Color(red: 0.7, green: 0.7, blue: 0.7).opacity(0.25), lineWidth: 1)
                     } else {
                         if isInputError {
                             RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color("error200"), lineWidth: 1)
+                                .stroke(Color(red: 0.8, green: 0.2, blue: 0.2), lineWidth: 1)
                         } else {
                             Path { path in
                                 let cornerRadius: CGFloat = 8
@@ -109,7 +110,7 @@ struct CurrencyCard: View {
                                             endAngle: Angle(degrees: 90),
                                             clockwise: true)
                             }
-                            .stroke(Color("primary100").opacity(0.05), lineWidth: 1)
+                            .stroke(Color(red: 0.7, green: 0.7, blue: 0.7).opacity(0.05), lineWidth: 1)
                         }
                     }
                 }
@@ -125,19 +126,23 @@ struct CurrencyCard: View {
                     }
                 }
                 
-                CurrencySelectorChip(flagEmoji: flagEmoji, currencyCode: currencyCode)
+                CurrencySelectorChip(
+                    flagEmoji: flagEmoji, 
+                    currencyCode: currencyCode,
+                    action: { showCurrencySelector = true }
+                )
             }
             
             if isInputError {
                 Text("Invalid amount")
                     .font(.footnote)
-                    .foregroundColor(Color("error200"))
+                    .foregroundColor(Color(red: 0.8, green: 0.2, blue: 0.2))
                     .padding(.leading, 8)
             }
             
             Text(exchangeRateInfo)
                 .font(.system(size: 17, weight: .regular))
-                .foregroundColor(Color("grey400"))
+                .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.7))
         }
         .onChange(of: amount) { oldAmount, newAmount in
             amountInput = newAmount
@@ -162,14 +167,24 @@ struct CurrencyCard: View {
         .padding(.vertical, 24)
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color("grey800").opacity(0.25))
+                .fill(Color(red: 0.2, green: 0.2, blue: 0.2).opacity(0.25))
                 .blur(radius: 15)
         )
         .cornerRadius(16)
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color("primary100").opacity(0.05), lineWidth: 1)
+                .stroke(Color(red: 0.7, green: 0.7, blue: 0.7).opacity(0.05), lineWidth: 1)
         )
+        .sheet(isPresented: $showCurrencySelector) {
+            CurrencySelector { selectedCurrency in
+                // Update the currency card with selected currency
+                currencyName = selectedCurrency.name
+                flagEmoji = selectedCurrency.flag
+                currencyCode = selectedCurrency.code
+            }
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
     }
 }
 
@@ -182,11 +197,15 @@ struct CurrencyCard: View {
         Gradient.Stop(color: Color("gradientPurpleDeep"), location: 1.00)
     ]
     
+    @State var currencyName = "British Pound"
+    @State var flagEmoji = "🇬🇧"
+    @State var currencyCode = "GBP"
+    
     CurrencyCard(
-        currencyName: "British Pound",
+        currencyName: $currencyName,
+        flagEmoji: $flagEmoji,
+        currencyCode: $currencyCode,
         amount: "50.00",
-        flagEmoji: "🇬🇧",
-        currencyCode: "GBP",
         exchangeRateInfo: "1 GBP = 1.1700 EUR"
     )
     .padding()

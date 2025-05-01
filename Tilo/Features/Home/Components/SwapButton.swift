@@ -7,30 +7,29 @@ struct SwapButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: "arrow.up.arrow.down.circle") 
-                .font(.system(size: 18, weight: .regular)) // Reduced icon size to 18
-                .foregroundStyle(Color("grey100")) // Apply correct color
+                .font(.system(size: 18, weight: .regular))
+                .foregroundStyle(Color("grey100"))
         }
-        .frame(width: 36, height: 36) // Reduced frame size from 40x40
-        // Restore effects, use grey800 @ 10% for fill
+        .frame(width: 36, height: 36)
         .background( 
             Circle()
-                .fill(Color("grey800").opacity(0.20)) // Increased opacity to 20%
-                .blur(radius: 20) // Re-enable blur
+                .fill(Color("grey800").opacity(0.40)) // Increased from 0.30 to 0.40
+                .blur(radius: 20)
         )
-        .overlay( // Re-enable diagonal gradient (5% -> 5%)
+        .overlay(
             LinearGradient(
-                gradient: Gradient(colors: [Color.white.opacity(0.05), Color.black.opacity(0.05)]),
+                gradient: Gradient(colors: [Color.white.opacity(0.12), Color.black.opacity(0.12)]), // Increased from 0.08 to 0.12
                 startPoint: .topLeading, 
                 endPoint: .bottomTrailing
             )
             .clipShape(Circle())
         )
-        .overlay( // Re-enable edge stroke
+        .overlay(
             Circle()
-                .stroke(Color("primary100").opacity(0.05), lineWidth: 1)
+                .stroke(Color("primary100").opacity(0.12), lineWidth: 1) // Increased from 0.08 to 0.12
         )
-        .clipShape(Circle()) // Ensure content stays within circle
-        .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 3) // Keep adjusted shadow
+        .clipShape(Circle())
+        .shadow(color: .black.opacity(0.20), radius: 10, x: 0, y: 3) // Increased from 0.15 to 0.20
     }
 }
 
@@ -46,7 +45,6 @@ struct SwapButton: View {
 
     SwapButton()
         .padding()
-        // Use app gradient for preview background
         .background(
             ZStack {
                 LinearGradient(

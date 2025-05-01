@@ -4,21 +4,16 @@ import UIKit
 @main
 struct TiloApp: App {
     init() {
-        #if os(iOS)
-        // Set tab bar appearance for the entire app
-        let tabBarAppearance = UITabBarAppearance()
-        tabBarAppearance.configureWithOpaqueBackground()
-        tabBarAppearance.backgroundColor = UIColor(named: "grey200")
-        
-        UITabBar.appearance().standardAppearance = tabBarAppearance
-        UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
-        #endif
+        // Force light mode until dark mode is designed
+        if #available(iOS 17.0, *) {
+            UIView.appearance(whenContainedInInstancesOf: [UIWindow.self]).overrideUserInterfaceStyle = .light
+        }
     }
     
     var body: some Scene {
         WindowGroup {
             HomeView()
-                .preferredColorScheme(.light) // Force light mode
+                .preferredColorScheme(.light)
         }
     }
 } 

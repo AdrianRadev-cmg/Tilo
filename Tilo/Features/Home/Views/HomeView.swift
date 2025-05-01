@@ -75,12 +75,21 @@ struct HomeView: View {
     @State private var selectedTab = 0
     @State private var topCardAmountString: String = "50.00"
     
+    // Add state for currency data
+    @State private var fromCurrencyName = "British Pound"
+    @State private var fromFlagEmoji = "🇬🇧"
+    @State private var fromCurrencyCode = "GBP"
+    
+    @State private var toCurrencyName = "Euro"
+    @State private var toFlagEmoji = "🇪🇺"
+    @State private var toCurrencyCode = "EUR"
+    
     private let gradientStops = [
-        Gradient.Stop(color: Color(red: 0.31, green: 0.20, blue: 0.65), location: 0.00),
-        Gradient.Stop(color: Color(red: 0.34, green: 0.21, blue: 0.71), location: 0.06),
-        Gradient.Stop(color: Color(red: 0.37, green: 0.22, blue: 0.77), location: 0.09),
-        Gradient.Stop(color: Color(red: 0.20, green: 0.11, blue: 0.49), location: 0.38),
-        Gradient.Stop(color: Color(red: 0.11, green: 0.00, blue: 0.25), location: 1.00)
+        Gradient.Stop(color: Color(red: 0.12, green: 0.03, blue: 0.30), location: 0.00),
+        Gradient.Stop(color: Color(red: 0.15, green: 0.04, blue: 0.36), location: 0.06),
+        Gradient.Stop(color: Color(red: 0.18, green: 0.05, blue: 0.42), location: 0.09),
+        Gradient.Stop(color: Color(red: 0.07, green: 0.01, blue: 0.20), location: 0.38),
+        Gradient.Stop(color: Color(red: 0.02, green: 0.00, blue: 0.08), location: 1.00)
     ]
     
     private func formatAmount(_ string: String) -> String? {
@@ -105,7 +114,7 @@ struct HomeView: View {
                     startPoint: .topTrailing,
                     endPoint: .bottomLeading
                 )
-                .overlay(Color.black.opacity(0.20))
+                .overlay(Color.black.opacity(0.30))
                 .ignoresSafeArea()
                 
                 ScrollView(showsIndicators: false) {
@@ -113,11 +122,11 @@ struct HomeView: View {
                         // Purple section with currency cards and quick conversions
                         VStack(alignment: .leading, spacing: 8) {
                             CurrencyCard(
-                                currencyName: "British Pound",
+                                currencyName: $fromCurrencyName,
+                                flagEmoji: $fromFlagEmoji,
+                                currencyCode: $fromCurrencyCode,
                                 amount: topCardAmountString,
-                                flagEmoji: "🇬🇧",
-                                currencyCode: "GBP",
-                                exchangeRateInfo: "1 GBP = 1.1700 EUR"
+                                exchangeRateInfo: "1 \(fromCurrencyCode) = 1.1700 \(toCurrencyCode)"
                             )
                             .padding(.horizontal, 16)
                             .overlay(alignment: .bottom) {
@@ -127,11 +136,11 @@ struct HomeView: View {
                             }
                             
                             CurrencyCard(
-                                currencyName: "Euro",
+                                currencyName: $toCurrencyName,
+                                flagEmoji: $toFlagEmoji,
+                                currencyCode: $toCurrencyCode,
                                 amount: "58.50",
-                                flagEmoji: "🇪🇺",
-                                currencyCode: "EUR",
-                                exchangeRateInfo: "1 EUR = 0.8547 GBP"
+                                exchangeRateInfo: "1 \(toCurrencyCode) = 0.8547 \(fromCurrencyCode)"
                             )
                             .padding(.horizontal, 16)
                             

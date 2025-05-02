@@ -20,26 +20,37 @@ struct CurrencySelector: View {
         NavigationStack {
             VStack(spacing: 0) {
                 // Custom Navigation Bar
-                VStack(spacing: 0) {
+                VStack(spacing: 16) {
                     HStack {
-                        Text("Choose a currency")
-                            .font(.system(size: 28, weight: .bold))
-                            .foregroundColor(Color("grey200"))
                         Spacer()
-                        Button("Cancel") {
+                        Button {
                             dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundColor(Color("grey500"))
+                                .frame(width: 32, height: 32)
+                                .background(Color("grey700"))
+                                .clipShape(Circle())
                         }
-                        .foregroundColor(Color("grey200"))
                     }
                     .padding(.horizontal)
                     .padding(.top, 16)
                     
-                    // Search Bar
-                    SearchBar(text: $searchText, placeholder: "Search currency")
+                    Text("Choose a currency")
+                        .font(.title)
+                        .bold()
+                        .kerning(0.38)
+                        .foregroundColor(Color("grey100"))
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal)
-                        .padding(.top, 16)
+                    
+                    // Search Bar
+                    SearchBar(text: $searchText, placeholder: "Search currency name or code")
+                        .padding(.horizontal)
+                        .padding(.bottom, 24)
                 }
-                .background(Color("grey700"))
+                .background(Color("grey800"))
                 
                 // Content
                 ScrollView {
@@ -48,8 +59,10 @@ struct CurrencySelector: View {
                         if searchText.isEmpty {
                             VStack(alignment: .leading, spacing: 16) {
                                 Text("Frequently used")
-                                    .font(.headline)
-                                    .foregroundColor(Color("grey300"))
+                                    .font(.footnote)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(Color("grey600"))
+                                    .textCase(.uppercase)
                                     .padding(.horizontal)
                                 
                                 ForEach(Currency.frequentlyUsed) { currency in
@@ -64,19 +77,20 @@ struct CurrencySelector: View {
                                         )
                                     }
                                 }
-                                
-                                Divider()
-                                    .background(Color("grey600"))
-                                    .padding(.vertical, 8)
                             }
                         }
                         
                         // All Currencies Section
-                        VStack(alignment: .leading, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 0) {
                             if searchText.isEmpty {
+                                Divider()
+                                    .background(Color("grey600"))
+                                    .padding(.bottom, 16)
                                 Text("All currencies")
-                                    .font(.headline)
-                                    .foregroundColor(Color("grey300"))
+                                    .font(.footnote)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(Color("grey600"))
+                                    .textCase(.uppercase)
                                     .padding(.horizontal)
                             }
                             
@@ -93,15 +107,14 @@ struct CurrencySelector: View {
                                 }
                             }
                         }
-                        .padding(.bottom, 32)
                     }
                     .padding(.top, 16)
                 }
             }
-            .background(Color("grey700"))
+            .background(Color("grey800"))
             .navigationBarHidden(true)
         }
-        .background(Color("grey700"))
+        .background(Color("grey800").ignoresSafeArea())
         .edgesIgnoringSafeArea(.horizontal)
     }
 }
@@ -114,27 +127,34 @@ struct SearchBar: View {
     var body: some View {
         HStack {
             Image(systemName: "magnifyingglass")
-                .foregroundColor(Color("grey300"))
+                .foregroundColor(Color("grey500"))
             
-            TextField(placeholder, text: $text)
-                .foregroundColor(Color("grey200"))
-                .tint(Color("grey200"))
-                .focused($isFocused)
-                .submitLabel(.search)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
+            ZStack(alignment: .leading) {
+                if text.isEmpty {
+                    Text(placeholder)
+                        .foregroundColor(Color("grey500"))
+                }
+                TextField("", text: $text)
+                    .foregroundColor(Color("grey500"))
+                    .tint(Color("grey500"))
+                    .focused($isFocused)
+                    .submitLabel(.search)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+            }
             
             if !text.isEmpty {
                 Button {
                     text = ""
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(Color("grey300"))
+                        .foregroundColor(Color("grey500"))
                 }
             }
         }
-        .padding(8)
-        .background(Color("grey800"))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 10)
+        .background(Color("grey700"))
         .cornerRadius(8)
         .onTapGesture {
             isFocused = true

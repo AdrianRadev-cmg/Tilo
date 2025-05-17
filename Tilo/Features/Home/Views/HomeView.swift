@@ -164,8 +164,7 @@ struct HomeView: View {
                         
                         // Bottom grey section
                         VStack(spacing: 24) {
-                            // Exchange Rate Insights Section (1:1 Google Flights style)
-                            ExchangeRateInsightsCard(isPro: false)
+                            CurrencyChartView(fromCurrency: fromCurrencyCode, toCurrency: toCurrencyCode)
                             // Recent Transactions Section
                             VStack(alignment: .leading, spacing: 16) {
                                 Text("Recent Transactions")
@@ -341,6 +340,7 @@ struct ExchangeRateInsightsCard: View {
     let isPro: Bool
     @State private var expanded = true
     @State private var selectedRange: ExchangeRateRange = .sevenDays
+    
     // Dummy data
     let minValue: Double = 1.10
     let maxValue: Double = 1.22
@@ -401,65 +401,36 @@ struct ExchangeRateInsightsCard: View {
             .background(Color.clear)
 
             if expanded {
-                if isPro {
-                    VStack(alignment: .leading, spacing: 20) {
-                        // Range Bar with marker and tooltip
-                        ExchangeRateRangeBar1to1(
-                            minValue: minValue,
-                            maxValue: maxValue,
-                            typicalLow: typicalLow,
-                            typicalHigh: typicalHigh,
-                            today: today,
-                            todayLabel: todayLabel
-                        )
-                        // Summary
-                        Text(summary)
-                            .font(.footnote)
-                            .foregroundColor(Color("grey300"))
-                            .padding(.horizontal, 8)
-                        // Segmented control for range
-                        Picker("Range", selection: $selectedRange) {
-                            ForEach(ExchangeRateRange.allCases) { range in
-                                Text(range.rawValue).tag(range)
-                            }
-                        }
-                        .pickerStyle(.segmented)
+                VStack(alignment: .leading, spacing: 20) {
+                    // Range Bar with marker and tooltip
+                    ExchangeRateRangeBar1to1(
+                        minValue: minValue,
+                        maxValue: maxValue,
+                        typicalLow: typicalLow,
+                        typicalHigh: typicalHigh,
+                        today: today,
+                        todayLabel: todayLabel
+                    )
+                    // Summary
+                    Text(summary)
+                        .font(.footnote)
+                        .foregroundColor(Color("grey300"))
                         .padding(.horizontal, 8)
-                        .padding(.bottom, 4)
-                        // Chart
-                        ExchangeRateHistoryChart1to1(history: selectedHistory, minValue: minValue, maxValue: maxValue)
-                            .frame(height: 90)
-                            .padding(.horizontal, 8)
-                    }
-                    .padding(.bottom, 16)
-                } else {
-                    // Free version: show a blurred/locked placeholder for the chart area
-                    VStack(alignment: .leading, spacing: 20) {
-                        ExchangeRateRangeBar1to1(
-                            minValue: minValue,
-                            maxValue: maxValue,
-                            typicalLow: typicalLow,
-                            typicalHigh: typicalHigh,
-                            today: today,
-                            todayLabel: todayLabel
-                        )
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(Color("grey700").opacity(0.7))
-                                .frame(height: 90)
-                            VStack {
-                                Image(systemName: "lock.fill")
-                                    .foregroundColor(Color("grey400"))
-                                    .font(.system(size: 22, weight: .semibold))
-                                Text("Unlock full insights with TILO Pro")
-                                    .font(.footnote)
-                                    .foregroundColor(Color("grey400"))
-                            }
+                    // Segmented control for range
+                    Picker("Range", selection: $selectedRange) {
+                        ForEach(ExchangeRateRange.allCases) { range in
+                            Text(range.rawValue).tag(range)
                         }
-                        .padding(.horizontal, 8)
                     }
-                    .padding(.bottom, 16)
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, 4)
+                    // Chart
+                    ExchangeRateHistoryChart1to1(history: selectedHistory, minValue: minValue, maxValue: maxValue)
+                        .frame(height: 90)
+                        .padding(.horizontal, 8)
                 }
+                .padding(.bottom, 16)
             }
         }
         .background(
@@ -627,6 +598,24 @@ struct ExchangeRateHistoryChart1to1: View {
             }
             .frame(maxWidth: .infinity, alignment: .bottom)
             .offset(y: geo.size.height - 12)
+        }
+    }
+}
+
+// New component for feature rows in the upsell dropdown
+struct FeatureRow: View {
+    let icon: String
+    let text: String
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(Color("primary400"))
+                .font(.system(size: 16, weight: .semibold))
+            Text(text)
+                .font(.subheadline)
+                .foregroundColor(Color("grey100"))
+            Spacer()
         }
     }
 }

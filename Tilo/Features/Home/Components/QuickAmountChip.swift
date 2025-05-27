@@ -45,7 +45,7 @@ struct QuickAmountChip: View {
     ZStack {
         LinearGradient(
             gradient: Gradient(stops: gradientStops),
-            startPoint: .topTrailing, 
+            startPoint: .topTrailing,
             endPoint: .bottomLeading
         )
         Color.black.opacity(0.20)

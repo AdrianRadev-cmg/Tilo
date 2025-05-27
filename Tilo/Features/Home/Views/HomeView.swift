@@ -86,11 +86,11 @@ struct HomeView: View {
     @State private var toCurrencyCode = "EUR"
     
     private let gradientStops = [
-        Gradient.Stop(color: Color(red: 0.12, green: 0.03, blue: 0.30), location: 0.00),
-        Gradient.Stop(color: Color(red: 0.15, green: 0.04, blue: 0.36), location: 0.06),
-        Gradient.Stop(color: Color(red: 0.18, green: 0.05, blue: 0.42), location: 0.09),
-        Gradient.Stop(color: Color(red: 0.07, green: 0.01, blue: 0.20), location: 0.38),
-        Gradient.Stop(color: Color(red: 0.02, green: 0.00, blue: 0.08), location: 1.00)
+        Gradient.Stop(color: Color(red: 0.18, green: 0.09, blue: 0.38), location: 0.00),
+        Gradient.Stop(color: Color(red: 0.21, green: 0.10, blue: 0.42), location: 0.06),
+        Gradient.Stop(color: Color(red: 0.24, green: 0.11, blue: 0.48), location: 0.09),
+        Gradient.Stop(color: Color(red: 0.13, green: 0.05, blue: 0.26), location: 0.38),
+        Gradient.Stop(color: Color(red: 0.06, green: 0.02, blue: 0.12), location: 1.00)
     ]
     
     private func formatAmount(_ string: String) -> String? {
@@ -318,6 +318,12 @@ struct HomeView: View {
 
 #Preview {
     HomeView()
+        .preferredColorScheme(.dark)
+        .environment(\.colorScheme, .dark)
+        .previewDevice(PreviewDevice(rawValue: "iPhone 16 Pro"))
+        .previewDisplayName("Home View")
+        .previewLayout(.sizeThatFits)
+        .previewInterfaceOrientation(.portrait)
 }
 
 // Add preference key for height measurement

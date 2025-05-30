@@ -23,14 +23,15 @@ struct CurrencySelectorChip: View {
                 Text(currencyCode)
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.white)
-                    .padding(.leading, 4) // Add padding BEFORE text
+                    .padding(.leading, 6) // Add a bit more space before code
+                    .padding(.trailing, 2) // Add 2px after code
                 
                 Image(systemName: "chevron.down")
                     .font(.system(size: 16))
                     .foregroundColor(.white)
+                    .padding(.trailing, 2) // Add 2px after chevron
             }
-            // Restore styling to the overall HStack
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 10)
             // Removed vertical padding to allow divider to reach edges
             .background( // Apply manual frosted glass effect
                 RoundedRectangle(cornerRadius: 8)

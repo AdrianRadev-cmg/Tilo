@@ -137,6 +137,7 @@ struct CurrencyChartView: View {
                 // Move rateInfoView here, directly below chips
                 rateInfoView
                 chartView
+                    .padding(.top, 16)
             }
             .padding(0)
             .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -144,12 +145,12 @@ struct CurrencyChartView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 24)
         .frame(maxWidth: .infinity)
-        .background(Color("grey700"))
+        .background(Color("grey700").opacity(0.2))
         .cornerRadius(8)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .inset(by: 0.5)
-                .stroke(Constants.grey400, lineWidth: 1)
+                .stroke(Color("grey400").opacity(0.1), lineWidth: 1)
         )
         .task {
             await viewModel.fetchRates(for: selectedRange)
@@ -297,6 +298,27 @@ struct CurrencyLineChart: View {
                 .interpolationMethod(.catmullRom)
                 .foregroundStyle(Constants.purple600)
                 .lineStyle(StrokeStyle(lineWidth: 2))
+                // Selected point indicator (show for selectedRate or latest value)
+                let showDot = (selectedRate?.id ?? rates.last?.id) == rate.id
+                if showDot {
+                    PointMark(
+                        x: .value("Date", rate.date),
+                        y: .value("Rate", rate.rate)
+                    )
+                    .symbol {
+                        ZStack {
+                            // Halo
+                            Circle()
+                                .fill(Constants.purple600.opacity(0.3))
+                                .frame(width: 32, height: 32)
+                            
+                            // Dot
+                            Circle()
+                                .fill(Constants.purple600)
+                                .frame(width: 8, height: 8)
+                        }
+                    }
+                }
             }
             .chartYAxis {
                 AxisMarks() { value in
@@ -339,24 +361,29 @@ struct CurrencyLineChart: View {
             .chartOverlay { proxy in
                 GeometryReader { geometry in
                     Rectangle()
-                        .fill(.clear)
+                        .fill(Color.clear)
                         .contentShape(Rectangle())
                         .gesture(
                             DragGesture(minimumDistance: 0)
                                 .onChanged { value in
                                     let x = value.location.x - geometry[proxy.plotAreaFrame].origin.x
                                     guard x >= 0, x <= geometry[proxy.plotAreaFrame].width else { return }
-                                    let date = proxy.value(atX: x) as Date?
-                                    guard let date = date else { return }
-                                    selectedRate = rates.min(by: { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) })
+                                    // Convert x to date
+                                    if let date = proxy.value(atX: x, as: Date.self) {
+                                        // Find the closest rate
+                                        if let closest = rates.min(by: { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) }) {
+                                            selectedRate = closest
+                                        }
+                                    }
                                 }
                                 .onEnded { _ in
+                                    // Reset to latest value
                                     selectedRate = nil
                                 }
                         )
                 }
             }
-            .frame(height: 200)
+            .frame(height: 164)
             .background(Color.clear)
         }
     }

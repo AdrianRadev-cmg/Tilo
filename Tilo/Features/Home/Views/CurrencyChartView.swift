@@ -136,19 +136,6 @@ struct CurrencyChartView: View {
                 .padding(.top, 8)
                 // Move rateInfoView here, directly below chips
                 rateInfoView
-                // Selected value
-                if let selected = selectedRate {
-                    HStack(spacing: 4) {
-                        Text(String(format: "%.4f", selected.rate))
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(Constants.purple400)
-                        Spacer()
-                    }
-                    .padding(.leading, 8)
-                    .padding(.bottom, 4)
-                } else {
-                    Spacer().frame(height: 24)
-                }
                 chartView
             }
             .padding(0)
@@ -156,7 +143,7 @@ struct CurrencyChartView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 24)
-        .frame(width: 358, alignment: .center)
+        .frame(maxWidth: .infinity)
         .background(Color("grey700"))
         .cornerRadius(8)
         .overlay(
@@ -310,26 +297,20 @@ struct CurrencyLineChart: View {
                 .interpolationMethod(.catmullRom)
                 .foregroundStyle(Constants.purple600)
                 .lineStyle(StrokeStyle(lineWidth: 2))
-                // Selected point
-                if let selected = selectedRate, selected.id == rate.id {
-                    PointMark(
-                        x: .value("Date", rate.date),
-                        y: .value("Rate", rate.rate)
-                    )
-                    .symbolSize(60)
-                    .foregroundStyle(Constants.purple400)
-                }
             }
             .chartYAxis {
-                AxisMarks(position: .trailing) { value in
+                AxisMarks() { value in
                     AxisGridLine()
                         .foregroundStyle(Color("grey600").opacity(0.3))
-                    AxisValueLabel {
+                    AxisValueLabel() {
                         if let rate = value.as(Double.self) {
-                            Text(String(format: "%.4f", rate))
-                                .foregroundStyle(Color("grey100"))
-                                .font(.system(size: 12))
-                                .padding(.leading, 4)
+                            let index = value.index
+                            if [0, 2, 4].contains(index) {
+                                Text(String(format: "%.4f", rate))
+                                    .foregroundStyle(Color("grey100"))
+                                    .font(.system(size: 12))
+                                    .padding(.leading, 4)
+                            }
                         }
                     }
                 }
@@ -377,26 +358,6 @@ struct CurrencyLineChart: View {
             }
             .frame(height: 200)
             .background(Color.clear)
-            if let selected = selectedRate, let idx = rates.firstIndex(where: { $0.id == selected.id }) {
-                GeometryReader { geo in
-                    let chartWidth = geo.size.width
-                    let chartHeight = geo.size.height
-                    let xPos = chartWidth * CGFloat(idx) / CGFloat(max(rates.count - 1, 1))
-                    let yRange = maxRate - minRate
-                    let yPos = chartHeight - CGFloat((selected.rate - minRate) / (yRange == 0 ? 1 : yRange)) * chartHeight
-                    Path { path in
-                        path.move(to: CGPoint(x: xPos, y: 0))
-                        path.addLine(to: CGPoint(x: xPos, y: yPos))
-                    }
-                    .stroke(Constants.purple400, style: StrokeStyle(lineWidth: 2, dash: [4, 4]))
-                    .opacity(0.7)
-                    Circle()
-                        .fill(Constants.purple400)
-                        .frame(width: 12, height: 12)
-                        .position(x: xPos, y: yPos)
-                }
-                .frame(height: 200)
-            }
         }
     }
     

@@ -75,6 +75,7 @@ struct CustomTabBar: View {
 struct HomeView: View {
     @State private var selectedTab = 0
     @State private var topCardAmountString: String = "50.00"
+    @State private var selectedQuickAmount: Double?
     
     // Add state for currency data
     @State private var fromCurrencyName = "British Pound"
@@ -152,7 +153,14 @@ struct HomeView: View {
                                 
                                 FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
                                     ForEach([1000, 2000, 5000, 10000, 20000], id: \.self) { amount in
-                                        QuickAmountChip(symbol: "¥", amount: amount)
+                                        QuickAmountChip(
+                                            symbol: fromCurrencyCode == "GBP" ? "£" : fromCurrencyCode == "EUR" ? "€" : "$",
+                                            amount: amount,
+                                            selectedAmount: $selectedQuickAmount,
+                                            onSelect: { selectedAmount in
+                                                topCardAmountString = String(format: "%.2f", selectedAmount)
+                                            }
+                                        )
                                     }
                                 }
                             }

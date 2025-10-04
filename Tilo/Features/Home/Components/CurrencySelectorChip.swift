@@ -32,25 +32,9 @@ struct CurrencySelectorChip: View {
                     .padding(.trailing, 2) // Add 2px after chevron
             }
             .padding(.horizontal, 10)
-            // Removed vertical padding to allow divider to reach edges
-            .background( // Apply manual frosted glass effect
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(Color(red: 0.2, green: 0.2, blue: 0.2).opacity(0.15)) // Base color + opacity
-                    .blur(radius: 30) // Apply background blur
-            )
-            .cornerRadius(8) // Clip the main content to the shape
-            .overlay( // Re-add diagonal gradient overlay
-                LinearGradient(
-                    gradient: Gradient(colors: [Color.white.opacity(0.05), Color.black.opacity(0.05)]),
-                    startPoint: .topLeading, 
-                    endPoint: .bottomTrailing
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-            )
-            .overlay( // Apply the subtle edge highlight stroke LAST
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color(red: 0.7, green: 0.7, blue: 0.7).opacity(0.05), lineWidth: 1)
-            )
+            .padding(.vertical, 8)
+            .glassEffect()
+            .clipShape(RoundedRectangle(cornerRadius: 8))
         }
     }
 }

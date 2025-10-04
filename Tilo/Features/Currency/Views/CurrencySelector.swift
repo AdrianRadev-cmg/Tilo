@@ -44,10 +44,16 @@ struct CurrencySelector: View {
                             dismiss()
                         } label: {
                             Image(systemName: "xmark")
-                                .font(.system(size: 17, weight: .semibold))
-                                .foregroundColor(Color("grey500"))
-                                .frame(width: 32, height: 32)
-                                .background(Color("grey700"))
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 40, height: 40)
+                                .background(Color("grey800"))
+                                .background(.ultraThickMaterial)
+                                .glassEffect()
+                                .overlay(
+                                    Circle()
+                                        .stroke(.white.opacity(0.2), lineWidth: 0.8)
+                                )
                                 .clipShape(Circle())
                         }
                     }

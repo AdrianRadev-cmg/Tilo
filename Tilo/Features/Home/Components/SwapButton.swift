@@ -9,27 +9,29 @@ struct SwapButton: View {
             Image(systemName: "arrow.up.arrow.down.circle") 
                 .font(.system(size: 18, weight: .regular))
                 .foregroundStyle(Color("grey100"))
+                .frame(width: 44, height: 44) // Larger hit area
+                .background(
+                    Circle()
+                        .fill(Color("grey800").opacity(0.40))
+                        .blur(radius: 20)
+                )
+                .overlay(
+                    LinearGradient(
+                        gradient: Gradient(colors: [Color.white.opacity(0.12), Color.black.opacity(0.12)]),
+                        startPoint: .topLeading, 
+                        endPoint: .bottomTrailing
+                    )
+                    .clipShape(Circle())
+                )
+                .overlay(
+                    Circle()
+                        .stroke(Color("primary100").opacity(0.12), lineWidth: 1)
+                )
+                .clipShape(Circle())
+                .contentShape(Circle()) // Explicitly define hit area
         }
-        .frame(width: 36, height: 36)
-        .background( 
-            Circle()
-                .fill(Color("grey800").opacity(0.40)) // Increased from 0.30 to 0.40
-                .blur(radius: 20)
-        )
-        .overlay(
-            LinearGradient(
-                gradient: Gradient(colors: [Color.white.opacity(0.12), Color.black.opacity(0.12)]), // Increased from 0.08 to 0.12
-                startPoint: .topLeading, 
-                endPoint: .bottomTrailing
-            )
-            .clipShape(Circle())
-        )
-        .overlay(
-            Circle()
-                .stroke(Color("primary100").opacity(0.12), lineWidth: 1) // Increased from 0.08 to 0.12
-        )
-        .clipShape(Circle())
-        .shadow(color: .black.opacity(0.20), radius: 10, x: 0, y: 3) // Increased from 0.15 to 0.20
+        .buttonStyle(.plain) // Remove default button style
+        .shadow(color: .black.opacity(0.20), radius: 10, x: 0, y: 3)
     }
 }
 

@@ -10,22 +10,10 @@ struct SwapButton: View {
                 .font(.system(size: 18, weight: .regular))
                 .foregroundStyle(Color("grey100"))
                 .frame(width: 44, height: 44) // Larger hit area
-                .background(
-                    Circle()
-                        .fill(Color("grey800").opacity(0.40))
-                        .blur(radius: 20)
-                )
-                .overlay(
-                    LinearGradient(
-                        gradient: Gradient(colors: [Color.white.opacity(0.12), Color.black.opacity(0.12)]),
-                        startPoint: .topLeading, 
-                        endPoint: .bottomTrailing
-                    )
-                    .clipShape(Circle())
-                )
+                .glassEffect()
                 .overlay(
                     Circle()
-                        .stroke(Color("primary100").opacity(0.12), lineWidth: 1)
+                        .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
                 )
                 .clipShape(Circle())
                 .contentShape(Circle()) // Explicitly define hit area

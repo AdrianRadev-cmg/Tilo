@@ -7,6 +7,11 @@ struct CurrencyCard: View {
     @Binding var currencyCode: String
     let amount: String
     let exchangeRateInfo: String
+    let currencySymbol: String
+    var onAmountChange: ((Double) -> Void)? = nil
+    var onEditingChanged: ((Bool) -> Void)? = nil
+    let isEditable: Bool
+    let isCurrentlyActive: Bool
     
     // State for focus and text input
     @State private var isAmountFocused: Bool = false
@@ -51,38 +56,100 @@ struct CurrencyCard: View {
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                         )
 
-                    if isAmountFocused {
-                        TextField("", text: $amountInput)
-                            .font(.system(size: 26, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding(.vertical, 4) 
-                            .padding(.horizontal, 8)
-                            .keyboardType(.decimalPad)
-                            .tint(.white)
-                            .focused($amountFieldIsFocused)
-                            .onSubmit {
-                                if let formatted = formatAmount(amountInput) {
-                                    amountInput = formatted
-                                    isInputError = false
-                                } else {
-                                    isInputError = true 
+                    if isAmountFocused && isEditable {
+                        HStack(spacing: 4) {
+                            Text(currencySymbol)
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white)
+                            TextField("", text: $amountInput)
+                                .font(.system(size: 26, weight: .semibold))
+                                .foregroundColor(.white)
+                                .keyboardType(.numberPad)
+                                .tint(.white)
+                                .focused($amountFieldIsFocused)
+                                .toolbar {
+                                    ToolbarItemGroup(placement: .keyboard) {
+                                        Spacer()
+                                        Button("Done") {
+                                            isAmountFocused = false
+                                            amountFieldIsFocused = false
+                                            onEditingChanged?(false)
+                                        }
+                                        .font(.system(size: 18, weight: .semibold))
+                                    }
                                 }
-                                isAmountFocused = false 
-                            }
-                            .onAppear {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                    amountFieldIsFocused = true
+                        }
+                        .padding(.vertical, 4) 
+                        .padding(.horizontal, 8)
+                            .onChange(of: amountInput) { oldValue, newValue in
+                                // Remove any existing formatting (commas)
+                                let cleanInput = newValue.replacingOccurrences(of: ",", with: "")
+                                
+                                // Only allow digits and one decimal point
+                                let filtered = cleanInput.filter { $0.isNumber || $0 == "." }
+                                
+                                // Prevent multiple decimal points
+                                let decimalCount = filtered.filter { $0 == "." }.count
+                                if decimalCount > 1 {
+                                    amountInput = oldValue
+                                    return
+                                }
+                                
+                                // Apply smart formatting: add commas for numbers >= 1000
+                                if let doubleValue = Double(filtered) {
+                                    // Split into integer and decimal parts
+                                    let parts = filtered.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false)
+                                    let integerPart = String(parts[0])
+                                    let decimalPart = parts.count > 1 ? String(parts[1]) : nil
+                                    
+                                    // Format integer part with commas if >= 1000
+                                    let formattedInteger: String
+                                    if let intValue = Int(integerPart), intValue >= 1000 {
+                                        let formatter = NumberFormatter()
+                                        formatter.numberStyle = .decimal
+                                        formatter.groupingSeparator = ","
+                                        formatter.usesGroupingSeparator = true
+                                        formattedInteger = formatter.string(from: NSNumber(value: intValue)) ?? integerPart
+                                    } else {
+                                        formattedInteger = integerPart
+                                    }
+                                    
+                                    // Reconstruct the number with decimal if present
+                                    if let decimal = decimalPart {
+                                        amountInput = formattedInteger + "." + decimal
+                                    } else if filtered.hasSuffix(".") {
+                                        amountInput = formattedInteger + "."
+                                    } else {
+                                        amountInput = formattedInteger
+                                    }
+                                    
+                                    // Trigger conversion
+                                    if doubleValue > 0 {
+                                        onAmountChange?(doubleValue)
+                                    } else if filtered.isEmpty {
+                                        onAmountChange?(0)
+                                    }
+                                } else if filtered.isEmpty {
+                                    amountInput = ""
+                                    onAmountChange?(0)
+                                } else {
+                                    amountInput = filtered
                                 }
                             }
                             .accessibilityLabel("Amount to convert: \(currencyName)")
                     } else {
-                        Text(amountInput.isEmpty ? amount : amountInput)
-                            .font(.system(size: 26, weight: .semibold))
-                            .foregroundColor(.white)
-                            .padding(.vertical, 4) 
-                            .padding(.horizontal, 8) 
-                            .accessibilityLabel("Amount to convert: \(currencyName)")
-                            .accessibilityHint("Tap to edit amount")
+                        HStack(spacing: 4) {
+                            Text(currencySymbol)
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white)
+                            Text(amountInput.isEmpty ? amount : amountInput)
+                                .font(.system(size: 26, weight: .semibold))
+                                .foregroundColor(.white)
+                        }
+                        .padding(.vertical, 4) 
+                        .padding(.horizontal, 8) 
+                        .accessibilityLabel("Amount to convert: \(currencyName)")
+                        .accessibilityHint("Tap to edit amount")
                     }
                 }
                 .overlay {
@@ -119,10 +186,17 @@ struct CurrencyCard: View {
                 .frame(height: 39)
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    if !isAmountFocused {
+                    if isEditable && !isAmountFocused && isCurrentlyActive {
+                        // Clear the input when user taps to edit
                         amountInput = ""
                         isInputError = false
                         isAmountFocused = true
+                        onEditingChanged?(true)
+                        
+                        // Focus the text field to show keyboard
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            amountFieldIsFocused = true
+                        }
                     }
                 }
                 
@@ -145,21 +219,19 @@ struct CurrencyCard: View {
                 .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.7))
         }
         .onChange(of: amount) { oldAmount, newAmount in
-            amountInput = newAmount
-            isInputError = false
+            // Only update amountInput if not currently editing
+            if !isAmountFocused {
+                amountInput = newAmount
+                isInputError = false
+            }
         }
         .contentShape(Rectangle())
         .onTapGesture {
              if isAmountFocused {
-                 let currentInput = amountInput.trimmingCharacters(in: .whitespacesAndNewlines)
-                 if let formatted = formatAmount(currentInput), !currentInput.isEmpty {
-                     amountInput = formatted
-                 } else {
-                     amountInput = formatAmount("0") ?? "0.00"
-                 }
-                 isInputError = false
+                 // Dismiss keyboard and keep the raw input
                  isAmountFocused = false
-                 amountFieldIsFocused = false 
+                 amountFieldIsFocused = false
+                 onEditingChanged?(false)
              }
          }
         .frame(maxWidth: .infinity)
@@ -206,7 +278,10 @@ struct CurrencyCard: View {
         flagEmoji: $flagEmoji,
         currencyCode: $currencyCode,
         amount: "50.00",
-        exchangeRateInfo: "1 GBP = 1.1700 EUR"
+        exchangeRateInfo: "1 GBP = 1.1700 EUR",
+        currencySymbol: "£",
+        isEditable: true,
+        isCurrentlyActive: true
     )
     .padding()
     .background(

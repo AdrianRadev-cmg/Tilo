@@ -8,28 +8,12 @@ struct CurrencySelector: View {
     
     private var filteredCurrencies: [Currency] {
         if searchText.isEmpty {
-            // Add more dummy currencies for demo and sort alphabetically by code
-            let demoCurrencies = [
-                Currency(code: "AUD", name: "Australian Dollar", flag: "🇦🇺"),
-                Currency(code: "BRL", name: "Brazilian Real", flag: "🇧🇷"),
-                Currency(code: "CAD", name: "Canadian Dollar", flag: "🇨🇦"),
-                Currency(code: "CHF", name: "Swiss Franc", flag: "🇨🇭"),
-                Currency(code: "CNY", name: "Chinese Yuan", flag: "🇨🇳"),
-                Currency(code: "EUR", name: "Euro", flag: "🇪🇺"),
-                Currency(code: "GBP", name: "British Pound", flag: "🇬🇧"),
-                Currency(code: "INR", name: "Indian Rupee", flag: "🇮🇳"),
-                Currency(code: "JPY", name: "Japanese Yen", flag: "🇯🇵"),
-                Currency(code: "KRW", name: "South Korean Won", flag: "🇰🇷"),
-                Currency(code: "MXN", name: "Mexican Peso", flag: "🇲🇽"),
-                Currency(code: "NZD", name: "New Zealand Dollar", flag: "🇳🇿"),
-                Currency(code: "SGD", name: "Singapore Dollar", flag: "🇸🇬"),
-                Currency(code: "USD", name: "US Dollar", flag: "🇺🇸")
-            ]
-            return demoCurrencies.sorted { $0.code < $1.code }
-        }
-        return Currency.mockData.filter { currency in
-            currency.name.localizedCaseInsensitiveContains(searchText) ||
-            currency.code.localizedCaseInsensitiveContains(searchText)
+            return Currency.mockData
+        } else {
+            return Currency.mockData.filter { currency in
+                currency.name.localizedCaseInsensitiveContains(searchText) ||
+                currency.code.localizedCaseInsensitiveContains(searchText)
+            }
         }
     }
     

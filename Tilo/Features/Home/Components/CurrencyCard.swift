@@ -239,21 +239,24 @@ struct CurrencyCard: View {
                     .glassEffect(in: .rect(cornerRadius: 16))
                     .allowsHitTesting(false)
                 
-                // Solid purple tint overlay (custom dark purple #0D0428)
-                Rectangle()
-                    .fill(Color(red: 0x0D/255, green: 0x04/255, blue: 0x28/255).opacity(0.7))
-                    .allowsHitTesting(false)
+                // App's purple gradient overlay
+                LinearGradient(
+                    gradient: Gradient(stops: [
+                        Gradient.Stop(color: Color(red: 0.18, green: 0.09, blue: 0.38), location: 0.00),
+                        Gradient.Stop(color: Color(red: 0.21, green: 0.10, blue: 0.42), location: 0.06),
+                        Gradient.Stop(color: Color(red: 0.24, green: 0.11, blue: 0.48), location: 0.09),
+                        Gradient.Stop(color: Color(red: 0.13, green: 0.05, blue: 0.26), location: 0.38),
+                        Gradient.Stop(color: Color(red: 0.08, green: 0.03, blue: 0.15), location: 1.00)
+                    ]),
+                    startPoint: .topTrailing,
+                    endPoint: .bottomLeading
+                )
+                .opacity(0.6)
+                .allowsHitTesting(false)
             }
         )
         .clipShape(.rect(cornerRadius: 16))
         .containerShape(.rect(cornerRadius: 16))
-        .overlay(
-            // Heavier glass border effect (inset)
-            Rectangle()
-                .glassEffect(in: .rect(cornerRadius: 16))
-                .padding(1)
-                .allowsHitTesting(false)
-        )
         .sheet(isPresented: $showCurrencySelector) {
             CurrencySelector { selectedCurrency in
                 // Update the currency card with selected currency

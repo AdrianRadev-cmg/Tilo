@@ -239,9 +239,19 @@ struct CurrencyCard: View {
                     .glassEffect(in: .rect(cornerRadius: 16))
                     .allowsHitTesting(false)
                 
-                // Grey tint overlay (matching chart background)
+                // Dark purple gradient overlay (using darker parts of main background)
                 Rectangle()
-                    .fill(Color("grey700").opacity(0.2))
+                    .fill(
+                        LinearGradient(
+                            gradient: Gradient(stops: [
+                                Gradient.Stop(color: Color(red: 0.13, green: 0.05, blue: 0.26), location: 0.00),
+                                Gradient.Stop(color: Color(red: 0.08, green: 0.03, blue: 0.15), location: 1.00)
+                            ]),
+                            startPoint: .topTrailing,
+                            endPoint: .bottomLeading
+                        )
+                        .opacity(0.6)
+                    )
                     .allowsHitTesting(false)
             }
         )

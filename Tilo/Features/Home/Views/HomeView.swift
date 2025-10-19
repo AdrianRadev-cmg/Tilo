@@ -32,6 +32,11 @@ struct HomeView: View {
     // Preview-only debug controls
     var tintOpacity: Double = 0.6
     var tintBlendMode: BlendMode = .normal
+    var gradientColor1: Color = Color(red: 0.18, green: 0.09, blue: 0.38)
+    var gradientColor2: Color = Color(red: 0.21, green: 0.10, blue: 0.42)
+    var gradientColor3: Color = Color(red: 0.24, green: 0.11, blue: 0.48)
+    var gradientColor4: Color = Color(red: 0.13, green: 0.05, blue: 0.26)
+    var gradientColor5: Color = Color(red: 0.08, green: 0.03, blue: 0.15)
     
     private func swapCurrencies() {
         // Add haptic feedback
@@ -181,7 +186,12 @@ struct HomeView: View {
                                     isEditable: true,
                                     isCurrentlyActive: activeEditingCard == "top" || activeEditingCard == nil,
                                     tintOpacity: tintOpacity,
-                                    tintBlendMode: tintBlendMode
+                                    tintBlendMode: tintBlendMode,
+                                    gradientColor1: gradientColor1,
+                                    gradientColor2: gradientColor2,
+                                    gradientColor3: gradientColor3,
+                                    gradientColor4: gradientColor4,
+                                    gradientColor5: gradientColor5
                                 )
                                 .padding(.horizontal, 16)
                                 .onChange(of: fromCurrencyCode) { oldValue, newValue in
@@ -215,7 +225,12 @@ struct HomeView: View {
                                     isEditable: true,
                                     isCurrentlyActive: activeEditingCard == "bottom" || activeEditingCard == nil,
                                     tintOpacity: tintOpacity,
-                                    tintBlendMode: tintBlendMode
+                                    tintBlendMode: tintBlendMode,
+                                    gradientColor1: gradientColor1,
+                                    gradientColor2: gradientColor2,
+                                    gradientColor3: gradientColor3,
+                                    gradientColor4: gradientColor4,
+                                    gradientColor5: gradientColor5
                                 )
                                 .padding(.horizontal, 16)
                                 .onChange(of: toCurrencyCode) { oldValue, newValue in
@@ -325,10 +340,26 @@ struct DebugHomeViewWrapper: View {
     @State private var tintOpacity: Double = 0.6
     @State private var blendMode: BlendMode = .normal
     @State private var showControls: Bool = true
+    @State private var showColorPickers: Bool = false
+    
+    // Gradient colors
+    @State private var gradientColor1: Color = Color(red: 0.18, green: 0.09, blue: 0.38)
+    @State private var gradientColor2: Color = Color(red: 0.21, green: 0.10, blue: 0.42)
+    @State private var gradientColor3: Color = Color(red: 0.24, green: 0.11, blue: 0.48)
+    @State private var gradientColor4: Color = Color(red: 0.13, green: 0.05, blue: 0.26)
+    @State private var gradientColor5: Color = Color(red: 0.08, green: 0.03, blue: 0.15)
     
     var body: some View {
         ZStack {
-            HomeView(tintOpacity: tintOpacity, tintBlendMode: blendMode)
+            HomeView(
+                tintOpacity: tintOpacity,
+                tintBlendMode: blendMode,
+                gradientColor1: gradientColor1,
+                gradientColor2: gradientColor2,
+                gradientColor3: gradientColor3,
+                gradientColor4: gradientColor4,
+                gradientColor5: gradientColor5
+            )
             
             if showControls {
                 VStack {
@@ -373,6 +404,46 @@ struct DebugHomeViewWrapper: View {
                                     blendMode = .overlay
                                 }
                                 .buttonStyle(DebugButtonStyle(isSelected: blendMode == .overlay))
+                            }
+                        }
+                        
+                        Button(action: { showColorPickers.toggle() }) {
+                            HStack {
+                                Text(showColorPickers ? "Hide Gradient Colors" : "Show Gradient Colors")
+                                    .font(.subheadline)
+                                    .foregroundColor(.white)
+                                Spacer()
+                                Image(systemName: showColorPickers ? "chevron.up" : "chevron.down")
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                        }
+                        
+                        if showColorPickers {
+                            ScrollView {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    ColorPickerRow(title: "Color 1 (Top)", color: $gradientColor1)
+                                    ColorPickerRow(title: "Color 2", color: $gradientColor2)
+                                    ColorPickerRow(title: "Color 3", color: $gradientColor3)
+                                    ColorPickerRow(title: "Color 4", color: $gradientColor4)
+                                    ColorPickerRow(title: "Color 5 (Bottom)", color: $gradientColor5)
+                                    
+                                    Button("Reset to Default") {
+                                        gradientColor1 = Color(red: 0.18, green: 0.09, blue: 0.38)
+                                        gradientColor2 = Color(red: 0.21, green: 0.10, blue: 0.42)
+                                        gradientColor3 = Color(red: 0.24, green: 0.11, blue: 0.48)
+                                        gradientColor4 = Color(red: 0.13, green: 0.05, blue: 0.26)
+                                        gradientColor5 = Color(red: 0.08, green: 0.03, blue: 0.15)
+                                    }
+                                    .font(.subheadline)
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(Color.red.opacity(0.6))
+                                    )
+                                }
+                                .frame(maxHeight: 200)
                             }
                         }
                     }
@@ -438,5 +509,21 @@ struct DebugButtonStyle: ButtonStyle {
                 RoundedRectangle(cornerRadius: 8)
                     .fill(isSelected ? Color.purple : Color.white.opacity(0.1))
             )
+    }
+}
+
+struct ColorPickerRow: View {
+    let title: String
+    @Binding var color: Color
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.white.opacity(0.8))
+            ColorPicker("", selection: $color, supportsOpacity: false)
+                .labelsHidden()
+                .frame(height: 30)
+        }
     }
 }

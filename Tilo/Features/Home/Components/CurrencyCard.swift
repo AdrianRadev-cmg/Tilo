@@ -16,6 +16,11 @@ struct CurrencyCard: View {
     // Preview-only debug controls
     var tintOpacity: Double = 0.6
     var tintBlendMode: BlendMode = .normal
+    var gradientColor1: Color = Color(red: 0.18, green: 0.09, blue: 0.38)
+    var gradientColor2: Color = Color(red: 0.21, green: 0.10, blue: 0.42)
+    var gradientColor3: Color = Color(red: 0.24, green: 0.11, blue: 0.48)
+    var gradientColor4: Color = Color(red: 0.13, green: 0.05, blue: 0.26)
+    var gradientColor5: Color = Color(red: 0.08, green: 0.03, blue: 0.15)
     
     // State for focus and text input
     @State private var isAmountFocused: Bool = false
@@ -246,11 +251,11 @@ struct CurrencyCard: View {
                 // App's purple gradient overlay with adjustable opacity and blend mode
                 LinearGradient(
                     gradient: Gradient(stops: [
-                        Gradient.Stop(color: Color(red: 0.18, green: 0.09, blue: 0.38), location: 0.00),
-                        Gradient.Stop(color: Color(red: 0.21, green: 0.10, blue: 0.42), location: 0.06),
-                        Gradient.Stop(color: Color(red: 0.24, green: 0.11, blue: 0.48), location: 0.09),
-                        Gradient.Stop(color: Color(red: 0.13, green: 0.05, blue: 0.26), location: 0.38),
-                        Gradient.Stop(color: Color(red: 0.08, green: 0.03, blue: 0.15), location: 1.00)
+                        Gradient.Stop(color: gradientColor1, location: 0.00),
+                        Gradient.Stop(color: gradientColor2, location: 0.06),
+                        Gradient.Stop(color: gradientColor3, location: 0.09),
+                        Gradient.Stop(color: gradientColor4, location: 0.38),
+                        Gradient.Stop(color: gradientColor5, location: 1.00)
                     ]),
                     startPoint: .topTrailing,
                     endPoint: .bottomLeading

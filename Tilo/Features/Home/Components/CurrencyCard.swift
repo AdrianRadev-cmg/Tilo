@@ -232,14 +232,12 @@ struct CurrencyCard: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 16)
         .padding(.vertical, 24)
-        .background(Color.clear)
-        .overlay(
+        .background(
             Rectangle()
                 .glassEffect(in: .rect(cornerRadius: 16))
         )
-        .containerShape(.rect(cornerRadius: 16))
         .clipShape(.rect(cornerRadius: 16))
-        .compositingGroup()
+        .containerShape(.rect(cornerRadius: 16))
         .sheet(isPresented: $showCurrencySelector) {
             CurrencySelector { selectedCurrency in
                 // Update the currency card with selected currency

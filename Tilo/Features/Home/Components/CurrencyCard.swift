@@ -13,6 +13,10 @@ struct CurrencyCard: View {
     let isEditable: Bool
     let isCurrentlyActive: Bool
     
+    // Preview-only debug controls
+    var tintOpacity: Double = 0.6
+    var tintBlendMode: BlendMode = .normal
+    
     // State for focus and text input
     @State private var isAmountFocused: Bool = false
     @State private var amountInput: String = ""
@@ -239,7 +243,7 @@ struct CurrencyCard: View {
                     .glassEffect(in: .rect(cornerRadius: 16))
                     .allowsHitTesting(false)
                 
-                // App's purple gradient overlay
+                // App's purple gradient overlay with adjustable opacity and blend mode
                 LinearGradient(
                     gradient: Gradient(stops: [
                         Gradient.Stop(color: Color(red: 0.18, green: 0.09, blue: 0.38), location: 0.00),
@@ -251,7 +255,8 @@ struct CurrencyCard: View {
                     startPoint: .topTrailing,
                     endPoint: .bottomLeading
                 )
-                .opacity(0.6)
+                .opacity(tintOpacity)
+                .blendMode(tintBlendMode)
                 .allowsHitTesting(false)
             }
         )

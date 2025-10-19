@@ -29,6 +29,10 @@ struct HomeView: View {
     
     @StateObject private var exchangeService = ExchangeRateService.shared
     
+    // Preview-only debug controls
+    var tintOpacity: Double = 0.6
+    var tintBlendMode: BlendMode = .normal
+    
     private func swapCurrencies() {
         // Add haptic feedback
         let generator = UIImpactFeedbackGenerator(style: .medium)
@@ -175,7 +179,9 @@ struct HomeView: View {
                                         }
                                     },
                                     isEditable: true,
-                                    isCurrentlyActive: activeEditingCard == "top" || activeEditingCard == nil
+                                    isCurrentlyActive: activeEditingCard == "top" || activeEditingCard == nil,
+                                    tintOpacity: tintOpacity,
+                                    tintBlendMode: tintBlendMode
                                 )
                                 .padding(.horizontal, 16)
                                 .onChange(of: fromCurrencyCode) { oldValue, newValue in
@@ -207,7 +213,9 @@ struct HomeView: View {
                                         }
                                     },
                                     isEditable: true,
-                                    isCurrentlyActive: activeEditingCard == "bottom" || activeEditingCard == nil
+                                    isCurrentlyActive: activeEditingCard == "bottom" || activeEditingCard == nil,
+                                    tintOpacity: tintOpacity,
+                                    tintBlendMode: tintBlendMode
                                 )
                                 .padding(.horizontal, 16)
                                 .onChange(of: toCurrencyCode) { oldValue, newValue in
@@ -287,12 +295,148 @@ struct HomeView: View {
     }
 }
 
-#Preview {
+#Preview("Default") {
     HomeView()
         .preferredColorScheme(.dark)
         .environment(\.colorScheme, .dark)
         .previewDevice(PreviewDevice(rawValue: "iPhone 16 Pro"))
         .previewDisplayName("Home View")
-        .previewLayout(.sizeThatFits)
-        .previewInterfaceOrientation(.portrait)
+}
+
+#Preview("Debug Controls") {
+    DebugHomeViewWrapper()
+        .preferredColorScheme(.dark)
+        .environment(\.colorScheme, .dark)
+        .previewDevice(PreviewDevice(rawValue: "iPhone 16 Pro"))
+        .previewDisplayName("Home View - Debug")
+}
+
+#Preview("Design Backdrop") {
+    DesignBackdropWrapper()
+        .preferredColorScheme(.dark)
+        .environment(\.colorScheme, .dark)
+        .previewDevice(PreviewDevice(rawValue: "iPhone 16 Pro"))
+        .previewDisplayName("Home View - Calm Background")
+}
+
+// MARK: - Preview Debug Helpers
+
+struct DebugHomeViewWrapper: View {
+    @State private var tintOpacity: Double = 0.6
+    @State private var blendMode: BlendMode = .normal
+    @State private var showControls: Bool = true
+    
+    var body: some View {
+        ZStack {
+            HomeView(tintOpacity: tintOpacity, tintBlendMode: blendMode)
+            
+            if showControls {
+                VStack {
+                    Spacer()
+                    
+                    VStack(spacing: 16) {
+                        HStack {
+                            Text("Debug Controls")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                            Spacer()
+                            Button(action: { showControls.toggle() }) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .foregroundColor(.white.opacity(0.7))
+                            }
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Tint Opacity: \(String(format: "%.2f", tintOpacity))")
+                                .font(.subheadline)
+                                .foregroundColor(.white.opacity(0.8))
+                            Slider(value: $tintOpacity, in: 0...1, step: 0.05)
+                                .tint(.purple)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Blend Mode")
+                                .font(.subheadline)
+                                .foregroundColor(.white.opacity(0.8))
+                            HStack(spacing: 12) {
+                                Button("Normal") {
+                                    blendMode = .normal
+                                }
+                                .buttonStyle(DebugButtonStyle(isSelected: blendMode == .normal))
+                                
+                                Button("Multiply") {
+                                    blendMode = .multiply
+                                }
+                                .buttonStyle(DebugButtonStyle(isSelected: blendMode == .multiply))
+                                
+                                Button("Overlay") {
+                                    blendMode = .overlay
+                                }
+                                .buttonStyle(DebugButtonStyle(isSelected: blendMode == .overlay))
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color.black.opacity(0.8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 16)
+                                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                            )
+                    )
+                    .padding()
+                }
+            } else {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Button(action: { showControls.toggle() }) {
+                            Image(systemName: "slider.horizontal.3")
+                                .foregroundColor(.white)
+                                .padding()
+                                .background(Circle().fill(Color.black.opacity(0.6)))
+                        }
+                        .padding()
+                    }
+                }
+            }
+        }
+    }
+}
+
+struct DesignBackdropWrapper: View {
+    var body: some View {
+        ZStack {
+            // Calmer background for judging contrast
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color(red: 0.15, green: 0.15, blue: 0.15),
+                    Color(red: 0.1, green: 0.1, blue: 0.1)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+            
+            HomeView(tintOpacity: 0.6, tintBlendMode: .normal)
+        }
+    }
+}
+
+struct DebugButtonStyle: ButtonStyle {
+    let isSelected: Bool
+    
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.subheadline)
+            .foregroundColor(isSelected ? .white : .white.opacity(0.6))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isSelected ? Color.purple : Color.white.opacity(0.1))
+            )
+    }
 }

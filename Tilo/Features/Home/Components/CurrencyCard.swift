@@ -241,7 +241,7 @@ struct CurrencyCard: View {
                 
                 // Dark purple tint overlay (using gradientPurpleDeep)
                 Rectangle()
-                    .fill(Color(red: 0.08, green: 0.03, blue: 0.15).opacity(0.7))
+                    .fill(Color(red: 0.08, green: 0.03, blue: 0.15).opacity(0.35))
                     .allowsHitTesting(false)
             }
         )

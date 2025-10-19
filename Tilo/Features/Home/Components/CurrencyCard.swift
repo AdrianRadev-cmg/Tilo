@@ -261,7 +261,7 @@ struct CurrencyCard: View {
         .containerShape(.rect(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                .stroke(Color("gradientPurpleDeep").opacity(0.10), lineWidth: 1)
         )
         .sheet(isPresented: $showCurrencySelector) {
             CurrencySelector { selectedCurrency in

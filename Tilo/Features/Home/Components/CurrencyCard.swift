@@ -45,15 +45,10 @@ struct CurrencyCard: View {
             HStack(spacing: 16) {
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(Color(red: 0.2, green: 0.2, blue: 0.2).opacity(0.15))
-                        .blur(radius: 30)
+                        .fill(Color.white.opacity(0.06))
                         .overlay(
-                            LinearGradient(
-                                gradient: Gradient(colors: [Color.white.opacity(0.05), Color.black.opacity(0.05)]),
-                                startPoint: .topLeading, 
-                                endPoint: .bottomTrailing
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.white.opacity(0.10), lineWidth: 1)
                         )
 
                     if isAmountFocused && isEditable {
@@ -237,16 +232,14 @@ struct CurrencyCard: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 16)
         .padding(.vertical, 24)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(red: 0.2, green: 0.2, blue: 0.2).opacity(0.25))
-                .blur(radius: 15)
-        )
-        .cornerRadius(16)
+        .background(Color.clear)
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color(red: 0.7, green: 0.7, blue: 0.7).opacity(0.05), lineWidth: 1)
+            Rectangle()
+                .glassEffect(in: .rect(cornerRadius: 16))
         )
+        .containerShape(.rect(cornerRadius: 16))
+        .clipShape(.rect(cornerRadius: 16))
+        .compositingGroup()
         .sheet(isPresented: $showCurrencySelector) {
             CurrencySelector { selectedCurrency in
                 // Update the currency card with selected currency

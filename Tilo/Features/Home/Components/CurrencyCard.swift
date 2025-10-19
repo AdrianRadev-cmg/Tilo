@@ -232,31 +232,37 @@ struct CurrencyCard: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 16)
         .padding(.vertical, 24)
+        .zIndex(1)
         .background(
             ZStack {
-                // Glass effect as backmost layer
+                // Glass effect as base layer
                 Rectangle()
                     .glassEffect(in: .rect(cornerRadius: 16))
                     .allowsHitTesting(false)
                 
-                // Dark purple gradient overlay (using darker parts of main background)
+                // Low-opacity purple tint layer with blend mode
                 Rectangle()
                     .fill(
                         LinearGradient(
-                            gradient: Gradient(stops: [
-                                Gradient.Stop(color: Color(red: 0.13, green: 0.05, blue: 0.26), location: 0.00),
-                                Gradient.Stop(color: Color(red: 0.08, green: 0.03, blue: 0.15), location: 1.00)
-                            ]),
-                            startPoint: .topTrailing,
-                            endPoint: .bottomLeading
+                            colors: [
+                                Color("gradientPurpleDeep").opacity(0.34),
+                                Color("gradientPurpleDark").opacity(0.28)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
                         )
-                        .opacity(0.6)
                     )
+                    .blendMode(.multiply)
+                    .clipShape(.rect(cornerRadius: 16))
                     .allowsHitTesting(false)
             }
         )
         .clipShape(.rect(cornerRadius: 16))
         .containerShape(.rect(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+        )
         .sheet(isPresented: $showCurrencySelector) {
             CurrencySelector { selectedCurrency in
                 // Update the currency card with selected currency

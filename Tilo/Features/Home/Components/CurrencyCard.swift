@@ -232,37 +232,21 @@ struct CurrencyCard: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 16)
         .padding(.vertical, 24)
-        .zIndex(1)
         .background(
             ZStack {
-                // Glass effect as base layer
+                // Glass effect as backmost layer
                 Rectangle()
                     .glassEffect(in: .rect(cornerRadius: 16))
                     .allowsHitTesting(false)
                 
-                // Low-opacity purple tint layer with blend mode
+                // Solid purple tint overlay (custom dark purple #0D0428)
                 Rectangle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color("gradientPurpleDeep").opacity(0.34),
-                                Color("gradientPurpleDark").opacity(0.28)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .blendMode(.multiply)
-                    .clipShape(.rect(cornerRadius: 16))
+                    .fill(Color(red: 0x0D/255, green: 0x04/255, blue: 0x28/255).opacity(0.7))
                     .allowsHitTesting(false)
             }
         )
         .clipShape(.rect(cornerRadius: 16))
         .containerShape(.rect(cornerRadius: 16))
-        .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color("gradientPurpleDeep").opacity(0.10), lineWidth: 1)
-        )
         .sheet(isPresented: $showCurrencySelector) {
             CurrencySelector { selectedCurrency in
                 // Update the currency card with selected currency

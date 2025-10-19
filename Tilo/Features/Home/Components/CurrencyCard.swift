@@ -233,8 +233,17 @@ struct CurrencyCard: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 24)
         .background(
-            Rectangle()
-                .glassEffect(in: .rect(cornerRadius: 16))
+            ZStack {
+                // Glass effect as backmost layer
+                Rectangle()
+                    .glassEffect(in: .rect(cornerRadius: 16))
+                    .allowsHitTesting(false)
+                
+                // Dark purple tint overlay
+                Rectangle()
+                    .fill(Color(red: 0.13, green: 0.0, blue: 0.25).opacity(0.45))
+                    .allowsHitTesting(false)
+            }
         )
         .clipShape(.rect(cornerRadius: 16))
         .containerShape(.rect(cornerRadius: 16))

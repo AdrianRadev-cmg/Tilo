@@ -239,9 +239,9 @@ struct CurrencyCard: View {
                     .glassEffect(in: .rect(cornerRadius: 16))
                     .allowsHitTesting(false)
                 
-                // Solid purple tint overlay (custom dark purple #100239)
+                // Solid purple tint overlay (custom dark purple #0D0428)
                 Rectangle()
-                    .fill(Color(red: 0x10/255, green: 0x02/255, blue: 0x39/255).opacity(0.7))
+                    .fill(Color(red: 0x0D/255, green: 0x04/255, blue: 0x28/255).opacity(0.7))
                     .allowsHitTesting(false)
             }
         )

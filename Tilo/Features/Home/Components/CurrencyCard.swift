@@ -248,18 +248,11 @@ struct CurrencyCard: View {
         .clipShape(.rect(cornerRadius: 16))
         .containerShape(.rect(cornerRadius: 16))
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(0.3),
-                            Color.white.opacity(0.1)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
+            // Heavier glass border effect (inset)
+            Rectangle()
+                .glassEffect(in: .rect(cornerRadius: 16))
+                .padding(1)
+                .allowsHitTesting(false)
         )
         .sheet(isPresented: $showCurrencySelector) {
             CurrencySelector { selectedCurrency in

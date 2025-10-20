@@ -35,6 +35,9 @@ class ExchangeRateService: ObservableObject {
     @Published var lastUpdated: Date?
     @Published var errorMessage: String?
     
+    // Development mode toggle
+    @Published var isMockMode: Bool = true // Set to true for development, false for production
+    
     // Private properties
     private let apiKey = "cur_live_ekGkTC1IKGFiCe85LkBEwkjMNnZRA05iaVDqYq6G"
     private let baseURL = "https://api.currencyapi.com/v3/latest"
@@ -43,15 +46,56 @@ class ExchangeRateService: ObservableObject {
     // Cache storage
     private var cachedRates: CachedRates?
     
+    // Mock data for development
+    private let mockRates: [String: Double] = [
+        "EUR": 0.85,
+        "GBP": 0.73,
+        "JPY": 110.0,
+        "CAD": 1.25,
+        "AUD": 1.35,
+        "CHF": 0.92,
+        "CNY": 6.45,
+        "SEK": 8.5,
+        "NOK": 8.8,
+        "USD": 1.0
+    ]
+    
     // Singleton instance
     static let shared = ExchangeRateService()
     
     private init() {}
     
+    // MARK: - Development Methods
+    
+    /// Toggle between mock mode and real API mode
+    func toggleMockMode() {
+        isMockMode.toggle()
+        print("🔄 Mock mode: \(isMockMode ? "ON" : "OFF")")
+    }
+    
+    /// Set mock mode explicitly
+    func setMockMode(_ enabled: Bool) {
+        isMockMode = enabled
+        print("🔄 Mock mode: \(enabled ? "ON" : "OFF")")
+    }
+    
+    /// Get current mode status
+    var modeDescription: String {
+        return isMockMode ? "🧪 Mock Mode (No API calls)" : "🌐 Live Mode (Real API)"
+    }
+    
     // MARK: - Public Methods
     
     /// Fetch latest exchange rates from API or cache
     func fetchRates() async throws -> [String: Double] {
+        // Mock mode - return mock data immediately
+        if isMockMode {
+            print("🧪 Mock mode: Using mock exchange rates")
+            lastUpdated = Date()
+            errorMessage = nil
+            return mockRates
+        }
+        
         // Check if we have valid cached data
         if let cached = cachedRates, !cached.isExpired {
             print("✅ Using cached rates (age: \(Int(cached.age / 60)) minutes)")

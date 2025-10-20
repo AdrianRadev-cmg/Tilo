@@ -349,6 +349,9 @@ struct DebugHomeViewWrapper: View {
     @State private var gradientColor4: Color = Color(red: 0.13, green: 0.05, blue: 0.26)
     @State private var gradientColor5: Color = Color(red: 0.08, green: 0.03, blue: 0.15)
     
+    // API mode control
+    @StateObject private var exchangeService = ExchangeRateService.shared
+    
     var body: some View {
         ZStack {
             HomeView(
@@ -374,6 +377,26 @@ struct DebugHomeViewWrapper: View {
                             Button(action: { showControls.toggle() }) {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundColor(.white.opacity(0.7))
+                            }
+                        }
+                        
+                        // API Mode Toggle
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("API Mode:")
+                                    .font(.subheadline)
+                                    .foregroundColor(.white.opacity(0.8))
+                                Spacer()
+                                Button(action: {
+                                    exchangeService.toggleMockMode()
+                                }) {
+                                    Text(exchangeService.isMockMode ? "🧪 Mock" : "🌐 Live")
+                                        .font(.caption)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(exchangeService.isMockMode ? Color.orange.opacity(0.8) : Color.green.opacity(0.8))
+                                        .cornerRadius(6)
+                                }
                             }
                         }
                         

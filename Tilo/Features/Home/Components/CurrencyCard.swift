@@ -241,32 +241,21 @@ struct CurrencyCard: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 16)
         .padding(.vertical, 24)
-        .background(
-            ZStack {
-                // Glass effect as backmost layer
-                Rectangle()
-                    .glassEffect(in: .rect(cornerRadius: 16))
-                    .allowsHitTesting(false)
-                
-                // App's purple gradient overlay with adjustable opacity and blend mode
-                LinearGradient(
-                    gradient: Gradient(stops: [
-                        Gradient.Stop(color: gradientColor1, location: 0.00),
-                        Gradient.Stop(color: gradientColor2, location: 0.06),
-                        Gradient.Stop(color: gradientColor3, location: 0.09),
-                        Gradient.Stop(color: gradientColor4, location: 0.38),
-                        Gradient.Stop(color: gradientColor5, location: 1.00)
-                    ]),
-                    startPoint: .topTrailing,
-                    endPoint: .bottomLeading
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.white.opacity(0.3),
+                            Color.white.opacity(0.1),
+                            Color.clear
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
                 )
-                .opacity(tintOpacity)
-                .blendMode(tintBlendMode)
-                .allowsHitTesting(false)
-            }
         )
-        .clipShape(.rect(cornerRadius: 16))
-        .containerShape(.rect(cornerRadius: 16))
         .sheet(isPresented: $showCurrencySelector) {
             CurrencySelector { selectedCurrency in
                 // Update the currency card with selected currency

@@ -27,32 +27,17 @@ struct QuickAmountChip: View {
             generator.impactOccurred()
         }) {
             Text(symbol + formattedAmount)
-                .font(.custom("SF Pro", size: 17))
-                .foregroundColor(Color("grey100"))
+                .font(.system(size: 17, weight: .medium))
+                .foregroundColor(.white)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(isSelected ? Color("primary600").opacity(0.3) : Color("grey800").opacity(0.3))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .inset(by: 0.5)
-                        .stroke(isSelected ? Color("primary100") : Color("primary100").opacity(0.5), lineWidth: 1)
-                )
+                .glassEffect()
+                .clipShape(RoundedRectangle(cornerRadius: 8))
         }
-        .buttonStyle(QuickAmountChipButtonStyle())
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
-struct QuickAmountChipButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .opacity(configuration.isPressed ? 0.8 : 1.0)
-            .animation(.spring(response: 0.2, dampingFraction: 0.6), value: configuration.isPressed)
-    }
-}
 
 #Preview {
     // Define gradient stops locally, matching HomeView

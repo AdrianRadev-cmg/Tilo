@@ -156,33 +156,18 @@ struct CurrencyCard: View {
                     }
                 }
                 .overlay {
-                    // Always show subtle white edge to counter dark backgrounds
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color.white.opacity(0.15),
-                                    Color.white.opacity(0.05),
-                                    Color.clear
-                                ]),
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 1
-                        )
-                        .overlay {
-                            // Additional strokes for focus or error states
-                            if isAmountFocused {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
-                            } else if isInputError {
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color(red: 0.8, green: 0.2, blue: 0.2), lineWidth: 1)
-                            }
-                        }
+                    // Show strokes only on focus or error to avoid perceived fill tint
+                    if isAmountFocused {
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.white.opacity(0.35), lineWidth: 1)
+                    } else if isInputError {
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color(red: 0.8, green: 0.2, blue: 0.2), lineWidth: 1)
+                    }
                 }
                 .background(Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
+                .compositingGroup() // prevent parent opacity from muddying the glass
                 .frame(maxWidth: isAmountFocused ? .infinity : nil)
                 .frame(height: 39)
                 .contentShape(Rectangle())

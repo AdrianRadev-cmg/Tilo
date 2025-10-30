@@ -156,34 +156,32 @@ struct CurrencyCard: View {
                     }
                 }
                 .overlay {
-                    if isAmountFocused {
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color(red: 0.7, green: 0.7, blue: 0.7).opacity(0.25), lineWidth: 1)
-                    } else {
-                        if isInputError {
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color(red: 0.8, green: 0.2, blue: 0.2), lineWidth: 1)
-                        } else {
-                            Path { path in
-                                let cornerRadius: CGFloat = 8
-                                let h = path.boundingRect.height
-                                path.move(to: CGPoint(x: cornerRadius, y: 0))
-                                path.addArc(center: CGPoint(x: cornerRadius, y: cornerRadius),
-                                            radius: cornerRadius,
-                                            startAngle: Angle(degrees: -90),
-                                            endAngle: Angle(degrees: 180),
-                                            clockwise: true)
-                                path.addLine(to: CGPoint(x: 0, y: h - cornerRadius))
-                                path.addArc(center: CGPoint(x: cornerRadius, y: h - cornerRadius),
-                                            radius: cornerRadius,
-                                            startAngle: Angle(degrees: 180),
-                                            endAngle: Angle(degrees: 90),
-                                            clockwise: true)
+                    // Always show subtle white edge to counter dark backgrounds
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    Color.white.opacity(0.15),
+                                    Color.white.opacity(0.05),
+                                    Color.clear
+                                ]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                        .overlay {
+                            // Additional strokes for focus or error states
+                            if isAmountFocused {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                            } else if isInputError {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color(red: 0.8, green: 0.2, blue: 0.2), lineWidth: 1)
                             }
-                            .stroke(Color(red: 0.7, green: 0.7, blue: 0.7).opacity(0.05), lineWidth: 1)
                         }
-                    }
                 }
+                .background(Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .frame(maxWidth: isAmountFocused ? .infinity : nil)
                 .frame(height: 39)

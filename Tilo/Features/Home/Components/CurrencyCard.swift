@@ -53,12 +53,11 @@ struct CurrencyCard: View {
             // Unified HStack Structure
             HStack(spacing: 16) {
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(Color.white.opacity(0.06))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.white.opacity(0.10), lineWidth: 1)
-                        )
+                    // Glass BACK layer for the amount input field
+                    Rectangle()
+                        .glassEffect(in: .rect(cornerRadius: 8))
+                        .clipShape(.rect(cornerRadius: 8))
+                        .allowsHitTesting(false)
 
                     if isAmountFocused && isEditable {
                         HStack(spacing: 4) {

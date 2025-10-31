@@ -44,6 +44,63 @@ struct CurrencyCard: View {
         return nil // Return nil if input is not a valid number
     }
     
+    // Helper to handle amount input changes
+    private func handleAmountInputChange(oldValue: String, newValue: String) {
+        // Remove any existing formatting (commas)
+        let cleanInput = newValue.replacingOccurrences(of: ",", with: "")
+        
+        // Only allow digits and one decimal point
+        let filtered = cleanInput.filter { $0.isNumber || $0 == "." }
+        
+        // Prevent multiple decimal points
+        let decimalCount = filtered.filter { $0 == "." }.count
+        if decimalCount > 1 {
+            amountInput = oldValue
+            return
+        }
+        
+        // Apply smart formatting: add commas for numbers >= 1000
+        if let doubleValue = Double(filtered) {
+            // Split into integer and decimal parts
+            let parts = filtered.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false)
+            let integerPart = String(parts[0])
+            let decimalPart = parts.count > 1 ? String(parts[1]) : nil
+            
+            // Format integer part with commas if >= 1000
+            let formattedInteger: String
+            if let intValue = Int(integerPart), intValue >= 1000 {
+                let formatter = NumberFormatter()
+                formatter.numberStyle = .decimal
+                formatter.groupingSeparator = ","
+                formatter.usesGroupingSeparator = true
+                formattedInteger = formatter.string(from: NSNumber(value: intValue)) ?? integerPart
+            } else {
+                formattedInteger = integerPart
+            }
+            
+            // Reconstruct the number with decimal if present
+            if let decimal = decimalPart {
+                amountInput = formattedInteger + "." + decimal
+            } else if filtered.hasSuffix(".") {
+                amountInput = formattedInteger + "."
+            } else {
+                amountInput = formattedInteger
+            }
+            
+            // Trigger conversion
+            if doubleValue > 0 {
+                onAmountChange?(doubleValue)
+            } else if filtered.isEmpty {
+                onAmountChange?(0)
+            }
+        } else if filtered.isEmpty {
+            amountInput = ""
+            onAmountChange?(0)
+        } else {
+            amountInput = filtered
+        }
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(currencyName)
@@ -52,124 +109,60 @@ struct CurrencyCard: View {
             
             // Unified HStack Structure
             HStack(spacing: 16) {
-                ZStack(alignment: .leading) {
-                    // Glass BACK layer for the amount input field
-                    Rectangle()
-                        .glassEffect(.clear, in: .rect(cornerRadius: 8))
-                        .clipShape(.rect(cornerRadius: 8))
-                        .allowsHitTesting(false)
-
+                HStack(alignment: .center, spacing: 4) {
+                    Text(currencySymbol)
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white)
+                    
                     if isAmountFocused && isEditable {
-                        HStack(spacing: 4) {
-                            Text(currencySymbol)
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.white)
-                            TextField("", text: $amountInput)
-                                .font(.system(size: 26, weight: .semibold))
-                                .foregroundColor(.white)
-                                .keyboardType(.numberPad)
-                                .tint(.white)
-                                .focused($amountFieldIsFocused)
-                                .toolbar {
-                                    ToolbarItemGroup(placement: .keyboard) {
-                                        Spacer()
-                                        Button("Done") {
-                                            isAmountFocused = false
-                                            amountFieldIsFocused = false
-                                            onEditingChanged?(false)
-                                        }
-                                        .font(.system(size: 18, weight: .semibold))
+                        TextField("", text: $amountInput)
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundColor(.white)
+                            .keyboardType(.numberPad)
+                            .tint(.white)
+                            .focused($amountFieldIsFocused)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(height: 24)
+                            .toolbar {
+                                ToolbarItemGroup(placement: .keyboard) {
+                                    Spacer()
+                                    Button("Done") {
+                                        isAmountFocused = false
+                                        amountFieldIsFocused = false
+                                        onEditingChanged?(false)
                                     }
-                                }
-                        }
-                        .padding(.vertical, 4) 
-                        .padding(.horizontal, 8)
-                            .onChange(of: amountInput) { oldValue, newValue in
-                                // Remove any existing formatting (commas)
-                                let cleanInput = newValue.replacingOccurrences(of: ",", with: "")
-                                
-                                // Only allow digits and one decimal point
-                                let filtered = cleanInput.filter { $0.isNumber || $0 == "." }
-                                
-                                // Prevent multiple decimal points
-                                let decimalCount = filtered.filter { $0 == "." }.count
-                                if decimalCount > 1 {
-                                    amountInput = oldValue
-                                    return
-                                }
-                                
-                                // Apply smart formatting: add commas for numbers >= 1000
-                                if let doubleValue = Double(filtered) {
-                                    // Split into integer and decimal parts
-                                    let parts = filtered.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false)
-                                    let integerPart = String(parts[0])
-                                    let decimalPart = parts.count > 1 ? String(parts[1]) : nil
-                                    
-                                    // Format integer part with commas if >= 1000
-                                    let formattedInteger: String
-                                    if let intValue = Int(integerPart), intValue >= 1000 {
-                                        let formatter = NumberFormatter()
-                                        formatter.numberStyle = .decimal
-                                        formatter.groupingSeparator = ","
-                                        formatter.usesGroupingSeparator = true
-                                        formattedInteger = formatter.string(from: NSNumber(value: intValue)) ?? integerPart
-                                    } else {
-                                        formattedInteger = integerPart
-                                    }
-                                    
-                                    // Reconstruct the number with decimal if present
-                                    if let decimal = decimalPart {
-                                        amountInput = formattedInteger + "." + decimal
-                                    } else if filtered.hasSuffix(".") {
-                                        amountInput = formattedInteger + "."
-                                    } else {
-                                        amountInput = formattedInteger
-                                    }
-                                    
-                                    // Trigger conversion
-                                    if doubleValue > 0 {
-                                        onAmountChange?(doubleValue)
-                                    } else if filtered.isEmpty {
-                                        onAmountChange?(0)
-                                    }
-                                } else if filtered.isEmpty {
-                                    amountInput = ""
-                                    onAmountChange?(0)
-                                } else {
-                                    amountInput = filtered
+                                    .font(.system(size: 18, weight: .semibold))
                                 }
                             }
-                            .accessibilityLabel("Amount to convert: \(currencyName)")
+                            .onChange(of: amountInput) { oldValue, newValue in
+                                handleAmountInputChange(oldValue: oldValue, newValue: newValue)
+                            }
                     } else {
-                        HStack(spacing: 4) {
-                            Text(currencySymbol)
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.white)
-                            Text(amountInput.isEmpty ? amount : amountInput)
-                                .font(.system(size: 26, weight: .semibold))
-                                .foregroundColor(.white)
-                        }
-                        .padding(.vertical, 4) 
-                        .padding(.horizontal, 8) 
-                        .accessibilityLabel("Amount to convert: \(currencyName)")
-                        .accessibilityHint("Tap to edit amount")
+                        Text(amountInput.isEmpty ? amount : amountInput)
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(height: 24)
+                            .accessibilityHint("Tap to edit amount")
                     }
                 }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                .frame(height: 42)
                 .overlay {
-                    // Show strokes only on focus or error to avoid perceived fill tint
-                    if isAmountFocused {
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color.white.opacity(0.35), lineWidth: 1)
-                    } else if isInputError {
+                    // Show stroke only on error
+                    if isInputError {
                         RoundedRectangle(cornerRadius: 8)
                             .stroke(Color(red: 0.8, green: 0.2, blue: 0.2), lineWidth: 1)
                     }
                 }
-                .background(Color.clear)
+                .glassEffect()
                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                .compositingGroup() // prevent parent opacity from muddying the glass
-                .frame(maxWidth: isAmountFocused ? .infinity : nil)
-                .frame(height: 39)
+                .accessibilityLabel("Amount to convert: \(currencyName)")
                 .contentShape(Rectangle())
                 .onTapGesture {
                     if isEditable && !isAmountFocused && isCurrentlyActive {
@@ -223,21 +216,35 @@ struct CurrencyCard: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 16)
         .padding(.vertical, 24)
+        .background(
+            ZStack {
+                // Glass effect as base layer
+                RoundedRectangle(cornerRadius: 16)
+                    .glassEffect(in: .rect(cornerRadius: 16))
+                
+                // Dark purple overlay to reduce grey appearance
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(red: 20/255, green: 8/255, blue: 58/255).opacity(0.75))
+            }
+            .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
+        )
         .overlay(
+            // Subtle highlight for glassy elevation effect
             RoundedRectangle(cornerRadius: 16)
-                .stroke(
+                .fill(
                     LinearGradient(
                         gradient: Gradient(colors: [
-                            Color.white.opacity(0.3),
-                            Color.white.opacity(0.1),
+                            Color.white.opacity(0.08),
+                            Color.white.opacity(0.02),
                             Color.clear
                         ]),
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
+                    )
                 )
+                .allowsHitTesting(false)
         )
+        .clipShape(RoundedRectangle(cornerRadius: 16))
         .sheet(isPresented: $showCurrencySelector) {
             CurrencySelector { selectedCurrency in
                 // Update the currency card with selected currency

@@ -36,7 +36,7 @@ class ExchangeRateService: ObservableObject {
     @Published var errorMessage: String?
     
     // Development mode toggle
-    @Published var isMockMode: Bool = false // Set to true for development, false for production
+    @Published var isMockMode: Bool = true // Set to true for development, false for production
     
     // Private properties
     private let apiKey = "cur_live_ekGkTC1IKGFiCe85LkBEwkjMNnZRA05iaVDqYq6G"

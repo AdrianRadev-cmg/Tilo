@@ -156,90 +156,91 @@ struct HomeView: View {
                 .overlay(Color.black.opacity(0.30))
                 .ignoresSafeArea()
                 
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        // Purple section with currency cards
-                        ZStack {
-                            VStack(alignment: .leading, spacing: 12) {
-                                CurrencyCard(
-                                    currencyName: $fromCurrencyName,
-                                    flagEmoji: $fromFlagEmoji,
-                                    currencyCode: $fromCurrencyCode,
-                                    amount: formatAmount(fromAmount),
-                                    exchangeRateInfo: exchangeRate > 0 ? "1 \(fromCurrencyCode) = \(formatExchangeRate(exchangeRate)) \(toCurrencyCode)" : "Loading rate...",
-                                    currencySymbol: getCurrencySymbol(for: fromCurrencyCode),
-                                    onAmountChange: { newAmount in
-                                        fromAmount = newAmount
+                GeometryReader { geometry in
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 0) {
+                            // Purple section with currency cards
+                            ZStack {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    CurrencyCard(
+                                        currencyName: $fromCurrencyName,
+                                        flagEmoji: $fromFlagEmoji,
+                                        currencyCode: $fromCurrencyCode,
+                                        amount: formatAmount(fromAmount),
+                                        exchangeRateInfo: exchangeRate > 0 ? "1 \(fromCurrencyCode) = \(formatExchangeRate(exchangeRate)) \(toCurrencyCode)" : "Loading rate...",
+                                        currencySymbol: getCurrencySymbol(for: fromCurrencyCode),
+                                        onAmountChange: { newAmount in
+                                            fromAmount = newAmount
+                                            Task {
+                                                await updateConversion()
+                                            }
+                                        },
+                                        onEditingChanged: { isEditing in
+                                            isEditingTopCard = isEditing
+                                            if isEditing {
+                                                activeEditingCard = "top"
+                                                isEditingBottomCard = false
+                                            } else {
+                                                activeEditingCard = nil
+                                            }
+                                        },
+                                        isEditable: true,
+                                        isCurrentlyActive: activeEditingCard == "top" || activeEditingCard == nil,
+                                        tintOpacity: tintOpacity,
+                                        tintBlendMode: tintBlendMode,
+                                        gradientColor1: gradientColor1,
+                                        gradientColor2: gradientColor2,
+                                        gradientColor3: gradientColor3,
+                                        gradientColor4: gradientColor4,
+                                        gradientColor5: gradientColor5
+                                    )
+                                    .padding(.horizontal, max(16, geometry.size.width * 0.04))
+                                    .onChange(of: fromCurrencyCode) { oldValue, newValue in
                                         Task {
                                             await updateConversion()
                                         }
-                                    },
-                                    onEditingChanged: { isEditing in
-                                        isEditingTopCard = isEditing
-                                        if isEditing {
-                                            activeEditingCard = "top"
-                                            isEditingBottomCard = false
-                                        } else {
-                                            activeEditingCard = nil
-                                        }
-                                    },
-                                    isEditable: true,
-                                    isCurrentlyActive: activeEditingCard == "top" || activeEditingCard == nil,
-                                    tintOpacity: tintOpacity,
-                                    tintBlendMode: tintBlendMode,
-                                    gradientColor1: gradientColor1,
-                                    gradientColor2: gradientColor2,
-                                    gradientColor3: gradientColor3,
-                                    gradientColor4: gradientColor4,
-                                    gradientColor5: gradientColor5
-                                )
-                                .padding(.horizontal, 16)
-                                .onChange(of: fromCurrencyCode) { oldValue, newValue in
-                                    Task {
-                                        await updateConversion()
                                     }
-                                }
-                                
-                                CurrencyCard(
-                                    currencyName: $toCurrencyName,
-                                    flagEmoji: $toFlagEmoji,
-                                    currencyCode: $toCurrencyCode,
-                                    amount: formatAmount(toAmount),
-                                    exchangeRateInfo: exchangeRate > 0 ? "1 \(toCurrencyCode) = \(formatExchangeRate(1.0 / exchangeRate)) \(fromCurrencyCode)" : "Loading rate...",
-                                    currencySymbol: getCurrencySymbol(for: toCurrencyCode),
-                                    onAmountChange: { newAmount in
-                                        toAmount = newAmount
+                                    
+                                    CurrencyCard(
+                                        currencyName: $toCurrencyName,
+                                        flagEmoji: $toFlagEmoji,
+                                        currencyCode: $toCurrencyCode,
+                                        amount: formatAmount(toAmount),
+                                        exchangeRateInfo: exchangeRate > 0 ? "1 \(toCurrencyCode) = \(formatExchangeRate(1.0 / exchangeRate)) \(fromCurrencyCode)" : "Loading rate...",
+                                        currencySymbol: getCurrencySymbol(for: toCurrencyCode),
+                                        onAmountChange: { newAmount in
+                                            toAmount = newAmount
+                                            Task {
+                                                await updateConversionReverse()
+                                            }
+                                        },
+                                        onEditingChanged: { isEditing in
+                                            isEditingBottomCard = isEditing
+                                            if isEditing {
+                                                activeEditingCard = "bottom"
+                                                isEditingTopCard = false
+                                            } else {
+                                                activeEditingCard = nil
+                                            }
+                                        },
+                                        isEditable: true,
+                                        isCurrentlyActive: activeEditingCard == "bottom" || activeEditingCard == nil,
+                                        tintOpacity: tintOpacity,
+                                        tintBlendMode: tintBlendMode,
+                                        gradientColor1: gradientColor1,
+                                        gradientColor2: gradientColor2,
+                                        gradientColor3: gradientColor3,
+                                        gradientColor4: gradientColor4,
+                                        gradientColor5: gradientColor5
+                                    )
+                                    .padding(.horizontal, max(16, geometry.size.width * 0.04))
+                                    .onChange(of: toCurrencyCode) { oldValue, newValue in
                                         Task {
-                                            await updateConversionReverse()
+                                            await updateConversion()
                                         }
-                                    },
-                                    onEditingChanged: { isEditing in
-                                        isEditingBottomCard = isEditing
-                                        if isEditing {
-                                            activeEditingCard = "bottom"
-                                            isEditingTopCard = false
-                                        } else {
-                                            activeEditingCard = nil
-                                        }
-                                    },
-                                    isEditable: true,
-                                    isCurrentlyActive: activeEditingCard == "bottom" || activeEditingCard == nil,
-                                    tintOpacity: tintOpacity,
-                                    tintBlendMode: tintBlendMode,
-                                    gradientColor1: gradientColor1,
-                                    gradientColor2: gradientColor2,
-                                    gradientColor3: gradientColor3,
-                                    gradientColor4: gradientColor4,
-                                    gradientColor5: gradientColor5
-                                )
-                                .padding(.horizontal, 16)
-                                .onChange(of: toCurrencyCode) { oldValue, newValue in
-                                    Task {
-                                        await updateConversion()
                                     }
                                 }
-                            }
-                            .padding(.top, 40)
+                                .padding(.top, min(40, geometry.size.height * 0.05))
                             
                             // SwapButton positioned exactly in the middle of the two cards
                             VStack {
@@ -269,14 +270,15 @@ struct HomeView: View {
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .padding(.top, 40)
-                        .padding(.horizontal, 16)
+                        .padding(.top, min(40, geometry.size.height * 0.05))
+                        .padding(.horizontal, max(16, geometry.size.width * 0.04))
                         
                         // Currency Chart Section
                         CurrencyChartView(fromCurrency: fromCurrencyCode, toCurrency: toCurrencyCode)
-                            .padding(.top, 40)
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 40)
+                            .padding(.top, min(40, geometry.size.height * 0.05))
+                            .padding(.horizontal, max(16, geometry.size.width * 0.04))
+                            .padding(.bottom, min(40, geometry.size.height * 0.05))
+                    }
                     }
                 }
             }

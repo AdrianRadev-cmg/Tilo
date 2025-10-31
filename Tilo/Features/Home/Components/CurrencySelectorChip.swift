@@ -12,18 +12,10 @@ struct CurrencySelectorChip: View {
             HStack(spacing: 4) { // Main horizontal arrangement
                 Text(flagEmoji) // Use Text for emoji flag
                     .font(.system(size: 22))
-                    .padding(.trailing, 4) // Add padding AFTER flag
-                
-                // Add faint vertical divider line
-                Rectangle()
-                    .frame(width: 1) // Thickness
-                    // Removed fixed height - will stretch to HStack height
-                    .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.7).opacity(0.05)) // Match stroke style
 
                 Text(currencyCode)
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.white)
-                    .padding(.leading, 6) // Add a bit more space before code
                     .padding(.trailing, 2) // Add 2px after code
                 
                 Image(systemName: "chevron.down")
@@ -33,6 +25,7 @@ struct CurrencySelectorChip: View {
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
+            .frame(height: 42)
             .glassEffect()
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }

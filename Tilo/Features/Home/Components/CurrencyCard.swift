@@ -55,7 +55,7 @@ struct CurrencyCard: View {
                 ZStack(alignment: .leading) {
                     // Glass BACK layer for the amount input field
                     Rectangle()
-                        .glassEffect(in: .rect(cornerRadius: 8))
+                        .glassEffect(.clear, in: .rect(cornerRadius: 8))
                         .clipShape(.rect(cornerRadius: 8))
                         .allowsHitTesting(false)
 

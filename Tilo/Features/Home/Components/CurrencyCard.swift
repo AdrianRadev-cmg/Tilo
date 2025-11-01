@@ -102,9 +102,9 @@ struct CurrencyCard: View {
     }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 16) {
             Text(currencyName)
-                .font(.system(size: 20, weight: .regular))
+                .font(.system(size: 24, weight: .regular))
                 .foregroundColor(.white)
             
             // Unified HStack Structure
@@ -194,8 +194,8 @@ struct CurrencyCard: View {
             }
             
             Text(exchangeRateInfo)
-                .font(.system(size: 17, weight: .regular))
-                .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.7))
+                .font(.system(size: 16, weight: .regular))
+                .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
         }
         .onChange(of: amount) { oldAmount, newAmount in
             // Only update amountInput if not currently editing

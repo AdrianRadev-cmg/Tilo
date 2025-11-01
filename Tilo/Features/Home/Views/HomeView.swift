@@ -137,6 +137,48 @@ struct HomeView: View {
         return formatter.string(from: NSNumber(value: rate)) ?? String(format: "%.4f", rate)
     }
     
+    // Get appropriate chip amounts based on currency value category
+    private func getChipAmounts(for currencyCode: String) -> [Double] {
+        // Very high-value currencies - [1, 5, 10, 20]
+        let veryHighValue = ["KWD", "BHD", "OMR", "JOD", "GBP"]
+        if veryHighValue.contains(currencyCode) {
+            return [1, 5, 10, 20]
+        }
+        
+        // High-value currencies - [10, 50, 100, 200]
+        let highValue = ["EUR", "USD", "CHF", "CAD", "AUD", "NZD", "SGD", "AED", "SAR", "QAR",
+                        "ILS", "BND", "BSD", "PAB", "FJD", "BWP", "AZN", "RON", "BGN", "GEL",
+                        "PEN", "BOB", "GTQ", "UAH", "RSD", "JMD", "BBD", "TTD", "MUR", "MVR"]
+        if highValue.contains(currencyCode) {
+            return [10, 50, 100, 200]
+        }
+        
+        // Medium-value currencies - [100, 500, 1000, 2000]
+        let mediumValue = ["CNY", "HKD", "TWD", "SEK", "NOK", "DKK", "PLN", "CZK", "MXN", "ZAR",
+                          "BRL", "INR", "THB", "MYR", "PHP", "TRY", "EGP", "RUB", "MDL", "MKD",
+                          "DOP", "HNL", "NIO", "MAD", "TND", "KES", "UGX", "TZS", "GHS", "NAD"]
+        if mediumValue.contains(currencyCode) {
+            return [100, 500, 1000, 2000]
+        }
+        
+        // Low-value currencies - [1000, 5000, 10000, 20000]
+        let lowValue = ["JPY", "KRW", "HUF", "ISK", "CLP", "ARS", "COP", "PKR", "LKR", "BDT",
+                       "MMK", "NGN", "AMD", "KZT", "KGS", "ALL", "RWF", "BIF", "DJF", "GNF",
+                       "KMF", "MGA", "PYG", "KHR", "MNT"]
+        if lowValue.contains(currencyCode) {
+            return [1000, 5000, 10000, 20000]
+        }
+        
+        // Very low-value currencies - [10000, 50000, 100000, 200000]
+        let veryLowValue = ["VND", "IDR", "IRR", "LAK", "UZS", "SLL", "LBP", "SYP", "STN", "VES"]
+        if veryLowValue.contains(currencyCode) {
+            return [10000, 50000, 100000, 200000]
+        }
+        
+        // Default to high-value for any unlisted currencies
+        return [10, 50, 100, 200]
+    }
+    
     var body: some View {
         TabView(selection: $selectedTab) {
             // Home Tab
@@ -253,18 +295,25 @@ struct HomeView: View {
                         }
                         
                         // Quick conversions section
-                        VStack(alignment: .leading, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 20) {
                             Text("Quick conversions")
-                                .font(.title3)
+                                .font(.title2)
                                 .foregroundColor(.white)
                             
-                            FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
-                                ForEach([1000, 2000, 5000, 10000, 20000], id: \.self) { amount in
+                            FlowLayout(horizontalSpacing: 12, verticalSpacing: 12) {
+                                ForEach(getChipAmounts(for: fromCurrencyCode), id: \.self) { amount in
                                     QuickAmountChip(
-                                        symbol: fromCurrencyCode == "GBP" ? "£" : fromCurrencyCode == "EUR" ? "€" : "$",
+                                        symbol: getCurrencySymbol(for: fromCurrencyCode),
                                         amount: amount,
                                         selectedAmount: .constant(0),
-                                        onSelect: { _ in }
+                                        onSelect: { selectedAmount in
+                                            // Fill top card with selected amount
+                                            fromAmount = selectedAmount
+                                            // Trigger conversion
+                                            Task {
+                                                await updateConversion()
+                                            }
+                                        }
                                     )
                                 }
                             }
@@ -279,9 +328,11 @@ struct HomeView: View {
                             .padding(.horizontal, max(16, geometry.size.width * 0.04))
                             .padding(.bottom, min(40, geometry.size.height * 0.05))
                     }
+                    .scrollDismissesKeyboard(.interactively)
                     }
                 }
             }
+            .ignoresSafeArea(.keyboard)
             .tabItem {
                 Image(systemName: "house.fill")
                 Text("Home")

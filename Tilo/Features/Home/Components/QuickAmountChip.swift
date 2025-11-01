@@ -27,7 +27,7 @@ struct QuickAmountChip: View {
             generator.impactOccurred()
         }) {
             Text(symbol + formattedAmount)
-                .font(.system(size: 17, weight: .medium))
+                .font(.system(size: 20, weight: .regular))
                 .foregroundColor(.white)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)

@@ -11,15 +11,15 @@ import Charts
 struct HomeView: View {
     @State private var selectedTab = 0
     
-    @State private var fromCurrencyName = "US Dollar"
-    @State private var fromFlagEmoji = "🇺🇸"
-    @State private var fromCurrencyCode = "USD"
-    @State private var fromAmount: Double = 100.00
+    @State private var fromCurrencyName = UserDefaults.standard.string(forKey: "fromCurrencyName") ?? "US Dollar"
+    @State private var fromFlagEmoji = UserDefaults.standard.string(forKey: "fromFlagEmoji") ?? "🇺🇸"
+    @State private var fromCurrencyCode = UserDefaults.standard.string(forKey: "fromCurrencyCode") ?? "USD"
+    @State private var fromAmount: Double = UserDefaults.standard.double(forKey: "fromAmount") != 0 ? UserDefaults.standard.double(forKey: "fromAmount") : 100.00
     
-    @State private var toCurrencyName = "Euro"
-    @State private var toFlagEmoji = "🇪🇺"
-    @State private var toCurrencyCode = "EUR"
-    @State private var toAmount: Double = 0.00
+    @State private var toCurrencyName = UserDefaults.standard.string(forKey: "toCurrencyName") ?? "Euro"
+    @State private var toFlagEmoji = UserDefaults.standard.string(forKey: "toFlagEmoji") ?? "🇪🇺"
+    @State private var toCurrencyCode = UserDefaults.standard.string(forKey: "toCurrencyCode") ?? "EUR"
+    @State private var toAmount: Double = UserDefaults.standard.double(forKey: "toAmount")
     
     @State private var exchangeRate: Double = 0.0
     @State private var isLoadingRate: Bool = false
@@ -37,6 +37,19 @@ struct HomeView: View {
     var gradientColor3: Color = Color(red: 0.24, green: 0.11, blue: 0.48)
     var gradientColor4: Color = Color(red: 0.13, green: 0.05, blue: 0.26)
     var gradientColor5: Color = Color(red: 0.08, green: 0.03, blue: 0.15)
+    
+    // Save currency state to UserDefaults
+    private func saveCurrencyState() {
+        UserDefaults.standard.set(fromCurrencyName, forKey: "fromCurrencyName")
+        UserDefaults.standard.set(fromFlagEmoji, forKey: "fromFlagEmoji")
+        UserDefaults.standard.set(fromCurrencyCode, forKey: "fromCurrencyCode")
+        UserDefaults.standard.set(fromAmount, forKey: "fromAmount")
+        
+        UserDefaults.standard.set(toCurrencyName, forKey: "toCurrencyName")
+        UserDefaults.standard.set(toFlagEmoji, forKey: "toFlagEmoji")
+        UserDefaults.standard.set(toCurrencyCode, forKey: "toCurrencyCode")
+        UserDefaults.standard.set(toAmount, forKey: "toAmount")
+    }
     
     private func swapCurrencies() {
         // Add haptic feedback
@@ -58,6 +71,9 @@ struct HomeView: View {
         toFlagEmoji = tempFlag
         toCurrencyCode = tempCode
         toAmount = tempAmount
+        
+        // Save state
+        saveCurrencyState()
         
         // Update conversion after swap
         Task {
@@ -139,44 +155,52 @@ struct HomeView: View {
     
     // Get appropriate chip amounts based on currency value category
     private func getChipAmounts(for currencyCode: String) -> [Double] {
-        // Very high-value currencies - [1, 5, 10, 20]
-        let veryHighValue = ["KWD", "BHD", "OMR", "JOD", "GBP"]
+        // Very high-value currencies - [10, 50, 100, 200, 500, 1000]
+        let veryHighValue: Set<String> = ["KWD", "BHD", "OMR", "JOD", "GBP"]
         if veryHighValue.contains(currencyCode) {
-            return [1, 5, 10, 20]
+            return [10, 50, 100, 200, 500, 1000]
         }
         
-        // High-value currencies - [10, 50, 100, 200]
-        let highValue = ["EUR", "USD", "CHF", "CAD", "AUD", "NZD", "SGD", "AED", "SAR", "QAR",
-                        "ILS", "BND", "BSD", "PAB", "FJD", "BWP", "AZN", "RON", "BGN", "GEL",
-                        "PEN", "BOB", "GTQ", "UAH", "RSD", "JMD", "BBD", "TTD", "MUR", "MVR"]
+        // High-value currencies - [10, 50, 100, 200, 500, 1000]
+        let highValue: Set<String> = [
+            "EUR", "USD", "CHF", "CAD", "AUD", "NZD", "SGD", "AED", "SAR", "QAR",
+            "ILS", "BND", "BSD", "PAB", "FJD", "BWP", "AZN", "RON", "BGN", "GEL",
+            "PEN", "BOB", "GTQ", "UAH", "RSD", "JMD", "BBD", "TTD", "MUR", "MVR"
+        ]
         if highValue.contains(currencyCode) {
-            return [10, 50, 100, 200]
+            return [10, 50, 100, 200, 500, 1000]
         }
         
-        // Medium-value currencies - [100, 500, 1000, 2000]
-        let mediumValue = ["CNY", "HKD", "TWD", "SEK", "NOK", "DKK", "PLN", "CZK", "MXN", "ZAR",
-                          "BRL", "INR", "THB", "MYR", "PHP", "TRY", "EGP", "RUB", "MDL", "MKD",
-                          "DOP", "HNL", "NIO", "MAD", "TND", "KES", "UGX", "TZS", "GHS", "NAD"]
+        // Medium-value currencies - [100, 500, 1000, 2000, 5000, 10000]
+        let mediumValue: Set<String> = [
+            "CNY", "HKD", "TWD", "SEK", "NOK", "DKK", "PLN", "CZK", "MXN", "ZAR",
+            "BRL", "INR", "THB", "MYR", "PHP", "TRY", "EGP", "RUB", "MDL", "MKD",
+            "DOP", "HNL", "NIO", "MAD", "TND", "KES", "UGX", "TZS", "GHS", "NAD"
+        ]
         if mediumValue.contains(currencyCode) {
-            return [100, 500, 1000, 2000]
+            return [100, 500, 1000, 2000, 5000, 10000]
         }
         
-        // Low-value currencies - [1000, 5000, 10000, 20000]
-        let lowValue = ["JPY", "KRW", "HUF", "ISK", "CLP", "ARS", "COP", "PKR", "LKR", "BDT",
-                       "MMK", "NGN", "AMD", "KZT", "KGS", "ALL", "RWF", "BIF", "DJF", "GNF",
-                       "KMF", "MGA", "PYG", "KHR", "MNT"]
+        // Low-value currencies - [1000, 5000, 10000, 20000, 50000, 100000]
+        let lowValue: Set<String> = [
+            "JPY", "KRW", "HUF", "ISK", "CLP", "ARS", "COP", "PKR", "LKR", "BDT",
+            "MMK", "NGN", "AMD", "KZT", "KGS", "ALL", "RWF", "BIF", "DJF", "GNF",
+            "KMF", "MGA", "PYG", "KHR", "MNT"
+        ]
         if lowValue.contains(currencyCode) {
-            return [1000, 5000, 10000, 20000]
+            return [1000, 5000, 10000, 20000, 50000, 100000]
         }
         
-        // Very low-value currencies - [10000, 50000, 100000, 200000]
-        let veryLowValue = ["VND", "IDR", "IRR", "LAK", "UZS", "SLL", "LBP", "SYP", "STN", "VES"]
+        // Very low-value currencies - [10000, 50000, 100000, 200000, 500000, 1000000]
+        let veryLowValue: Set<String> = [
+            "VND", "IDR", "IRR", "LAK", "UZS", "SLL", "LBP", "SYP", "STN", "VES"
+        ]
         if veryLowValue.contains(currencyCode) {
-            return [10000, 50000, 100000, 200000]
+            return [10000, 50000, 100000, 200000, 500000, 1000000]
         }
         
         // Default to high-value for any unlisted currencies
-        return [10, 50, 100, 200]
+        return [10, 50, 100, 200, 500, 1000]
     }
     
     var body: some View {
@@ -213,6 +237,7 @@ struct HomeView: View {
                                         currencySymbol: getCurrencySymbol(for: fromCurrencyCode),
                                         onAmountChange: { newAmount in
                                             fromAmount = newAmount
+                                            saveCurrencyState()
                                             Task {
                                                 await updateConversion()
                                             }
@@ -238,6 +263,7 @@ struct HomeView: View {
                                     )
                                     .padding(.horizontal, max(16, geometry.size.width * 0.04))
                                     .onChange(of: fromCurrencyCode) { oldValue, newValue in
+                                        saveCurrencyState()
                                         Task {
                                             await updateConversion()
                                         }
@@ -252,6 +278,7 @@ struct HomeView: View {
                                         currencySymbol: getCurrencySymbol(for: toCurrencyCode),
                                         onAmountChange: { newAmount in
                                             toAmount = newAmount
+                                            saveCurrencyState()
                                             Task {
                                                 await updateConversionReverse()
                                             }
@@ -277,6 +304,7 @@ struct HomeView: View {
                                     )
                                     .padding(.horizontal, max(16, geometry.size.width * 0.04))
                                     .onChange(of: toCurrencyCode) { oldValue, newValue in
+                                        saveCurrencyState()
                                         Task {
                                             await updateConversion()
                                         }
@@ -309,6 +337,7 @@ struct HomeView: View {
                                         onSelect: { selectedAmount in
                                             // Fill top card with selected amount
                                             fromAmount = selectedAmount
+                                            saveCurrencyState()
                                             // Trigger conversion
                                             Task {
                                                 await updateConversion()
@@ -319,14 +348,22 @@ struct HomeView: View {
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .padding(.top, min(40, geometry.size.height * 0.05))
+                        .padding(.top, 32)
                         .padding(.horizontal, max(16, geometry.size.width * 0.04))
                         
-                        // Currency Chart Section
-                        CurrencyChartView(fromCurrency: fromCurrencyCode, toCurrency: toCurrencyCode)
-                            .padding(.top, min(40, geometry.size.height * 0.05))
-                            .padding(.horizontal, max(16, geometry.size.width * 0.04))
-                            .padding(.bottom, min(40, geometry.size.height * 0.05))
+                        // Rate history section
+                        VStack(alignment: .leading, spacing: 20) {
+                            Text("Rate history")
+                                .font(.title2)
+                                .foregroundColor(.white)
+                            
+                            CurrencyChartView(fromCurrency: fromCurrencyCode, toCurrency: toCurrencyCode)
+                                .id("\(fromCurrencyCode)-\(toCurrencyCode)")
+                        }
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                        .padding(.top, 32)
+                        .padding(.horizontal, max(16, geometry.size.width * 0.04))
+                        .padding(.bottom, min(40, geometry.size.height * 0.05))
                     }
                     .scrollDismissesKeyboard(.interactively)
                     }

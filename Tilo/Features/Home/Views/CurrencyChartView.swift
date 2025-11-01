@@ -15,42 +15,70 @@ final class CurrencyChartViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var error: Error?
     
-    private let fromCurrency: String
-    private let toCurrency: String
+    private var fromCurrency: String
+    private var toCurrency: String
+    private let exchangeService = ExchangeRateService.shared
     
     init(fromCurrency: String, toCurrency: String) {
         self.fromCurrency = fromCurrency
         self.toCurrency = toCurrency
     }
     
-    func fetchRates(for range: TimeRange) async {
+    func fetchRates(for range: TimeRange = .oneWeek) async {
         isLoading = true
         error = nil
-        try? await Task.sleep(nanoseconds: 100_000_000)
-        let calendar = Calendar.current
-        let endDate = Date()
-        let startDate = calendar.date(byAdding: .day, value: -range.days, to: endDate)!
-        let numberOfPoints = min(range.days, 30)
-        let step = range.days / numberOfPoints
-        // Simulate a more dynamic random walk for currency rates
-        var ratesArray: [ExchangeRate] = []
-        var lastRate = 1.15 + Double.random(in: -0.05...0.05)
-        for i in 0..<numberOfPoints {
-            let day = i * step
-            let date = calendar.date(byAdding: .day, value: day, to: startDate)!
-            // Add sinusoidal trend and random spikes
-            let trend = sin(Double(i) / Double(numberOfPoints) * 2 * .pi) * 0.08
-            let spike = Double.random(in: -0.03...0.03)
-            let change = Double.random(in: -0.02...0.02) + trend + spike
-            lastRate = max(0.8, min(1.6, lastRate + change))
-            ratesArray.append(ExchangeRate(date: date, rate: lastRate))
+        
+        print("📊 ViewModel fetchRates: \(fromCurrency) → \(toCurrency)")
+        
+        // Fetch historical data from ExchangeRateService (30 days)
+        if let historicalData = await exchangeService.fetchHistoricalRates(from: fromCurrency, to: toCurrency, days: 30) {
+            print("📊 Received \(historicalData.count) historical data points")
+            // Convert to ExchangeRate format
+            var ratesArray = historicalData.map { histRate in
+                ExchangeRate(date: histRate.date, rate: histRate.rate)
+            }
+            
+            // Ensure today's rate matches the live rate from main cards
+            if let liveRate = await exchangeService.getRate(from: fromCurrency, to: toCurrency) {
+                // Update the last (today's) rate with the live rate
+                if let lastIndex = ratesArray.indices.last {
+                    ratesArray[lastIndex] = ExchangeRate(date: ratesArray[lastIndex].date, rate: liveRate)
+                }
+            }
+            
+            rates = ratesArray
+            print("📊 Chart rates updated: \(rates.count) points")
+        } else {
+            print("❌ No historical data received!")
+            error = NSError(domain: "CurrencyChart", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to fetch historical data"])
+            rates = []
         }
-        rates = ratesArray
+        
         isLoading = false
+        print("📊 fetchRates completed, isLoading: \(isLoading), rates count: \(rates.count)")
     }
     
     var currentRate: Double {
         rates.last?.rate ?? 0.0
+    }
+    
+    var highRate: Double {
+        rates.map(\.rate).max() ?? 0.0
+    }
+    
+    var lowRate: Double {
+        rates.map(\.rate).min() ?? 0.0
+    }
+    
+    var medianRate: Double {
+        let sorted = rates.map(\.rate).sorted()
+        guard !sorted.isEmpty else { return 0.0 }
+        let mid = sorted.count / 2
+        if sorted.count % 2 == 0 {
+            return (sorted[mid - 1] + sorted[mid]) / 2.0
+        } else {
+            return sorted[mid]
+        }
     }
     
     var startDate: String {
@@ -71,9 +99,8 @@ final class CurrencyChartViewModel: ObservableObject {
     }
     
     func updateCurrencies(from: String, to: String) {
-        // This is a placeholder for future real API integration
-        // For now, just update the properties if needed
-        // (You may need to refactor the ViewModel to support this in the future)
+        self.fromCurrency = from
+        self.toCurrency = to
     }
 }
 
@@ -93,6 +120,7 @@ struct CurrencyChartView: View {
     @GestureState private var isSwapPressed: Bool = false
     
     init(fromCurrency: String, toCurrency: String) {
+        print("🔄 CurrencyChartView init: \(fromCurrency) → \(toCurrency)")
         self._fromCurrencyCode = State(initialValue: fromCurrency)
         self._toCurrencyCode = State(initialValue: toCurrency)
         self._viewModel = StateObject(wrappedValue: CurrencyChartViewModel(
@@ -104,37 +132,6 @@ struct CurrencyChartView: View {
     var body: some View {
         VStack(alignment: .center, spacing: 0) {
             VStack(alignment: .leading, spacing: 16) {
-                // Currency selector chips row
-                HStack(spacing: 8) {
-                    CurrencySelectorChip(
-                        flagEmoji: fromFlagEmoji,
-                        currencyCode: fromCurrencyCode,
-                        action: { showFromSelector = true }
-                    )
-                    .frame(maxWidth: .infinity)
-                    Button(action: {
-                        let generator = UIImpactFeedbackGenerator(style: .heavy)
-                        generator.prepare()
-                        swapCurrencies()
-                        generator.impactOccurred()
-                    }) {
-                        Image(systemName: "arrow.left.arrow.right")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(width: 40, height: 40)
-                    }
-                    .buttonStyle(SwapButtonStyle())
-                    .accessibilityLabel("Swap currencies")
-                    CurrencySelectorChip(
-                        flagEmoji: toFlagEmoji,
-                        currencyCode: toCurrencyCode,
-                        action: { showToSelector = true }
-                    )
-                    .frame(maxWidth: .infinity)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.top, 8)
-                // Move rateInfoView here, directly below chips
                 rateInfoView
                 chartView
                     .padding(.top, 16)
@@ -145,24 +142,49 @@ struct CurrencyChartView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 24)
         .frame(maxWidth: .infinity)
-        .background(Color("grey700").opacity(0.2))
-        .cornerRadius(8)
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .inset(by: 0.5)
-                .stroke(Color("grey400").opacity(0.1), lineWidth: 1)
+        .background(
+            ZStack {
+                // Glass effect as base layer
+                RoundedRectangle(cornerRadius: 16)
+                    .glassEffect(in: .rect(cornerRadius: 16))
+                
+                // Dark purple overlay to reduce grey appearance
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(red: 20/255, green: 8/255, blue: 58/255).opacity(0.75))
+            }
+            .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
         )
+        .overlay(
+            // Subtle highlight for glassy elevation effect
+            RoundedRectangle(cornerRadius: 16)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.white.opacity(0.08),
+                            Color.white.opacity(0.02),
+                            Color.clear
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .allowsHitTesting(false)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 16))
         .task {
+            print("📊 .task triggered for chart")
             await viewModel.fetchRates(for: selectedRange)
         }
-        .onChange(of: fromCurrencyCode) { newCode in
-            viewModel.updateCurrencies(from: newCode, to: toCurrencyCode)
+        .onChange(of: fromCurrencyCode) { oldValue, newValue in
+            print("📊 fromCurrencyCode changed: \(oldValue) → \(newValue)")
+            viewModel.updateCurrencies(from: newValue, to: toCurrencyCode)
             Task {
                 await viewModel.fetchRates(for: selectedRange)
             }
         }
-        .onChange(of: toCurrencyCode) { newCode in
-            viewModel.updateCurrencies(from: fromCurrencyCode, to: newCode)
+        .onChange(of: toCurrencyCode) { oldValue, newValue in
+            print("📊 toCurrencyCode changed: \(oldValue) → \(newValue)")
+            viewModel.updateCurrencies(from: fromCurrencyCode, to: newValue)
             Task {
                 await viewModel.fetchRates(for: selectedRange)
             }
@@ -204,7 +226,10 @@ struct CurrencyChartView: View {
             rates: viewModel.rates,
             startDate: viewModel.startDate,
             endDate: viewModel.endDate,
-            selectedRate: $selectedRate
+            selectedRate: $selectedRate,
+            highRate: viewModel.highRate,
+            medianRate: viewModel.medianRate,
+            lowRate: viewModel.lowRate
         )
     }
     
@@ -238,17 +263,21 @@ struct CurrencyChartView: View {
     
     private var rateInfoText: String {
         if let selected = selectedRate {
-            let dateString = formatRateDate(selected.date)
-            return "\(fromCurrencyCode) = \(String(format: "%.4f", selected.rate)) \(toCurrencyCode) \(dateString)"
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "MMM d"
+            let dateString = dateFormatter.string(from: selected.date)
+            return "1 \(fromCurrencyCode) = \(String(format: "%.4f", selected.rate)) \(toCurrencyCode) · \(dateString)"
         } else {
-            return "\(fromCurrencyCode) = \(String(format: "%.4f", viewModel.currentRate)) \(toCurrencyCode) Today"
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "MMM d"
+            let dateString = dateFormatter.string(from: Date())
+            return "1 \(fromCurrencyCode) = \(String(format: "%.4f", viewModel.currentRate)) \(toCurrencyCode) · \(dateString)"
         }
     }
     
     private func formatRateDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
+        formatter.dateFormat = "MMM d"
         return formatter.string(from: date)
     }
 }
@@ -259,17 +288,26 @@ struct CurrencyLineChart: View {
     let startDate: String
     let endDate: String
     @Binding var selectedRate: ExchangeRate?
+    let highRate: Double
+    let medianRate: Double
+    let lowRate: Double
     
     private var minRate: Double {
-        rates.map(\.rate).min() ?? 0
+        lowRate
     }
     
     private var maxRate: Double {
-        rates.map(\.rate).max() ?? 0
+        highRate
     }
     
     private var rateRange: Double {
         maxRate - minRate
+    }
+    
+    private func formatShortDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d"
+        return formatter.string(from: date)
     }
 
     var body: some View {
@@ -327,8 +365,19 @@ struct CurrencyLineChart: View {
                     AxisValueLabel() {
                         if let rate = value.as(Double.self) {
                             let index = value.index
-                            if [0, 2, 4].contains(index) {
-                                Text(String(format: "%.4f", rate))
+                            // Show high, median, and low at specific indices
+                            if index == 0 {
+                                Text(String(format: "%.4f", lowRate))
+                                    .foregroundStyle(Color("grey100"))
+                                    .font(.system(size: 12))
+                                    .padding(.leading, 4)
+                            } else if index == 2 {
+                                Text(String(format: "%.4f", medianRate))
+                                    .foregroundStyle(Color("grey100"))
+                                    .font(.system(size: 12))
+                                    .padding(.leading, 4)
+                            } else if index == 4 {
+                                Text(String(format: "%.4f", highRate))
                                     .foregroundStyle(Color("grey100"))
                                     .font(.system(size: 12))
                                     .padding(.leading, 4)
@@ -349,7 +398,7 @@ struct CurrencyLineChart: View {
                                     .font(.system(size: 12))
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             } else if date == rates.last?.date {
-                                Text("Today")
+                                Text(formatShortDate(date))
                                     .foregroundColor(Color("grey100"))
                                     .font(.system(size: 12))
                                     .frame(maxWidth: .infinity, alignment: .trailing)

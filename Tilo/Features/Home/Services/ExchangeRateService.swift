@@ -50,6 +50,18 @@ struct HistoricalAPIResponse: Codable {
     let data: [String: [String: CurrencyRate]]
 }
 
+// MARK: - Range API Models  
+struct RangeAPIResponse: Codable {
+    let meta: RangeMeta
+    let data: [String: [String: CurrencyRate]] // Date -> Currency -> Rate
+}
+
+struct RangeMeta: Codable {
+    let start_date: String
+    let end_date: String
+    let base_currency: String
+}
+
 // MARK: - Exchange Rate Service
 @MainActor
 class ExchangeRateService: ObservableObject {
@@ -59,12 +71,13 @@ class ExchangeRateService: ObservableObject {
     @Published var errorMessage: String?
     
     // Development mode toggle
-    @Published var isMockMode: Bool = true // Set to true for development, false for production
+    @Published var isMockMode: Bool = false // Set to true for development, false for production
     
     // Private properties
     private let apiKey = "cur_live_ekGkTC1IKGFiCe85LkBEwkjMNnZRA05iaVDqYq6G"
     private let baseURL = "https://api.currencyapi.com/v3/latest"
     private let historicalURL = "https://api.currencyapi.com/v3/historical"
+    private let rangeURL = "https://api.currencyapi.com/v3/range"
     private let baseCurrency = "USD" // Using USD as base for all conversions
     
     // Cache storage
@@ -129,6 +142,13 @@ class ExchangeRateService: ObservableObject {
     /// Get current mode status
     var modeDescription: String {
         return isMockMode ? "🧪 Mock Mode (No API calls)" : "🌐 Live Mode (Real API)"
+    }
+    
+    /// Clear all cached data (for testing)
+    func clearCache() {
+        cachedRates = nil
+        cachedHistoricalData.removeAll()
+        print("🗑️ All cache cleared - next requests will use API")
     }
     
     // MARK: - Public Methods
@@ -218,29 +238,49 @@ class ExchangeRateService: ObservableObject {
     
     /// Get exchange rate between two currencies
     func getRate(from: String, to: String) async -> Double? {
+        print("🔍 Getting rate: \(from) → \(to)")
         do {
             let rates = try await fetchRates()
+            print("🔍 Available rates: \(rates.keys.sorted())")
             
             // If getting rate from base currency (USD)
             if from == baseCurrency {
-                return rates[to]
+                let rate = rates[to]
+                print("🔍 USD → \(to): \(rate ?? 0)")
+                return rate
             }
             
             // If getting rate to base currency (USD)
             if to == baseCurrency {
-                return 1.0 / (rates[from] ?? 1.0)
+                let fromRate = rates[from] ?? 1.0
+                let rate = 1.0 / fromRate
+                print("🔍 \(from) → USD: \(rate) (from rate: \(fromRate))")
+                return rate
             }
             
             // Cross-rate: EUR → GBP = (USD → GBP) ÷ (USD → EUR)
             guard let fromRate = rates[from], let toRate = rates[to] else {
+                print("❌ Missing rates - \(from): \(rates[from] ?? 0), \(to): \(rates[to] ?? 0)")
                 return nil
             }
             
-            return toRate / fromRate
+            let rate = toRate / fromRate
+            print("🔍 \(from) → \(to): \(rate) (fromRate: \(fromRate), toRate: \(toRate))")
+            return rate
             
         } catch {
             print("❌ Get rate error: \(error.localizedDescription)")
-            return nil
+            // Fallback to mock rate if API fails
+            print("⚠️ API failed, falling back to mock rate")
+            if from == "USD" {
+                return mockRates[to]
+            } else if to == "USD" {
+                return 1.0 / (mockRates[from] ?? 1.0)
+            } else {
+                let fromRate = mockRates[from] ?? 1.0
+                let toRate = mockRates[to] ?? 1.0
+                return toRate / fromRate
+            }
         }
     }
     
@@ -248,6 +288,17 @@ class ExchangeRateService: ObservableObject {
     func fetchHistoricalRates(from: String, to: String, days: Int = 30) async -> [HistoricalRate]? {
         print("📊 fetchHistoricalRates called: \(from) → \(to), \(days) days, mockMode: \(isMockMode)")
         let cacheKey = "\(from)_\(to)"
+        
+        print("🔍 CACHE CHECK: Looking for cached data for key: \(cacheKey)")
+        print("🔍 ALL CACHED KEYS: \(cachedHistoricalData.keys.sorted())")
+        if let cached = cachedHistoricalData[cacheKey] {
+            let ageHours = Int(Date().timeIntervalSince(cached.timestamp) / 3600)
+            let ageMinutes = Int(Date().timeIntervalSince(cached.timestamp) / 60)
+            print("🔍 CACHE FOUND: Age = \(ageHours)h \(ageMinutes % 60)m, Expired = \(cached.isExpired)")
+            print("🔍 CACHE DATA: \(cached.data.count) data points from \(cached.fromCurrency) to \(cached.toCurrency)")
+        } else {
+            print("🔍 CACHE MISS: No cached data found for \(cacheKey)")
+        }
         
         // Mock mode - return mock historical data
         if isMockMode {
@@ -262,9 +313,10 @@ class ExchangeRateService: ObservableObject {
             return cached.data
         }
         
-        // Fetch from API
+        // Fetch from API using efficient range endpoint
+        print("🌐 MAKING RANGE API CALL: About to fetch \(days) days of data for \(from)→\(to) (THIS WILL USE 1 TOKEN)")
         do {
-            let data = try await fetchHistoricalFromAPI(from: from, to: to, days: days)
+            let data = try await fetchHistoricalRangeFromAPI(from: from, to: to, days: days)
             
             // Cache the data
             cachedHistoricalData[cacheKey] = CachedHistoricalData(
@@ -284,7 +336,9 @@ class ExchangeRateService: ObservableObject {
                 print("⚠️ Using expired cache for \(cacheKey)")
                 return cached.data
             }
-            return nil
+            // Fallback to mock data if API fails
+            print("⚠️ API failed, falling back to mock historical data")
+            return generateMockHistoricalData(from: from, to: to, days: days)
         }
     }
     
@@ -381,8 +435,70 @@ class ExchangeRateService: ObservableObject {
         
     }
     
-    /// Fetch historical data from API for a date range
-    private func fetchHistoricalFromAPI(from: String, to: String, days: Int) async throws -> [HistoricalRate] {
+    /// Fetch historical data using efficient range API (1 token instead of 30)
+    private func fetchHistoricalRangeFromAPI(from: String, to: String, days: Int) async throws -> [HistoricalRate] {
+        let calendar = Calendar.current
+        let endDate = Date()
+        guard let startDate = calendar.date(byAdding: .day, value: -days + 1, to: endDate) else {
+            throw ExchangeRateError.invalidURL
+        }
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let startDateString = dateFormatter.string(from: startDate)
+        let endDateString = dateFormatter.string(from: endDate)
+        
+        print("📅 Fetching range: \(startDateString) to \(endDateString)")
+        
+        guard var urlComponents = URLComponents(string: rangeURL) else {
+            throw ExchangeRateError.invalidURL
+        }
+        
+        urlComponents.queryItems = [
+            URLQueryItem(name: "apikey", value: apiKey),
+            URLQueryItem(name: "start_date", value: startDateString),
+            URLQueryItem(name: "end_date", value: endDateString),
+            URLQueryItem(name: "base_currency", value: from),
+            URLQueryItem(name: "currencies", value: to)
+        ]
+        
+        guard let url = urlComponents.url else {
+            throw ExchangeRateError.invalidURL
+        }
+        
+        print("🌐 Making SINGLE range API call to: \(url)")
+        let (data, response) = try await URLSession.shared.data(from: url)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ExchangeRateError.invalidResponse
+        }
+        
+        print("📡 HTTP Status: \(httpResponse.statusCode)")
+        guard httpResponse.statusCode == 200 else {
+            throw ExchangeRateError.httpError(statusCode: httpResponse.statusCode)
+        }
+        
+        let decoder = JSONDecoder()
+        let apiResponse = try decoder.decode(RangeAPIResponse.self, from: data)
+        
+        print("🔍 Range API Response: \(apiResponse.data.keys.count) dates received")
+        
+        var historicalData: [HistoricalRate] = []
+        
+        for (dateString, currencies) in apiResponse.data {
+            if let rate = currencies[to]?.value,
+               let date = dateFormatter.date(from: dateString) {
+                historicalData.append(HistoricalRate(date: date, rate: rate))
+                print("✅ Added rate for \(dateString): \(rate)")
+            }
+        }
+        
+        print("🏁 Range API completed. Total data points: \(historicalData.count)")
+        return historicalData.sorted { $0.date < $1.date }
+    }
+    
+    /// OLD INEFFICIENT METHOD - Fetch historical data from API for a date range (30 separate calls)
+    private func fetchHistoricalFromAPI_OLD(from: String, to: String, days: Int) async throws -> [HistoricalRate] {
         let calendar = Calendar.current
         let endDate = Date()
         guard let startDate = calendar.date(byAdding: .day, value: -days, to: endDate) else {
@@ -396,9 +512,15 @@ class ExchangeRateService: ObservableObject {
         dateFormatter.dateFormat = "yyyy-MM-dd"
         
         // To minimize API calls, we'll fetch data for every 1 day
-        for dayOffset in (0...days) {
-            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: endDate) else { continue }
+        print("🔄 Starting loop for \(days) days...")
+        for dayOffset in (0..<days) {
+            print("🔄 Processing day \(dayOffset + 1)/\(days) (offset: \(dayOffset))")
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: endDate) else { 
+                print("❌ Failed to create date for offset \(dayOffset)")
+                continue 
+            }
             let dateString = dateFormatter.string(from: date)
+            print("📅 Fetching data for date: \(dateString)")
             
             guard var urlComponents = URLComponents(string: historicalURL) else {
                 throw ExchangeRateError.invalidURL
@@ -415,24 +537,43 @@ class ExchangeRateService: ObservableObject {
                 throw ExchangeRateError.invalidURL
             }
             
-            let (data, response) = try await URLSession.shared.data(from: url)
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw ExchangeRateError.invalidResponse
-            }
-            
-            guard httpResponse.statusCode == 200 else {
-                throw ExchangeRateError.httpError(statusCode: httpResponse.statusCode)
-            }
-            
-            let decoder = JSONDecoder()
-            let apiResponse = try decoder.decode(CurrencyAPIResponse.self, from: data)
-            
-            if let rate = apiResponse.data[to]?.value {
-                historicalData.append(HistoricalRate(date: date, rate: rate))
+            do {
+                print("🌐 Making API call \(dayOffset + 1)/\(days) to: \(url)")
+                let (data, response) = try await URLSession.shared.data(from: url)
+                
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    print("❌ Invalid response for \(dateString), skipping...")
+                    continue
+                }
+                
+                print("📡 HTTP Status for \(dateString): \(httpResponse.statusCode)")
+                guard httpResponse.statusCode == 200 else {
+                    print("❌ HTTP Error \(httpResponse.statusCode) for \(dateString), skipping...")
+                    continue
+                }
+                
+                let decoder = JSONDecoder()
+                let apiResponse = try decoder.decode(CurrencyAPIResponse.self, from: data)
+                
+                print("🔍 API Response for \(dateString): \(apiResponse)")
+                
+                if let rate = apiResponse.data[to]?.value {
+                    print("✅ Found rate for \(to): \(rate)")
+                    historicalData.append(HistoricalRate(date: date, rate: rate))
+                } else {
+                    print("❌ No rate found for \(to) in response: \(apiResponse.data.keys)")
+                }
+                
+                // Add small delay to avoid rate limiting
+                try await Task.sleep(nanoseconds: 100_000_000) // 0.1 second delay
+                
+            } catch {
+                print("❌ Error fetching data for \(dateString): \(error.localizedDescription), skipping...")
+                continue
             }
         }
         
+        print("🏁 Loop completed. Total data points collected: \(historicalData.count)")
         return historicalData.sorted { $0.date < $1.date }
     }
 }

@@ -309,14 +309,22 @@ struct CurrencyLineChart: View {
         formatter.dateFormat = "MMM d"
         return formatter.string(from: date)
     }
+    
+    private func formatTodayDate() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM"
+        return formatter.string(from: Date())
+    }
 
     var body: some View {
-        ZStack {
+        VStack(spacing: 8) {
+            ZStack {
             Chart(rates) { rate in
                 // Area fill
                 AreaMark(
                     x: .value("Date", rate.date),
-                    y: .value("Rate", rate.rate)
+                    yStart: .value("Low", lowRate),
+                    yEnd: .value("Rate", rate.rate)
                 )
                 .foregroundStyle(
                     LinearGradient(
@@ -358,30 +366,16 @@ struct CurrencyLineChart: View {
                     }
                 }
             }
+            .chartYScale(domain: lowRate...highRate)
             .chartYAxis {
-                AxisMarks() { value in
+                AxisMarks(position: .trailing, values: [lowRate, medianRate, highRate]) { value in
                     AxisGridLine()
                         .foregroundStyle(Color("grey600").opacity(0.3))
                     AxisValueLabel() {
                         if let rate = value.as(Double.self) {
-                            let index = value.index
-                            // Show high, median, and low at specific indices
-                            if index == 0 {
-                                Text(String(format: "%.4f", lowRate))
-                                    .foregroundStyle(Color("grey100"))
-                                    .font(.system(size: 12))
-                                    .padding(.leading, 4)
-                            } else if index == 2 {
-                                Text(String(format: "%.4f", medianRate))
-                                    .foregroundStyle(Color("grey100"))
-                                    .font(.system(size: 12))
-                                    .padding(.leading, 4)
-                            } else if index == 4 {
-                                Text(String(format: "%.4f", highRate))
-                                    .foregroundStyle(Color("grey100"))
-                                    .font(.system(size: 12))
-                                    .padding(.leading, 4)
-                            }
+                            Text(String(format: "%.4f", rate))
+                                .foregroundStyle(Color("grey100"))
+                                .font(.system(size: 12))
                         }
                     }
                 }
@@ -390,21 +384,6 @@ struct CurrencyLineChart: View {
                 AxisMarks(values: [rates.first?.date, rates.last?.date].compactMap { $0 }) { value in
                     AxisGridLine()
                         .foregroundStyle(Color("grey600").opacity(0.3))
-                    AxisValueLabel {
-                        if let date = value.as(Date.self) {
-                            if date == rates.first?.date {
-                                Text("A month ago")
-                                    .foregroundColor(Color("grey100"))
-                                    .font(.system(size: 12))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                            } else if date == rates.last?.date {
-                                Text(formatShortDate(date))
-                                    .foregroundColor(Color("grey100"))
-                                    .font(.system(size: 12))
-                                    .frame(maxWidth: .infinity, alignment: .trailing)
-                            }
-                        }
-                    }
                 }
             }
             .chartOverlay { proxy in
@@ -432,8 +411,27 @@ struct CurrencyLineChart: View {
                         )
                 }
             }
-            .frame(height: 164)
+            .frame(height: 180)
             .background(Color.clear)
+            .chartPlotStyle { plotArea in
+                plotArea.background(Color.clear)
+            }
+            }
+            
+            // Date labels below chart
+            HStack {
+                Text("A month ago")
+                    .foregroundColor(Color("grey100"))
+                    .font(.system(size: 12))
+                
+                Spacer()
+                
+                Text(formatTodayDate())
+                    .foregroundColor(Color("grey100"))
+                    .font(.system(size: 12))
+            }
+            .padding(.leading, 16)
+            .padding(.trailing, 60)
         }
     }
     

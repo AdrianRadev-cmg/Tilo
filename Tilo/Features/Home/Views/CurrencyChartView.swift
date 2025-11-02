@@ -71,14 +71,9 @@ final class CurrencyChartViewModel: ObservableObject {
     }
     
     var medianRate: Double {
-        let sorted = rates.map(\.rate).sorted()
-        guard !sorted.isEmpty else { return 0.0 }
-        let mid = sorted.count / 2
-        if sorted.count % 2 == 0 {
-            return (sorted[mid - 1] + sorted[mid]) / 2.0
-        } else {
-            return sorted[mid]
-        }
+        // Calculate the visual middle point between high and low
+        // This ensures the middle line is always in the center of the chart
+        return (highRate + lowRate) / 2.0
     }
     
     var startDate: String {
@@ -134,6 +129,8 @@ struct CurrencyChartView: View {
             VStack(alignment: .leading, spacing: 16) {
                 rateInfoView
                 chartView
+                    .padding(.top, 16)
+                rateInsightView
                     .padding(.top, 16)
             }
             .padding(0)
@@ -251,34 +248,320 @@ struct CurrencyChartView: View {
         .frame(maxWidth: .infinity)
     }
     
+    
     private var rateInfoView: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            Text(rateInfoText)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(Color("grey100"))
+        VStack(alignment: .leading, spacing: 12) {
+            // Rate text with styled date
+            HStack(spacing: 0) {
+                Text(rateMainText)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(Color("grey100"))
+                
+                Text(rateDateText)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.7))
+            }
+            
+            // Daily change indicator with flags
+            if let changeText = dailyChangeText {
+                HStack(spacing: 6) {
+                    HStack(spacing: 4) {
+                        // SF Symbol arrow icon
+                        Image(systemName: dailyChangeIcon)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(dailyChangeColor)
+                        
+                        Text(changeText)
+                            .font(.system(size: 16, weight: .regular))
+                            .foregroundColor(dailyChangeColor)
+                    }
+                    
+                    // Currency flags after text
+                    HStack(spacing: 2) {
+                        Text(getFlag(for: fromCurrencyCode))
+                            .font(.system(size: 16))
+                        Text(getFlag(for: toCurrencyCode))
+                            .font(.system(size: 16))
+                    }
+                }
+            }
         }
         .padding(0)
         .frame(width: 289, alignment: .topLeading)
-    }
-    
-    private var rateInfoText: String {
-        if let selected = selectedRate {
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "MMM d"
-            let dateString = dateFormatter.string(from: selected.date)
-            return "1 \(fromCurrencyCode) = \(String(format: "%.4f", selected.rate)) \(toCurrencyCode) · \(dateString)"
-        } else {
-            let dateFormatter = DateFormatter()
-            dateFormatter.dateFormat = "MMM d"
-            let dateString = dateFormatter.string(from: Date())
-            return "1 \(fromCurrencyCode) = \(String(format: "%.4f", viewModel.currentRate)) \(toCurrencyCode) · \(dateString)"
-        }
     }
     
     private func formatRateDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMM d"
         return formatter.string(from: date)
+    }
+    
+    // Rate insight view
+    private var rateInsightView: some View {
+        HStack(spacing: 8) {
+            Image(systemName: rateInsightIcon)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(rateInsightColor)
+            
+            Text(rateInsightText)
+                .font(.system(size: 14, weight: .regular))
+                .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
+                .multilineTextAlignment(.leading)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            ZStack {
+                // Glass effect as base layer
+                RoundedRectangle(cornerRadius: 8)
+                    .glassEffect(in: .rect(cornerRadius: 8))
+                
+                // Dark purple overlay to reduce grey appearance
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color(red: 20/255, green: 8/255, blue: 58/255).opacity(0.75))
+            }
+            .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
+        )
+        .overlay(
+            // Subtle highlight for glassy elevation effect
+            RoundedRectangle(cornerRadius: 8)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.white.opacity(0.08),
+                            Color.white.opacity(0.02),
+                            Color.clear
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .allowsHitTesting(false)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+    
+    // Split rate text for styling
+    private var rateMainText: String {
+        if let selected = selectedRate {
+            return "1 \(fromCurrencyCode) = \(String(format: "%.4f", selected.rate)) \(toCurrencyCode) · "
+        } else {
+            return "1 \(fromCurrencyCode) = \(String(format: "%.4f", viewModel.currentRate)) \(toCurrencyCode) · "
+        }
+    }
+    
+    private var rateDateText: String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "MMM d"
+        
+        if let selected = selectedRate {
+            return dateFormatter.string(from: selected.date)
+        } else {
+            return dateFormatter.string(from: Date())
+        }
+    }
+    
+    // Get flag emoji for currency code
+    private func getFlag(for currencyCode: String) -> String {
+        // Use the same currency data as the main app
+        if let currency = Currency.mockData.first(where: { $0.code == currencyCode }) {
+            return currency.flag
+        }
+        return "🏳️" // Default flag if not found
+    }
+    
+    // Dynamic daily change calculation based on selected or current rate
+    private var dailyChangeText: String? {
+        guard viewModel.rates.count >= 2 else { return nil }
+        
+        let (currentRate, previousRate) = getDailyChangeRates()
+        
+        guard currentRate > 0 && previousRate > 0 else { return nil }
+        
+        let change = currentRate - previousRate
+        let percentageChange = (change / previousRate) * 100
+        
+        let sign = change >= 0 ? "+" : ""
+        
+        return "\(sign)\(String(format: "%.2f", abs(percentageChange)))% Past day"
+    }
+    
+    // Get the appropriate SF Symbol arrow
+    private var dailyChangeIcon: String {
+        guard viewModel.rates.count >= 2 else { return "minus" }
+        
+        let (currentRate, previousRate) = getDailyChangeRates()
+        let change = currentRate - previousRate
+        
+        if change > 0 {
+            return "arrow.up.right" // Angled up arrow
+        } else if change < 0 {
+            return "arrow.down.right" // Angled down arrow
+        } else {
+            return "minus" // Flat line for no change
+        }
+    }
+    
+    private var dailyChangeColor: Color {
+        guard viewModel.rates.count >= 2 else { return Color("grey100") }
+        
+        let (currentRate, previousRate) = getDailyChangeRates()
+        let change = currentRate - previousRate
+        
+        if change > 0 {
+            return Color(red: 0.2, green: 0.8, blue: 0.4) // Accessible green
+        } else if change < 0 {
+            return Color(red: 0.9, green: 0.3, blue: 0.3) // Accessible red
+        } else {
+            return Color("grey100") // Neutral for no change
+        }
+    }
+    
+    // Helper to get the current and previous rates based on selection
+    private func getDailyChangeRates() -> (current: Double, previous: Double) {
+        guard viewModel.rates.count >= 2 else { return (0, 0) }
+        
+        if let selected = selectedRate {
+            // Find the index of the selected rate
+            if let selectedIndex = viewModel.rates.firstIndex(where: { $0.id == selected.id }) {
+                let currentRate = selected.rate
+                
+                // Get the previous day's rate (one index before)
+                if selectedIndex > 0 {
+                    let previousRate = viewModel.rates[selectedIndex - 1].rate
+                    return (currentRate, previousRate)
+                } else {
+                    // If it's the first day, compare with itself (no change)
+                    return (currentRate, currentRate)
+                }
+            }
+        }
+        
+        // Default to today vs yesterday
+        let todayRate = viewModel.rates.last?.rate ?? 0
+        let yesterdayRate = viewModel.rates[viewModel.rates.count - 2].rate
+        return (todayRate, yesterdayRate)
+    }
+    
+    // Intelligent rate analysis
+    private var rateInsightText: String {
+        guard viewModel.rates.count >= 7 else { return "Analyzing rate trends..." }
+        
+        let currentRate = viewModel.currentRate
+        let highRate = viewModel.highRate
+        let lowRate = viewModel.lowRate
+        let rates = viewModel.rates.map(\.rate)
+        
+        // Calculate percentile position (0-100)
+        let rateRange = highRate - lowRate
+        let currentPosition = ((currentRate - lowRate) / rateRange) * 100
+        
+        // Calculate recent trend (last 7 days)
+        let recentRates = Array(rates.suffix(7))
+        let weekAgoRate = recentRates.first ?? currentRate
+        let weekTrend = ((currentRate - weekAgoRate) / weekAgoRate) * 100
+        
+        // Calculate volatility
+        let avgRate = rates.reduce(0, +) / Double(rates.count)
+        let variance = rates.map { pow($0 - avgRate, 2) }.reduce(0, +) / Double(rates.count)
+        let volatility = sqrt(variance) / avgRate * 100
+        
+        // Generate insights based on analysis
+        switch currentPosition {
+        case 80...100:
+            if weekTrend > 2 {
+                return "Excellent rate! Near 30-day high and trending up. Great time to exchange."
+            } else if weekTrend < -2 {
+                return "Good rate but declining. Consider exchanging soon before further drops."
+            } else {
+                return "Excellent rate! You're getting near the best rate of the month."
+            }
+            
+        case 60...79:
+            if weekTrend > 1 {
+                return "Good rate and improving. Rates are trending upward this week."
+            } else if volatility > 3 {
+                return "Good rate but volatile. Consider exchanging if you need certainty."
+            } else {
+                return "Good rate. Above average for the month - reasonable time to exchange."
+            }
+            
+        case 40...59:
+            if weekTrend > 2 {
+                return "Average rate but improving fast. Might be worth waiting a few days."
+            } else if weekTrend < -2 {
+                return "Average rate and declining. Consider exchanging to avoid further drops."
+            } else {
+                return "Average rate. Consider waiting for better rates or exchange if urgent."
+            }
+            
+        case 20...39:
+            if weekTrend > 1 {
+                return "Below average but recovering. Rates are improving - consider waiting."
+            } else if volatility > 4 {
+                return "Below average rate in volatile market. Wait for better rates if possible."
+            } else {
+                return "Below average rate. Consider waiting for improvement unless urgent."
+            }
+            
+        case 0...19:
+            if weekTrend > 0 {
+                return "Poor rate but showing signs of recovery. Wait if you can."
+            } else {
+                return "Poor rate near 30-day low. Only exchange if absolutely necessary."
+            }
+            
+        default:
+            return "Rate analysis available with more data."
+        }
+    }
+    
+    private var rateInsightIcon: String {
+        guard viewModel.rates.count >= 7 else { return "chart.line.uptrend.xyaxis" }
+        
+        let currentRate = viewModel.currentRate
+        let highRate = viewModel.highRate
+        let lowRate = viewModel.lowRate
+        let currentPosition = ((currentRate - lowRate) / (highRate - lowRate)) * 100
+        
+        switch currentPosition {
+        case 80...100:
+            return "star.fill" // Excellent
+        case 60...79:
+            return "checkmark.circle.fill" // Good
+        case 40...59:
+            return "minus.circle.fill" // Average
+        case 20...39:
+            return "exclamationmark.triangle.fill" // Below average
+        case 0...19:
+            return "xmark.circle.fill" // Poor
+        default:
+            return "chart.line.uptrend.xyaxis"
+        }
+    }
+    
+    private var rateInsightColor: Color {
+        guard viewModel.rates.count >= 7 else { return Color("grey100") }
+        
+        let currentRate = viewModel.currentRate
+        let highRate = viewModel.highRate
+        let lowRate = viewModel.lowRate
+        let currentPosition = ((currentRate - lowRate) / (highRate - lowRate)) * 100
+        
+        switch currentPosition {
+        case 80...100:
+            return Color(red: 0.2, green: 0.8, blue: 0.4) // Green - Excellent
+        case 60...79:
+            return Color(red: 0.4, green: 0.7, blue: 0.9) // Blue - Good
+        case 40...59:
+            return Color(red: 0.9, green: 0.7, blue: 0.3) // Yellow - Average
+        case 20...39:
+            return Color(red: 0.9, green: 0.5, blue: 0.2) // Orange - Below average
+        case 0...19:
+            return Color(red: 0.9, green: 0.3, blue: 0.3) // Red - Poor
+        default:
+            return Color("grey100")
+        }
     }
 }
 
@@ -317,7 +600,7 @@ struct CurrencyLineChart: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 12) {
             ZStack {
             Chart(rates) { rate in
                 // Area fill
@@ -421,17 +704,11 @@ struct CurrencyLineChart: View {
             // Date labels below chart
             HStack {
                 Text("A month ago")
-                    .foregroundColor(Color("grey100"))
-                    .font(.system(size: 12))
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
                 
                 Spacer()
-                
-                Text(formatTodayDate())
-                    .foregroundColor(Color("grey100"))
-                    .font(.system(size: 12))
             }
-            .padding(.leading, 16)
-            .padding(.trailing, 60)
         }
     }
     

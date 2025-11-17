@@ -223,15 +223,15 @@ struct HomeView: View {
                 .ignoresSafeArea()
                 
                 GeometryReader { geometry in
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 0) {
-                            // Purple section with currency cards
-                            ZStack {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    CurrencyCard(
-                                        currencyName: $fromCurrencyName,
-                                        flagEmoji: $fromFlagEmoji,
-                                        currencyCode: $fromCurrencyCode,
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        // Purple section with currency cards
+                        ZStack {
+                            VStack(alignment: .leading, spacing: 12) {
+                                CurrencyCard(
+                                    currencyName: $fromCurrencyName,
+                                    flagEmoji: $fromFlagEmoji,
+                                    currencyCode: $fromCurrencyCode,
                                         amount: formatAmount(fromAmount),
                                         exchangeRateInfo: exchangeRate > 0 ? "1 \(fromCurrencyCode) = \(formatExchangeRate(exchangeRate)) \(toCurrencyCode)" : "Loading rate...",
                                         currencySymbol: getCurrencySymbol(for: fromCurrencyCode),
@@ -268,11 +268,11 @@ struct HomeView: View {
                                             await updateConversion()
                                         }
                                     }
-                                    
-                                    CurrencyCard(
-                                        currencyName: $toCurrencyName,
-                                        flagEmoji: $toFlagEmoji,
-                                        currencyCode: $toCurrencyCode,
+                                
+                                CurrencyCard(
+                                    currencyName: $toCurrencyName,
+                                    flagEmoji: $toFlagEmoji,
+                                    currencyCode: $toCurrencyCode,
                                         amount: formatAmount(toAmount),
                                         exchangeRateInfo: exchangeRate > 0 ? "1 \(toCurrencyCode) = \(formatExchangeRate(1.0 / exchangeRate)) \(fromCurrencyCode)" : "Loading rate...",
                                         currencySymbol: getCurrencySymbol(for: toCurrencyCode),
@@ -357,7 +357,7 @@ struct HomeView: View {
                                 .font(.title2)
                                 .foregroundColor(.white)
                             
-                            CurrencyChartView(fromCurrency: fromCurrencyCode, toCurrency: toCurrencyCode)
+                        CurrencyChartView(fromCurrency: fromCurrencyCode, toCurrency: toCurrencyCode)
                                 .id("\(fromCurrencyCode)-\(toCurrencyCode)")
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -380,11 +380,18 @@ struct HomeView: View {
                 await updateConversion()
             }
             
-            // Travel view Tab (placeholder)
-            Text("Travel view")
+            // Travel view Tab
+            TravelView(
+                fromCurrencyCode: $fromCurrencyCode,
+                fromCurrencyName: $fromCurrencyName,
+                fromFlagEmoji: $fromFlagEmoji,
+                toCurrencyCode: $toCurrencyCode,
+                toCurrencyName: $toCurrencyName,
+                toFlagEmoji: $toFlagEmoji
+            )
                 .tabItem {
-                    Image(systemName: "tablecells.fill")
-                    Text("Travel view")
+                Image(systemName: "tablecells.fill")
+                Text("Travel view")
                 }
                 .tag(1)
         }

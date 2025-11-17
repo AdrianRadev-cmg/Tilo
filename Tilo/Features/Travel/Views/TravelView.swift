@@ -12,7 +12,6 @@ struct TravelView: View {
     // Local state
     @State private var showFromSelector = false
     @State private var showToSelector = false
-    @State private var recentPairs: [CurrencyPair] = []
     @StateObject private var exchangeService = ExchangeRateService.shared
     
     var body: some View {
@@ -46,23 +45,26 @@ struct TravelView: View {
                         .padding(.horizontal, max(16, geometry.size.width * 0.04))
                         .padding(.top, max(20, geometry.size.height * 0.02))
                         
-                        // Recent conversions chips carousel
-                        RecentConversionsCarousel(
-                            recentPairs: recentPairs,
-                            onSelectPair: { pair in
-                                selectCurrencyPair(pair)
-                            }
-                        )
-                        .padding(.horizontal, max(16, geometry.size.width * 0.04))
-                        
-                        // Currency selectors
-                        VStack(spacing: 16) {
+                        // Currency selectors with swap button
+                        HStack(spacing: 12) {
                             // From currency selector
                             CurrencySelectorChip(
                                 flagEmoji: fromFlagEmoji,
                                 currencyCode: fromCurrencyCode,
                                 action: { showFromSelector = true }
                             )
+                            
+                            // Swap button
+                            Button(action: swapCurrencies) {
+                                Image(systemName: "arrow.left.arrow.right")
+                                    .font(.system(size: 20, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(width: 44, height: 44)
+                                    .background(
+                                        Circle()
+                                            .glassEffect(in: .circle)
+                                    )
+                            }
                             
                             // To currency selector
                             CurrencySelectorChip(
@@ -91,7 +93,6 @@ struct TravelView: View {
                 fromCurrencyName = selectedCurrency.name
                 fromFlagEmoji = selectedCurrency.flag
                 fromCurrencyCode = selectedCurrency.code
-                saveRecentPair()
             }
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
@@ -101,121 +102,31 @@ struct TravelView: View {
                 toCurrencyName = selectedCurrency.name
                 toFlagEmoji = selectedCurrency.flag
                 toCurrencyCode = selectedCurrency.code
-                saveRecentPair()
             }
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
-        .onAppear {
-            loadRecentPairs()
-            saveRecentPair() // Save current pair when view appears
-        }
     }
     
-    // MARK: - Recent Pairs Management
+    // MARK: - Swap Currencies
     
-    private func saveRecentPair() {
-        let newPair = CurrencyPair(
-            fromCode: fromCurrencyCode,
-            fromFlag: fromFlagEmoji,
-            toCode: toCurrencyCode,
-            toFlag: toFlagEmoji
-        )
-        
-        // Remove if already exists
-        recentPairs.removeAll { $0.id == newPair.id }
-        
-        // Add to front
-        recentPairs.insert(newPair, at: 0)
-        
-        // Keep only 5 most recent
-        if recentPairs.count > 5 {
-            recentPairs = Array(recentPairs.prefix(5))
-        }
-        
-        // Save to UserDefaults
-        if let encoded = try? JSONEncoder().encode(recentPairs) {
-            UserDefaults.standard.set(encoded, forKey: "recentCurrencyPairs")
-        }
-    }
-    
-    private func loadRecentPairs() {
-        if let data = UserDefaults.standard.data(forKey: "recentCurrencyPairs"),
-           let decoded = try? JSONDecoder().decode([CurrencyPair].self, from: data) {
-            recentPairs = decoded
-        }
-    }
-    
-    private func selectCurrencyPair(_ pair: CurrencyPair) {
+    private func swapCurrencies() {
         // Add haptic feedback
-        let generator = UIImpactFeedbackGenerator(style: .light)
+        let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
         
-        fromCurrencyCode = pair.fromCode
-        fromFlagEmoji = pair.fromFlag
-        toCurrencyCode = pair.toCode
-        toFlagEmoji = pair.toFlag
+        // Swap the currency values
+        let tempCode = fromCurrencyCode
+        let tempFlag = fromFlagEmoji
+        let tempName = fromCurrencyName
         
-        // Move this pair to front
-        saveRecentPair()
-    }
-}
-
-// MARK: - Currency Pair Model
-
-struct CurrencyPair: Identifiable, Codable, Equatable {
-    var id: String {
-        "\(fromCode)-\(toCode)"
-    }
-    let fromCode: String
-    let fromFlag: String
-    let toCode: String
-    let toFlag: String
-}
-
-// MARK: - Recent Conversions Carousel
-
-struct RecentConversionsCarousel: View {
-    let recentPairs: [CurrencyPair]
-    let onSelectPair: (CurrencyPair) -> Void
-    
-    var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
-                ForEach(recentPairs) { pair in
-                    Button(action: {
-                        onSelectPair(pair)
-                    }) {
-                        HStack(spacing: 6) {
-                            Text(pair.fromFlag)
-                                .font(.system(size: 18))
-                            Text(pair.fromCode)
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white)
-                            Text("-")
-                                .font(.system(size: 16, weight: .regular))
-                                .foregroundColor(.white.opacity(0.6))
-                            Text(pair.toCode)
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.white)
-                            Text(pair.toFlag)
-                                .font(.system(size: 18))
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 20)
-                                .glassEffect(in: .rect(cornerRadius: 20))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                        )
-                    }
-                }
-            }
-            .padding(.vertical, 4)
-        }
+        fromCurrencyCode = toCurrencyCode
+        fromFlagEmoji = toFlagEmoji
+        fromCurrencyName = toCurrencyName
+        
+        toCurrencyCode = tempCode
+        toFlagEmoji = tempFlag
+        toCurrencyName = tempName
     }
 }
 

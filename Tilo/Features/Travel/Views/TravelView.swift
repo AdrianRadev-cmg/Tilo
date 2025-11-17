@@ -45,7 +45,7 @@ struct TravelView: View {
                         .padding(.horizontal, max(16, geometry.size.width * 0.04))
                         .padding(.top, max(20, geometry.size.height * 0.02))
                         
-                        // Currency selectors with swap button
+                        // Currency selector card
                         HStack(spacing: 12) {
                             // From currency selector
                             CurrencySelectorChip(
@@ -53,18 +53,24 @@ struct TravelView: View {
                                 currencyCode: fromCurrencyCode,
                                 action: { showFromSelector = true }
                             )
+                            .frame(maxWidth: .infinity)
                             
-                            // Swap button
+                            // Swap button with left/right arrows
                             Button(action: swapCurrencies) {
-                                Image(systemName: "arrow.left.arrow.right")
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .foregroundColor(.white)
+                                Image(systemName: "arrow.left.arrow.right.circle")
+                                    .font(.system(size: 18, weight: .regular))
+                                    .foregroundStyle(Color("grey100"))
                                     .frame(width: 44, height: 44)
-                                    .background(
+                                    .glassEffect()
+                                    .overlay(
                                         Circle()
-                                            .glassEffect(in: .circle)
+                                            .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
                                     )
+                                    .clipShape(Circle())
+                                    .contentShape(Circle())
                             }
+                            .buttonStyle(.plain)
+                            .shadow(color: .black.opacity(0.20), radius: 10, x: 0, y: 3)
                             
                             // To currency selector
                             CurrencySelectorChip(
@@ -72,14 +78,43 @@ struct TravelView: View {
                                 currencyCode: toCurrencyCode,
                                 action: { showToSelector = true }
                             )
+                            .frame(maxWidth: .infinity)
                         }
+                        .padding(16)
+                        .background(
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 16)
+                                    .glassEffect(in: .rect(cornerRadius: 16))
+                                RoundedRectangle(cornerRadius: 16)
+                                    .fill(Color(red: 20/255, green: 8/255, blue: 58/255).opacity(0.75))
+                            }
+                            .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.white.opacity(0.08),
+                                            Color.white.opacity(0.02),
+                                            Color.clear
+                                        ]),
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .allowsHitTesting(false)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
                         .padding(.horizontal, max(16, geometry.size.width * 0.04))
                         
                         // Conversion table
                         ConversionTable(
                             fromCurrencyCode: fromCurrencyCode,
+                            fromCurrencyName: fromCurrencyName,
                             fromFlagEmoji: fromFlagEmoji,
                             toCurrencyCode: toCurrencyCode,
+                            toCurrencyName: toCurrencyName,
                             toFlagEmoji: toFlagEmoji
                         )
                         .padding(.horizontal, max(16, geometry.size.width * 0.04))
@@ -134,60 +169,32 @@ struct TravelView: View {
 
 struct ConversionTable: View {
     let fromCurrencyCode: String
+    let fromCurrencyName: String
     let fromFlagEmoji: String
     let toCurrencyCode: String
+    let toCurrencyName: String
     let toFlagEmoji: String
     
     @State private var conversions: [(amount: Double, converted: Double)] = []
+    @State private var exchangeRate: Double?
     @State private var isLoading = false
     @StateObject private var exchangeService = ExchangeRateService.shared
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header with export button
-            HStack {
-                Spacer()
-                Button(action: exportTable) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 16, weight: .medium))
-                        Text("Export")
-                            .font(.system(size: 16, weight: .medium))
-                    }
-                    .foregroundColor(Color("primary100"))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color.white.opacity(0.1))
-                    )
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
-            .padding(.bottom, 12)
-            
             // Table content
             VStack(spacing: 0) {
                 // Header row
                 HStack {
-                    HStack(spacing: 6) {
-                        Text(fromFlagEmoji)
-                            .font(.system(size: 18))
-                        Text(fromCurrencyCode)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Text(fromCurrencyName)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    HStack(spacing: 6) {
-                        Text(toFlagEmoji)
-                            .font(.system(size: 18))
-                        Text(toCurrencyCode)
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    Text(toCurrencyName)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -202,12 +209,12 @@ struct ConversionTable: View {
                     ForEach(Array(conversions.enumerated()), id: \.offset) { index, conversion in
                         HStack {
                             Text(formatAmount(conversion.amount, for: fromCurrencyCode))
-                                .font(.system(size: 20, weight: .regular))
+                                .font(.system(size: 24, weight: .regular))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             
                             Text(formatAmount(conversion.converted, for: toCurrencyCode))
-                                .font(.system(size: 20, weight: .semibold))
+                                .font(.system(size: 24, weight: .semibold))
                                 .foregroundColor(Color("primary100"))
                                 .frame(maxWidth: .infinity, alignment: .trailing)
                         }
@@ -219,6 +226,37 @@ struct ConversionTable: View {
                     }
                 }
             }
+            
+            // Footer with exchange rate and export button
+            HStack {
+                // Exchange rate info
+                if let rate = exchangeRate {
+                    Text("1 \(fromCurrencyCode) = \(String(format: "%.4f", rate)) \(toCurrencyCode)")
+                        .font(.system(size: 14, weight: .regular))
+                        .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
+                }
+                
+                Spacer()
+                
+                // Export button (icon only, glass style)
+                Button(action: exportTable) {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 18, weight: .regular))
+                        .foregroundStyle(Color("grey100"))
+                        .frame(width: 44, height: 44)
+                        .glassEffect()
+                        .overlay(
+                            Circle()
+                                .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+                        )
+                        .clipShape(Circle())
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .shadow(color: .black.opacity(0.20), radius: 10, x: 0, y: 3)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
             .padding(.bottom, 16)
         }
         .background(
@@ -266,6 +304,11 @@ struct ConversionTable: View {
     private func fetchConversions() async {
         isLoading = true
         
+        // Fetch exchange rate
+        if let rate = await exchangeService.getRate(from: fromCurrencyCode, to: toCurrencyCode) {
+            exchangeRate = rate
+        }
+        
         let amounts = getTableAmounts(for: fromCurrencyCode)
         var results: [(amount: Double, converted: Double)] = []
         
@@ -282,52 +325,52 @@ struct ConversionTable: View {
     // MARK: - Helper Functions
     
     private func getTableAmounts(for currencyCode: String) -> [Double] {
-        // Very high-value currencies
+        // Very high-value currencies - 8 values
         let veryHighValue = ["KWD", "BHD", "OMR", "JOD", "GBP"]
         if veryHighValue.contains(currencyCode) {
-            return [1, 5, 10, 20, 50]
+            return [1, 5, 10, 20, 50, 100, 200, 500]
         }
         
-        // High-value currencies
+        // High-value currencies - 8 values
         let highValue = [
             "EUR", "USD", "CHF", "CAD", "AUD", "NZD", "SGD", "AED", "SAR", "QAR",
             "ILS", "BND", "BSD", "PAB", "FJD", "BWP", "AZN", "RON", "BGN", "GEL",
             "PEN", "BOB", "GTQ", "UAH", "RSD", "JMD", "BBD", "TTD", "MUR", "MVR"
         ]
         if highValue.contains(currencyCode) {
-            return [10, 50, 100, 200, 500]
+            return [10, 50, 100, 200, 500, 1000, 2000, 5000]
         }
         
-        // Medium-value currencies
+        // Medium-value currencies - 8 values
         let mediumValue = [
             "CNY", "HKD", "TWD", "SEK", "NOK", "DKK", "PLN", "CZK", "MXN", "ZAR",
             "BRL", "INR", "THB", "MYR", "PHP", "TRY", "EGP", "RUB", "MDL", "MKD",
             "DOP", "HNL", "NIO", "MAD", "TND", "KES", "UGX", "TZS", "GHS", "NAD"
         ]
         if mediumValue.contains(currencyCode) {
-            return [100, 500, 1000, 2000, 5000]
+            return [100, 500, 1000, 2000, 5000, 10000, 20000, 50000]
         }
         
-        // Low-value currencies
+        // Low-value currencies - 8 values
         let lowValue = [
             "JPY", "KRW", "HUF", "ISK", "CLP", "ARS", "COP", "PKR", "LKR", "BDT",
             "MMK", "NGN", "AMD", "KZT", "KGS", "ALL", "RWF", "BIF", "DJF", "GNF",
             "KMF", "MGA", "PYG", "KHR", "MNT"
         ]
         if lowValue.contains(currencyCode) {
-            return [1000, 5000, 10000, 20000, 50000]
+            return [1000, 5000, 10000, 20000, 50000, 100000, 200000, 500000]
         }
         
-        // Very low-value currencies
+        // Very low-value currencies - 8 values
         let veryLowValue = [
             "VND", "IDR", "IRR", "LAK", "UZS", "SLL", "LBP", "SYP", "STN", "VES"
         ]
         if veryLowValue.contains(currencyCode) {
-            return [10000, 50000, 100000, 200000, 500000]
+            return [10000, 50000, 100000, 200000, 500000, 1000000, 2000000, 5000000]
         }
         
         // Default to high-value
-        return [10, 50, 100, 200, 500]
+        return [10, 50, 100, 200, 500, 1000, 2000, 5000]
     }
     
     private func formatAmount(_ amount: Double, for currencyCode: String) -> String {
@@ -380,23 +423,15 @@ struct ConversionTable: View {
         VStack(alignment: .leading, spacing: 0) {
             // Header row
             HStack {
-                HStack(spacing: 6) {
-                    Text(fromFlagEmoji)
-                        .font(.system(size: 22))
-                    Text(fromCurrencyCode)
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.white)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                Text(fromCurrencyName)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 
-                HStack(spacing: 6) {
-                    Text(toFlagEmoji)
-                        .font(.system(size: 22))
-                    Text(toCurrencyCode)
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.white)
-                }
-                .frame(maxWidth: .infinity, alignment: .trailing)
+                Text(toCurrencyName)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
@@ -406,12 +441,12 @@ struct ConversionTable: View {
             ForEach(Array(conversions.enumerated()), id: \.offset) { index, conversion in
                 HStack {
                     Text(formatAmount(conversion.amount, for: fromCurrencyCode))
-                        .font(.system(size: 24, weight: .regular))
+                        .font(.system(size: 28, weight: .regular))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
                     Text(formatAmount(conversion.converted, for: toCurrencyCode))
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.system(size: 28, weight: .bold))
                         .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.9))
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }

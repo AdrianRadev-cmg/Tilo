@@ -372,7 +372,7 @@ struct HomeView: View {
             .ignoresSafeArea(.keyboard)
             .tabItem {
                 Image(systemName: "arrow.left.arrow.right.circle.fill")
-                Text("Currency")
+                Text("Convert")
             }
             .tag(0)
             .task {

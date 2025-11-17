@@ -130,8 +130,6 @@ struct CurrencyChartView: View {
                 rateInfoView
                 chartView
                     .padding(.top, 16)
-                rateInsightView
-                    .padding(.top, 16)
             }
             .padding(0)
             .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -262,27 +260,17 @@ struct CurrencyChartView: View {
                     .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.7))
             }
             
-            // Daily change indicator with flags
+            // Daily change indicator
             if let changeText = dailyChangeText {
-                HStack(spacing: 6) {
-                    HStack(spacing: 4) {
-                        // SF Symbol arrow icon
-                        Image(systemName: dailyChangeIcon)
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(dailyChangeColor)
-                        
-                        Text(changeText)
-                            .font(.system(size: 16, weight: .regular))
-                            .foregroundColor(dailyChangeColor)
-                    }
+                HStack(spacing: 4) {
+                    // SF Symbol arrow icon
+                    Image(systemName: dailyChangeIcon)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(dailyChangeColor)
                     
-                    // Currency flags after text
-                    HStack(spacing: 2) {
-                        Text(getFlag(for: fromCurrencyCode))
-                            .font(.system(size: 16))
-                        Text(getFlag(for: toCurrencyCode))
-                            .font(.system(size: 16))
-                    }
+                    Text(changeText)
+                        .font(.system(size: 16, weight: .regular))
+                        .foregroundColor(dailyChangeColor)
                 }
             }
         }

@@ -371,8 +371,8 @@ struct HomeView: View {
             }
             .ignoresSafeArea(.keyboard)
             .tabItem {
-                Image(systemName: "house.fill")
-                Text("Home")
+                Image(systemName: "arrow.left.arrow.right.circle.fill")
+                Text("Currency")
             }
             .tag(0)
             .task {
@@ -380,21 +380,13 @@ struct HomeView: View {
                 await updateConversion()
             }
             
-            // Activity Tab (placeholder)
-            Text("Activity")
+            // Travel view Tab (placeholder)
+            Text("Travel view")
                 .tabItem {
-                    Image(systemName: "chart.line.uptrend.xyaxis")
-                    Text("Activity")
+                    Image(systemName: "tablecells.fill")
+                    Text("Travel view")
                 }
                 .tag(1)
-            
-            // Profile Tab (placeholder)
-            Text("Profile")
-                .tabItem {
-                    Image(systemName: "person.fill")
-                    Text("Profile")
-                }
-                .tag(2)
         }
         .tint(Color("primary100"))
     }

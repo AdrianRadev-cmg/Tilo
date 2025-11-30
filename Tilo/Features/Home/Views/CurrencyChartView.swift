@@ -38,12 +38,12 @@ final class CurrencyChartViewModel: ObservableObject {
                 ExchangeRate(date: histRate.date, rate: histRate.rate)
             }
             
-            // Ensure today's rate matches the live rate from main cards
-            if let liveRate = await exchangeService.getRate(from: fromCurrency, to: toCurrency) {
-                // Update the last (today's) rate with the live rate
-                if let lastIndex = ratesArray.indices.last {
-                    ratesArray[lastIndex] = ExchangeRate(date: ratesArray[lastIndex].date, rate: liveRate)
-                }
+            // Remove the last day (today) from the chart
+            // Today's rate is often incomplete/intraday and creates an artificial "drop"
+            // This is standard practice in financial charting
+            if ratesArray.count > 1 {
+                ratesArray.removeLast()
+                print("📊 Removed today's incomplete rate, now showing \(ratesArray.count) complete days")
             }
             
             rates = ratesArray
@@ -252,8 +252,8 @@ struct CurrencyChartView: View {
             // Rate text with styled date
             HStack(spacing: 0) {
                 Text(rateMainText)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(Color("grey100"))
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(Color("grey100"))
                 
                 Text(rateDateText)
                     .font(.system(size: 18, weight: .semibold))
@@ -589,7 +589,7 @@ struct CurrencyLineChart: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            ZStack {
+        ZStack {
             Chart(rates) { rate in
                 // Area fill
                 AreaMark(
@@ -644,9 +644,9 @@ struct CurrencyLineChart: View {
                         .foregroundStyle(Color("grey600").opacity(0.3))
                     AxisValueLabel() {
                         if let rate = value.as(Double.self) {
-                            Text(String(format: "%.4f", rate))
-                                .foregroundStyle(Color("grey100"))
-                                .font(.system(size: 12))
+                                Text(String(format: "%.4f", rate))
+                                    .foregroundStyle(Color("grey100"))
+                                    .font(.system(size: 12))
                         }
                     }
                 }
@@ -696,6 +696,10 @@ struct CurrencyLineChart: View {
                     .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
                 
                 Spacer()
+                
+                Text("Yesterday")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
             }
         }
     }

@@ -1,10 +1,58 @@
 import Foundation
 
-struct Currency: Identifiable, Hashable {
-    let id = UUID()
+struct Currency: Identifiable, Hashable, Codable {
+    var id: String { code } // Use code as stable identifier for Codable
     let code: String
     let name: String
     let flag: String
+    
+    // MARK: - Recently Used Management
+    private static let recentlyUsedKey = "recentlyUsedCurrencies"
+    private static let maxRecentlyUsed = 5
+    
+    static var recentlyUsed: [Currency] {
+        guard let data = UserDefaults.standard.data(forKey: recentlyUsedKey),
+              let codes = try? JSONDecoder().decode([String].self, from: data) else {
+            // Default to common currencies if no history
+            return [
+                Currency(code: "GBP", name: "British Pound", flag: "🇬🇧"),
+                Currency(code: "EUR", name: "Euro", flag: "🇪🇺"),
+                Currency(code: "USD", name: "US Dollar", flag: "🇺🇸"),
+                Currency(code: "JPY", name: "Japanese Yen", flag: "🇯🇵"),
+                Currency(code: "THB", name: "Thai Baht", flag: "🇹🇭")
+            ]
+        }
+        
+        // Convert codes back to Currency objects
+        return codes.compactMap { code in
+            mockData.first { $0.code == code }
+        }
+    }
+    
+    static func addToRecentlyUsed(_ currency: Currency) {
+        var codes = (try? JSONDecoder().decode([String].self, from: UserDefaults.standard.data(forKey: recentlyUsedKey) ?? Data())) ?? []
+        
+        // Remove if already exists (to move to front)
+        codes.removeAll { $0 == currency.code }
+        
+        // Add to front
+        codes.insert(currency.code, at: 0)
+        
+        // Keep only last 5
+        if codes.count > maxRecentlyUsed {
+            codes = Array(codes.prefix(maxRecentlyUsed))
+        }
+        
+        // Save
+        if let data = try? JSONEncoder().encode(codes) {
+            UserDefaults.standard.set(data, forKey: recentlyUsedKey)
+        }
+    }
+    
+    // MARK: - All Currencies (sorted alphabetically by name)
+    static var allCurrenciesSorted: [Currency] {
+        mockData.sorted { $0.name < $1.name }
+    }
     
     static let mockData = [
         // Very High-value (5 currencies) - Chips: [1, 5, 10, 20]
@@ -116,11 +164,5 @@ struct Currency: Identifiable, Hashable {
         Currency(code: "SYP", name: "Syrian Pound", flag: "🇸🇾"),
         Currency(code: "STN", name: "São Tomé & Príncipe Dobra", flag: "🇸🇹"),
         Currency(code: "VES", name: "Venezuelan Bolívar", flag: "🇻🇪")
-    ]
-    
-    static let frequentlyUsed = [
-        Currency(code: "GBP", name: "British Pound", flag: "🇬🇧"),
-        Currency(code: "EUR", name: "Euro", flag: "🇪🇺"),
-        Currency(code: "USD", name: "US Dollar", flag: "🇺🇸")
     ]
 }

@@ -10,6 +10,7 @@ struct CurrencyRow: View {
         HStack(spacing: 12) {
             Text(flag)
                 .font(.title2)
+                .accessibilityHidden(true)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(code)
@@ -29,6 +30,9 @@ struct CurrencyRow: View {
             isPressed ? Color("grey700") : Color.clear
         )
         .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(name), \(code)")
+        .accessibilityHint("Double tap to select this currency")
     }
 }
 

@@ -26,6 +26,10 @@ struct HomeView: View {
     @State private var isEditingTopCard: Bool = false
     @State private var isEditingBottomCard: Bool = false
     @State private var activeEditingCard: String? = nil // Track which card is actively being edited
+    @State private var swapOffset: CGFloat = 0 // For swap animation
+    @State private var isSwapping: Bool = false
+    @State private var showError: Bool = false
+    @State private var errorMessage: String = ""
     
     @StateObject private var exchangeService = ExchangeRateService.shared
     
@@ -52,25 +56,47 @@ struct HomeView: View {
     }
     
     private func swapCurrencies() {
+        // Prevent multiple swaps during animation
+        guard !isSwapping else { return }
+        isSwapping = true
+        
         // Add haptic feedback
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
         
-        // Swap the currency values
-        let tempName = fromCurrencyName
-        let tempFlag = fromFlagEmoji
-        let tempCode = fromCurrencyCode
-        let tempAmount = fromAmount
+        // Animate cards moving towards each other
+        withAnimation(.easeIn(duration: 0.15)) {
+            swapOffset = 80 // Cards move towards center
+        }
         
-        fromCurrencyName = toCurrencyName
-        fromFlagEmoji = toFlagEmoji
-        fromCurrencyCode = toCurrencyCode
-        fromAmount = toAmount
-        
-        toCurrencyName = tempName
-        toFlagEmoji = tempFlag
-        toCurrencyCode = tempCode
-        toAmount = tempAmount
+        // At midpoint, swap the data
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            // Swap the currency values
+            let tempName = fromCurrencyName
+            let tempFlag = fromFlagEmoji
+            let tempCode = fromCurrencyCode
+            let tempAmount = fromAmount
+            
+            fromCurrencyName = toCurrencyName
+            fromFlagEmoji = toFlagEmoji
+            fromCurrencyCode = toCurrencyCode
+            fromAmount = toAmount
+            
+            toCurrencyName = tempName
+            toFlagEmoji = tempFlag
+            toCurrencyCode = tempCode
+            toAmount = tempAmount
+            
+            // Animate cards moving back to original positions
+            withAnimation(.easeOut(duration: 0.15)) {
+                swapOffset = 0
+            }
+            
+            // Reset swapping state after animation completes
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                isSwapping = false
+            }
+        }
         
         // Save state
         saveCurrencyState()
@@ -86,15 +112,24 @@ struct HomeView: View {
         guard !isEditingBottomCard else { return }
         
         isLoadingRate = true
+        showError = false
         
         // Get exchange rate
         if let rate = await exchangeService.getRate(from: fromCurrencyCode, to: toCurrencyCode) {
             exchangeRate = rate
-        }
-        
-        // Convert amount from top card to bottom card
-        if let converted = await exchangeService.convert(amount: fromAmount, from: fromCurrencyCode, to: toCurrencyCode) {
-            toAmount = converted
+            
+            // Convert amount from top card to bottom card
+            if let converted = await exchangeService.convert(amount: fromAmount, from: fromCurrencyCode, to: toCurrencyCode) {
+                toAmount = converted
+            }
+        } else {
+            // Show error if rate couldn't be fetched
+            if let serviceError = exchangeService.errorMessage {
+                errorMessage = serviceError
+            } else {
+                errorMessage = "Unable to fetch exchange rates. Please check your connection."
+            }
+            showError = true
         }
         
         isLoadingRate = false
@@ -105,15 +140,24 @@ struct HomeView: View {
         guard !isEditingTopCard else { return }
         
         isLoadingRate = true
+        showError = false
         
         // Get exchange rate
         if let rate = await exchangeService.getRate(from: fromCurrencyCode, to: toCurrencyCode) {
             exchangeRate = rate
-        }
-        
-        // Convert amount from bottom card to top card (reverse)
-        if let converted = await exchangeService.convert(amount: toAmount, from: toCurrencyCode, to: fromCurrencyCode) {
-            fromAmount = converted
+            
+            // Convert amount from bottom card to top card (reverse)
+            if let converted = await exchangeService.convert(amount: toAmount, from: toCurrencyCode, to: fromCurrencyCode) {
+                fromAmount = converted
+            }
+        } else {
+            // Show error if rate couldn't be fetched
+            if let serviceError = exchangeService.errorMessage {
+                errorMessage = serviceError
+            } else {
+                errorMessage = "Unable to fetch exchange rates. Please check your connection."
+            }
+            showError = true
         }
         
         isLoadingRate = false
@@ -262,6 +306,7 @@ struct HomeView: View {
                                         gradientColor5: gradientColor5
                                     )
                                     .padding(.horizontal, max(16, geometry.size.width * 0.04))
+                                    .offset(y: swapOffset) // Animate down during swap
                                     .onChange(of: fromCurrencyCode) { oldValue, newValue in
                                         saveCurrencyState()
                                         Task {
@@ -303,6 +348,7 @@ struct HomeView: View {
                                         gradientColor5: gradientColor5
                                     )
                                     .padding(.horizontal, max(16, geometry.size.width * 0.04))
+                                    .offset(y: -swapOffset) // Animate up during swap
                                     .onChange(of: toCurrencyCode) { oldValue, newValue in
                                         saveCurrencyState()
                                         Task {
@@ -322,34 +368,52 @@ struct HomeView: View {
                             .zIndex(999)
                         }
                         
+                        // Error banner (if any)
+                        if showError {
+                            ErrorBanner(
+                                message: errorMessage,
+                                onDismiss: {
+                                    withAnimation(.easeOut(duration: 0.2)) {
+                                        showError = false
+                                    }
+                                }
+                            )
+                            .padding(.horizontal, max(16, geometry.size.width * 0.04))
+                            .padding(.top, 8)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                        }
+                        
                         // Quick conversions section
                         VStack(alignment: .leading, spacing: 20) {
                             Text("Quick conversions")
                                 .font(.title2)
                                 .foregroundColor(.white)
+                                .padding(.horizontal, max(16, geometry.size.width * 0.04))
                             
-                            FlowLayout(horizontalSpacing: 12, verticalSpacing: 12) {
-                                ForEach(getChipAmounts(for: fromCurrencyCode), id: \.self) { amount in
-                                    QuickAmountChip(
-                                        symbol: getCurrencySymbol(for: fromCurrencyCode),
-                                        amount: amount,
-                                        selectedAmount: .constant(0),
-                                        onSelect: { selectedAmount in
-                                            // Fill top card with selected amount
-                                            fromAmount = selectedAmount
-                                            saveCurrencyState()
-                                            // Trigger conversion
-                                            Task {
-                                                await updateConversion()
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(getChipAmounts(for: fromCurrencyCode), id: \.self) { amount in
+                                        QuickAmountChip(
+                                            symbol: getCurrencySymbol(for: fromCurrencyCode),
+                                            amount: amount,
+                                            selectedAmount: .constant(0),
+                                            onSelect: { selectedAmount in
+                                                // Fill top card with selected amount
+                                                fromAmount = selectedAmount
+                                                saveCurrencyState()
+                                                // Trigger conversion
+                                                Task {
+                                                    await updateConversion()
+                                                }
                                             }
-                                        }
-                                    )
+                                        )
+                                    }
                                 }
+                                .padding(.horizontal, max(16, geometry.size.width * 0.04))
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                         .padding(.top, 32)
-                        .padding(.horizontal, max(16, geometry.size.width * 0.04))
                         
                         // Rate history section
                         VStack(alignment: .leading, spacing: 20) {
@@ -402,25 +466,16 @@ struct HomeView: View {
 #Preview("Default") {
     HomeView()
         .preferredColorScheme(.dark)
-        .environment(\.colorScheme, .dark)
-        .previewDevice(PreviewDevice(rawValue: "iPhone 16 Pro"))
-        .previewDisplayName("Home View")
 }
 
 #Preview("Debug Controls") {
     DebugHomeViewWrapper()
         .preferredColorScheme(.dark)
-        .environment(\.colorScheme, .dark)
-        .previewDevice(PreviewDevice(rawValue: "iPhone 16 Pro"))
-        .previewDisplayName("Home View - Debug")
 }
 
 #Preview("Design Backdrop") {
     DesignBackdropWrapper()
         .preferredColorScheme(.dark)
-        .environment(\.colorScheme, .dark)
-        .previewDevice(PreviewDevice(rawValue: "iPhone 16 Pro"))
-        .previewDisplayName("Home View - Calm Background")
 }
 
 // MARK: - Preview Debug Helpers

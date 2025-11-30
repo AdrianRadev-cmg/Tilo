@@ -12,16 +12,18 @@ struct CurrencySelectorChip: View {
             HStack(spacing: 4) { // Main horizontal arrangement
                 Text(flagEmoji) // Use Text for emoji flag
                     .font(.system(size: 22))
+                    .accessibilityHidden(true) // Hide flag from VoiceOver, code is sufficient
 
                 Text(currencyCode)
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.white)
                     .padding(.trailing, 2) // Add 2px after code
-                
+
                 Image(systemName: "chevron.down")
                     .font(.system(size: 16))
                     .foregroundColor(.white)
                     .padding(.trailing, 2) // Add 2px after chevron
+                    .accessibilityHidden(true)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
@@ -29,6 +31,8 @@ struct CurrencySelectorChip: View {
             .glassEffect()
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
+        .accessibilityLabel("\(currencyCode) currency selector")
+        .accessibilityHint("Double tap to choose a different currency")
     }
 }
 

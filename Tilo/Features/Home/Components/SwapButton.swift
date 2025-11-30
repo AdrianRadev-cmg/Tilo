@@ -20,6 +20,8 @@ struct SwapButton: View {
         }
         .buttonStyle(.plain) // Remove default button style
         .shadow(color: .black.opacity(0.20), radius: 10, x: 0, y: 3)
+        .accessibilityLabel("Swap currencies")
+        .accessibilityHint("Double tap to swap the source and destination currencies")
     }
 }
 

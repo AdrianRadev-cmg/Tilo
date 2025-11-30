@@ -196,7 +196,10 @@ struct CurrencyCard: View {
             Text(exchangeRateInfo)
                 .font(.system(size: 16, weight: .regular))
                 .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
+                .accessibilityLabel("Exchange rate: \(exchangeRateInfo)")
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(currencyName) currency card")
         .onChange(of: amount) { oldAmount, newAmount in
             // Only update amountInput if not currently editing
             if !isAmountFocused {
@@ -259,7 +262,15 @@ struct CurrencyCard: View {
 }
 
 #Preview(traits: .sizeThatFitsLayout) {
-    let gradientStops = [
+    CurrencyCardPreviewWrapper()
+}
+
+struct CurrencyCardPreviewWrapper: View {
+    @State private var currencyName = "British Pound"
+    @State private var flagEmoji = "🇬🇧"
+    @State private var currencyCode = "GBP"
+    
+    private let gradientStops = [
         Gradient.Stop(color: Color("primary600"), location: 0.00),
         Gradient.Stop(color: Color("gradientPurpleMid"), location: 0.06),
         Gradient.Stop(color: Color("primary500"), location: 0.09),
@@ -267,30 +278,28 @@ struct CurrencyCard: View {
         Gradient.Stop(color: Color("gradientPurpleDeep"), location: 1.00)
     ]
     
-    @State var currencyName = "British Pound"
-    @State var flagEmoji = "🇬🇧"
-    @State var currencyCode = "GBP"
-    
-    CurrencyCard(
-        currencyName: $currencyName,
-        flagEmoji: $flagEmoji,
-        currencyCode: $currencyCode,
-        amount: "50.00",
-        exchangeRateInfo: "1 GBP = 1.1700 EUR",
-        currencySymbol: "£",
-        isEditable: true,
-        isCurrentlyActive: true
-    )
-    .padding()
-    .background(
-        ZStack {
-            LinearGradient(
-                gradient: Gradient(stops: gradientStops),
-                startPoint: .topTrailing,
-                endPoint: .bottomLeading
-            )
-            Color.black.opacity(0.20)
-        }
-        .ignoresSafeArea()
-    )
+    var body: some View {
+        CurrencyCard(
+            currencyName: $currencyName,
+            flagEmoji: $flagEmoji,
+            currencyCode: $currencyCode,
+            amount: "50.00",
+            exchangeRateInfo: "1 GBP = 1.1700 EUR",
+            currencySymbol: "£",
+            isEditable: true,
+            isCurrentlyActive: true
+        )
+        .padding()
+        .background(
+            ZStack {
+                LinearGradient(
+                    gradient: Gradient(stops: gradientStops),
+                    startPoint: .topTrailing,
+                    endPoint: .bottomLeading
+                )
+                Color.black.opacity(0.20)
+            }
+            .ignoresSafeArea()
+        )
+    }
 } 

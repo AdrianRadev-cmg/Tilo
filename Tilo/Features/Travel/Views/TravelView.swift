@@ -1,18 +1,38 @@
 import SwiftUI
+import Photos
+
+// MARK: - Image Saver Helper
+class ImageSaver: NSObject {
+    static let shared = ImageSaver()
+    private var completion: ((Bool) -> Void)?
+    
+    func saveImage(_ image: UIImage, completion: @escaping (Bool) -> Void) {
+        self.completion = completion
+        
+        // Check if we're in a preview or simulator environment where this might fail
+        #if targetEnvironment(simulator)
+        // Still try to save on simulator
+        UIImageWriteToSavedPhotosAlbum(image, self, #selector(saveCompleted), nil)
+        #else
+        UIImageWriteToSavedPhotosAlbum(image, self, #selector(saveCompleted), nil)
+        #endif
+    }
+    
+    @objc func saveCompleted(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
+        DispatchQueue.main.async {
+            self.completion?(error == nil)
+        }
+    }
+}
 
 struct TravelView: View {
-    // Passed from Currency tab
+    // Passed from Convert tab
     @Binding var fromCurrencyCode: String
     @Binding var fromCurrencyName: String
     @Binding var fromFlagEmoji: String
     @Binding var toCurrencyCode: String
     @Binding var toCurrencyName: String
     @Binding var toFlagEmoji: String
-    
-    // Local state
-    @State private var showFromSelector = false
-    @State private var showToSelector = false
-    @StateObject private var exchangeService = ExchangeRateService.shared
     
     var body: some View {
         ZStack(alignment: .top) {
@@ -34,88 +54,30 @@ struct TravelView: View {
             GeometryReader { geometry in
                 ScrollView {
                     VStack(spacing: 24) {
-                        // Title
-                        HStack {
-                            Text("Quick Reference")
-                                .font(.largeTitle)
-                                .fontWeight(.bold)
+                        // Title and subtitle
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Cheat Sheet")
+                                .font(.system(size: 34, weight: .bold))
                                 .foregroundColor(.white)
-                            Spacer()
-                        }
-                        .padding(.horizontal, max(16, geometry.size.width * 0.04))
-                        .padding(.top, max(20, geometry.size.height * 0.02))
-                        
-                        // Currency selector card
-                        HStack(spacing: 12) {
-                            // From currency selector
-                            CurrencySelectorChip(
-                                flagEmoji: fromFlagEmoji,
-                                currencyCode: fromCurrencyCode,
-                                action: { showFromSelector = true }
-                            )
-                            .frame(maxWidth: .infinity)
+                                .accessibilityAddTraits(.isHeader)
                             
-                            // Swap button with left/right arrows
-                            Button(action: swapCurrencies) {
-                                Image(systemName: "arrow.left.arrow.right.circle")
-                                    .font(.system(size: 18, weight: .regular))
-                                    .foregroundStyle(Color("grey100"))
-                                    .frame(width: 44, height: 44)
-                                    .glassEffect()
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
-                                    )
-                                    .clipShape(Circle())
-                                    .contentShape(Circle())
-                            }
-                            .buttonStyle(.plain)
-                            .shadow(color: .black.opacity(0.20), radius: 10, x: 0, y: 3)
-                            
-                            // To currency selector
-                            CurrencySelectorChip(
-                                flagEmoji: toFlagEmoji,
-                                currencyCode: toCurrencyCode,
-                                action: { showToSelector = true }
-                            )
-                            .frame(maxWidth: .infinity)
+                            Text("Save to photos for quick reference while shopping, eating out, tipping, or paying for transport when travelling abroad.")
+                                .font(.system(size: 16, weight: .regular))
+                                .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-                        .padding(16)
-                        .background(
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 16)
-                                    .glassEffect(in: .rect(cornerRadius: 16))
-                                RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color(red: 20/255, green: 8/255, blue: 58/255).opacity(0.75))
-                            }
-                            .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(
-                                    LinearGradient(
-                                        gradient: Gradient(colors: [
-                                            Color.white.opacity(0.08),
-                                            Color.white.opacity(0.02),
-                                            Color.clear
-                                        ]),
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .allowsHitTesting(false)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, max(16, geometry.size.width * 0.04))
+                        .padding(.top, max(36, geometry.size.height * 0.02 + 16))
                         
-                        // Conversion table
+                        // Conversion table with flip gesture
                         ConversionTable(
-                            fromCurrencyCode: fromCurrencyCode,
-                            fromCurrencyName: fromCurrencyName,
-                            fromFlagEmoji: fromFlagEmoji,
-                            toCurrencyCode: toCurrencyCode,
-                            toCurrencyName: toCurrencyName,
-                            toFlagEmoji: toFlagEmoji
+                            fromCurrencyCode: $fromCurrencyCode,
+                            fromCurrencyName: $fromCurrencyName,
+                            fromFlagEmoji: $fromFlagEmoji,
+                            toCurrencyCode: $toCurrencyCode,
+                            toCurrencyName: $toCurrencyName,
+                            toFlagEmoji: $toFlagEmoji
                         )
                         .padding(.horizontal, max(16, geometry.size.width * 0.04))
                         .padding(.bottom, 40)
@@ -123,142 +85,37 @@ struct TravelView: View {
                 }
             }
         }
-        .sheet(isPresented: $showFromSelector) {
-            CurrencySelector { selectedCurrency in
-                fromCurrencyName = selectedCurrency.name
-                fromFlagEmoji = selectedCurrency.flag
-                fromCurrencyCode = selectedCurrency.code
-            }
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $showToSelector) {
-            CurrencySelector { selectedCurrency in
-                toCurrencyName = selectedCurrency.name
-                toFlagEmoji = selectedCurrency.flag
-                toCurrencyCode = selectedCurrency.code
-            }
-            .presentationDetents([.medium, .large])
-            .presentationDragIndicator(.visible)
-        }
-    }
-    
-    // MARK: - Swap Currencies
-    
-    private func swapCurrencies() {
-        // Add haptic feedback
-        let generator = UIImpactFeedbackGenerator(style: .medium)
-        generator.impactOccurred()
-        
-        // Swap the currency values
-        let tempCode = fromCurrencyCode
-        let tempFlag = fromFlagEmoji
-        let tempName = fromCurrencyName
-        
-        fromCurrencyCode = toCurrencyCode
-        fromFlagEmoji = toFlagEmoji
-        fromCurrencyName = toCurrencyName
-        
-        toCurrencyCode = tempCode
-        toFlagEmoji = tempFlag
-        toCurrencyName = tempName
     }
 }
 
 // MARK: - Conversion Table
 
 struct ConversionTable: View {
-    let fromCurrencyCode: String
-    let fromCurrencyName: String
-    let fromFlagEmoji: String
-    let toCurrencyCode: String
-    let toCurrencyName: String
-    let toFlagEmoji: String
+    @Binding var fromCurrencyCode: String
+    @Binding var fromCurrencyName: String
+    @Binding var fromFlagEmoji: String
+    @Binding var toCurrencyCode: String
+    @Binding var toCurrencyName: String
+    @Binding var toFlagEmoji: String
     
     @State private var conversions: [(amount: Double, converted: Double)] = []
     @State private var exchangeRate: Double?
     @State private var isLoading = false
+    @State private var showExportSuccess = false
+    @State private var isFlipped = false
+    @State private var flipDegrees: Double = 0
+    @State private var showError = false
+    @State private var errorMessage = ""
     @StateObject private var exchangeService = ExchangeRateService.shared
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Table content
-            VStack(spacing: 0) {
-                // Header row
-                HStack {
-                    Text(fromCurrencyName)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    Text(toCurrencyName)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Color.white.opacity(0.05))
-                
-                // Conversion rows
-                if isLoading {
-                    ProgressView()
-                        .frame(height: 200)
-                        .frame(maxWidth: .infinity)
-                } else {
-                    ForEach(Array(conversions.enumerated()), id: \.offset) { index, conversion in
-                        HStack {
-                            Text(formatAmount(conversion.amount, for: fromCurrencyCode))
-                                .font(.system(size: 24, weight: .regular))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            Text(formatAmount(conversion.converted, for: toCurrencyCode))
-                                .font(.system(size: 24, weight: .semibold))
-                                .foregroundColor(Color("primary100"))
-                                .frame(maxWidth: .infinity, alignment: .trailing)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 16)
-                        .background(
-                            index % 2 == 0 ? Color.clear : Color.white.opacity(0.03)
-                        )
-                    }
-                }
-            }
-            
-            // Footer with exchange rate and export button
-            HStack {
-                // Exchange rate info
-                if let rate = exchangeRate {
-                    Text("1 \(fromCurrencyCode) = \(String(format: "%.4f", rate)) \(toCurrencyCode)")
-                        .font(.system(size: 14, weight: .regular))
-                        .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
-                }
-                
-                Spacer()
-                
-                // Export button (icon only, glass style)
-                Button(action: exportTable) {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 18, weight: .regular))
-                        .foregroundStyle(Color("grey100"))
-                        .frame(width: 44, height: 44)
-                        .glassEffect()
-                        .overlay(
-                            Circle()
-                                .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
-                        )
-                        .clipShape(Circle())
-                        .contentShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .shadow(color: .black.opacity(0.20), radius: 10, x: 0, y: 3)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-            .padding(.bottom, 16)
+            tableContentView
+            flipHintView
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Currency conversion table from \(fromCurrencyCode) to \(toCurrencyCode)")
+        .accessibilityHint("Double tap to flip and swap currencies")
         .background(
             ZStack {
                 // Glass effect as base layer
@@ -288,6 +145,48 @@ struct ConversionTable: View {
                 .allowsHitTesting(false)
         )
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        // 3D flip effect
+        .rotation3DEffect(
+            .degrees(flipDegrees),
+            axis: (x: 0, y: 1, z: 0),
+            perspective: 0.5
+        )
+        .overlay(
+            // Success toast overlay
+            Group {
+                if showExportSuccess {
+                    VStack {
+                        Spacer()
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(.green)
+                            
+                            Text("Saved to Photos")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 14)
+                        .background(
+                            Capsule()
+                                .fill(Color(red: 30/255, green: 20/255, blue: 60/255).opacity(0.95))
+                                .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
+                        )
+                        .overlay(
+                            Capsule()
+                                .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                        )
+                        .padding(.bottom, 20)
+                    }
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+        )
+        // Tap to flip
+        .onTapGesture {
+            flipCard()
+        }
         .task {
             await fetchConversions()
         }
@@ -299,78 +198,136 @@ struct ConversionTable: View {
         }
     }
     
+    // MARK: - Flip Animation
+    
+    private func flipCard() {
+        // Haptic feedback
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+        
+        // Animate first half of flip (0 to 90 degrees)
+        withAnimation(.easeIn(duration: 0.15)) {
+            flipDegrees = 90
+        }
+        
+        // At 90 degrees (edge-on), swap the data and flip back
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            // Swap currencies while card is edge-on (invisible)
+            swapCurrencies()
+            
+            // Set to -90 so we animate back to 0 (completing the illusion)
+            flipDegrees = -90
+            
+            // Animate second half of flip (-90 to 0 degrees)
+            withAnimation(.easeOut(duration: 0.15)) {
+                flipDegrees = 0
+            }
+        }
+    }
+    
+    private func swapCurrencies() {
+        let tempCode = fromCurrencyCode
+        let tempName = fromCurrencyName
+        let tempFlag = fromFlagEmoji
+        
+        fromCurrencyCode = toCurrencyCode
+        fromCurrencyName = toCurrencyName
+        fromFlagEmoji = toFlagEmoji
+        
+        toCurrencyCode = tempCode
+        toCurrencyName = tempName
+        toFlagEmoji = tempFlag
+    }
+    
     // MARK: - Data Fetching
     
     private func fetchConversions() async {
         isLoading = true
         
+        showError = false
+        
         // Fetch exchange rate
         if let rate = await exchangeService.getRate(from: fromCurrencyCode, to: toCurrencyCode) {
             exchangeRate = rate
-        }
-        
-        let amounts = getTableAmounts(for: fromCurrencyCode)
-        var results: [(amount: Double, converted: Double)] = []
-        
-        for amount in amounts {
-            if let converted = await exchangeService.convert(amount: amount, from: fromCurrencyCode, to: toCurrencyCode) {
-                results.append((amount: amount, converted: converted))
+            
+            let amounts = getTableAmounts(for: fromCurrencyCode)
+            var results: [(amount: Double, converted: Double)] = []
+            
+            for amount in amounts {
+                if let converted = await exchangeService.convert(amount: amount, from: fromCurrencyCode, to: toCurrencyCode) {
+                    results.append((amount: amount, converted: converted))
+                }
             }
+            
+            conversions = results
+        } else {
+            // Show error if rate couldn't be fetched
+            if let serviceError = exchangeService.errorMessage {
+                errorMessage = serviceError
+            } else {
+                errorMessage = "Unable to fetch exchange rates"
+            }
+            showError = true
         }
         
-        conversions = results
         isLoading = false
     }
     
     // MARK: - Helper Functions
     
     private func getTableAmounts(for currencyCode: String) -> [Double] {
-        // Very high-value currencies - 8 values
-        let veryHighValue = ["KWD", "BHD", "OMR", "JOD", "GBP"]
+        // Very high-value currencies (GBP, KWD, etc.) - practical travel amounts
+        let veryHighValue = ["KWD", "BHD", "OMR", "JOD", "GBP", "CHF"]
         if veryHighValue.contains(currencyCode) {
-            return [1, 5, 10, 20, 50, 100, 200, 500]
+            return [10, 20, 50, 100, 200, 500, 1000, 2000]
         }
         
-        // High-value currencies - 8 values
+        // High-value currencies (EUR, USD, etc.) - practical travel amounts
         let highValue = [
-            "EUR", "USD", "CHF", "CAD", "AUD", "NZD", "SGD", "AED", "SAR", "QAR",
+            "EUR", "USD", "CAD", "AUD", "NZD", "SGD", "AED", "SAR", "QAR",
             "ILS", "BND", "BSD", "PAB", "FJD", "BWP", "AZN", "RON", "BGN", "GEL",
-            "PEN", "BOB", "GTQ", "UAH", "RSD", "JMD", "BBD", "TTD", "MUR", "MVR"
+            "PEN", "BOB", "GTQ", "BBD", "TTD", "MUR", "MVR"
         ]
         if highValue.contains(currencyCode) {
-            return [10, 50, 100, 200, 500, 1000, 2000, 5000]
+            return [10, 20, 50, 100, 200, 500, 1000, 2000]
         }
         
-        // Medium-value currencies - 8 values
+        // Medium-value currencies (CNY, THB, MXN, etc.) - amounts you'd spend on meals, transport
         let mediumValue = [
             "CNY", "HKD", "TWD", "SEK", "NOK", "DKK", "PLN", "CZK", "MXN", "ZAR",
-            "BRL", "INR", "THB", "MYR", "PHP", "TRY", "EGP", "RUB", "MDL", "MKD",
-            "DOP", "HNL", "NIO", "MAD", "TND", "KES", "UGX", "TZS", "GHS", "NAD"
+            "BRL", "MYR", "TRY", "EGP", "RUB", "MDL", "MKD", "UAH", "RSD", "JMD",
+            "DOP", "HNL", "NIO", "MAD", "TND", "GHS", "NAD"
         ]
         if mediumValue.contains(currencyCode) {
-            return [100, 500, 1000, 2000, 5000, 10000, 20000, 50000]
+            return [50, 100, 200, 500, 1000, 2000, 5000, 10000]
         }
         
-        // Low-value currencies - 8 values
+        // Lower-medium currencies (THB, INR, PHP) - common travel spending
+        let lowerMedium = ["THB", "INR", "PHP", "KES", "UGX", "TZS"]
+        if lowerMedium.contains(currencyCode) {
+            return [100, 200, 500, 1000, 2000, 5000, 10000, 20000]
+        }
+        
+        // Low-value currencies (JPY, KRW, etc.) - amounts for everyday purchases
         let lowValue = [
             "JPY", "KRW", "HUF", "ISK", "CLP", "ARS", "COP", "PKR", "LKR", "BDT",
             "MMK", "NGN", "AMD", "KZT", "KGS", "ALL", "RWF", "BIF", "DJF", "GNF",
             "KMF", "MGA", "PYG", "KHR", "MNT"
         ]
         if lowValue.contains(currencyCode) {
-            return [1000, 5000, 10000, 20000, 50000, 100000, 200000, 500000]
+            return [500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]
         }
         
-        // Very low-value currencies - 8 values
+        // Very low-value currencies (VND, IDR, etc.) - large denominations common
         let veryLowValue = [
             "VND", "IDR", "IRR", "LAK", "UZS", "SLL", "LBP", "SYP", "STN", "VES"
         ]
         if veryLowValue.contains(currencyCode) {
-            return [10000, 50000, 100000, 200000, 500000, 1000000, 2000000, 5000000]
+            return [10000, 20000, 50000, 100000, 200000, 500000, 1000000, 2000000]
         }
         
-        // Default to high-value
-        return [10, 50, 100, 200, 500, 1000, 2000, 5000]
+        // Default to high-value pattern
+        return [10, 20, 50, 100, 200, 500, 1000, 2000]
     }
     
     private func formatAmount(_ amount: Double, for currencyCode: String) -> String {
@@ -388,9 +345,184 @@ struct ConversionTable: View {
         return formatter.string(from: NSNumber(value: amount)) ?? "\(amount)"
     }
     
-    // MARK: - Export Function
+    // MARK: - Table Content Views
     
-    private func exportTable() {
+    private var tableContentView: some View {
+        VStack(spacing: 0) {
+            tableHeaderView
+            
+            if isLoading {
+                loadingView
+            } else if showError {
+                errorStateView
+            } else {
+                conversionRowsView
+            }
+        }
+    }
+    
+    private var conversionRowsView: some View {
+        ForEach(Array(conversions.enumerated()), id: \.offset) { index, conversion in
+            ConversionRowView(
+                fromAmount: formatAmount(conversion.amount, for: fromCurrencyCode),
+                toAmount: formatAmount(conversion.converted, for: toCurrencyCode),
+                fromCode: fromCurrencyCode,
+                toCode: toCurrencyCode,
+                isAlternate: index % 2 != 0
+            )
+        }
+    }
+    
+    private var flipHintView: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "arrow.left.arrow.right")
+                .font(.system(size: 11, weight: .medium))
+            Text("Tap to flip")
+                .font(.system(size: 12, weight: .medium))
+        }
+        .foregroundColor(.white)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .accessibilityHidden(true)
+    }
+    
+    // MARK: - Loading & Error States
+    
+    private var loadingView: some View {
+        ProgressView()
+            .frame(height: 200)
+            .frame(maxWidth: .infinity)
+            .accessibilityLabel("Loading conversion rates")
+    }
+    
+    private var errorStateView: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.system(size: 32, weight: .light))
+                .foregroundColor(Color("primary100").opacity(0.6))
+            
+            Text("Unable to load rates")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(.white)
+            
+            Button(action: {
+                Task { await fetchConversions() }
+            }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text("Retry")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+                .background(
+                    Capsule()
+                        .fill(Color("primary500").opacity(0.6))
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Retry loading rates")
+        }
+        .frame(height: 200)
+        .frame(maxWidth: .infinity)
+    }
+    
+    // MARK: - Header Components
+    
+    private var tableHeaderView: some View {
+        HStack(spacing: 16) {
+            overlappingFlagsView
+            currencyInfoView
+            Spacer()
+            exportButtonView
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(Color.white.opacity(0.05))
+    }
+    
+    private var overlappingFlagsView: some View {
+        ZStack(alignment: .center) {
+            // From flag (top-left, front)
+            Text(fromFlagEmoji)
+                .font(.system(size: 24))
+                .frame(width: 36, height: 36)
+                .glassEffect()
+                .overlay(
+                    Circle()
+                        .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+                )
+                .clipShape(Circle())
+                .zIndex(1)
+                .offset(x: -10, y: -8)
+            
+            // To flag (bottom-right, behind)
+            Text(toFlagEmoji)
+                .font(.system(size: 24))
+                .frame(width: 36, height: 36)
+                .glassEffect()
+                .overlay(
+                    Circle()
+                        .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+                )
+                .clipShape(Circle())
+                .offset(x: 10, y: 8)
+        }
+        .frame(width: 56, height: 52)
+    }
+    
+    private var currencyInfoView: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // Currency codes with arrow
+            HStack(spacing: 8) {
+                Text(fromCurrencyCode)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(Color("grey100"))
+                
+                Text("→")
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundColor(Color("grey100"))
+                
+                Text(toCurrencyCode)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(Color("grey100"))
+            }
+            
+            // Rate info
+            if let rate = exchangeRate {
+                Text("1 \(fromCurrencyCode) = \(String(format: "%.4f", rate)) \(toCurrencyCode)")
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.7))
+            }
+        }
+    }
+    
+    private var exportButtonView: some View {
+        Button(action: saveToPhotos) {
+            Image(systemName: "arrow.down.circle")
+                .font(.system(size: 22, weight: .regular))
+                .foregroundStyle(Color("grey100"))
+                .frame(width: 44, height: 44)
+                .glassEffect()
+                .overlay(
+                    Circle()
+                        .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+                )
+                .clipShape(Circle())
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .shadow(color: .black.opacity(0.20), radius: 10, x: 0, y: 3)
+        .accessibilityLabel("Save to Photos")
+        .accessibilityHint("Double tap to save this conversion table as an image to your photo library")
+    }
+    
+    // MARK: - Save to Photos Function
+    
+    private func saveToPhotos() {
         // Add haptic feedback
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
@@ -400,97 +532,322 @@ struct ConversionTable: View {
         renderer.scale = 3.0 // High resolution
         
         if let image = renderer.uiImage {
-            // Present share sheet
-            let activityVC = UIActivityViewController(
-                activityItems: [image],
-                applicationActivities: nil
-            )
-            
-            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let rootVC = windowScene.windows.first?.rootViewController {
-                // Find the topmost presented view controller
-                var topVC = rootVC
-                while let presented = topVC.presentedViewController {
-                    topVC = presented
+            // Save directly to photo library
+            ImageSaver.shared.saveImage(image) { success in
+                if success {
+                    // Success haptic
+                    let successGenerator = UINotificationFeedbackGenerator()
+                    successGenerator.notificationOccurred(.success)
+                    
+                    // Show success toast
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        showExportSuccess = true
+                    }
+                    
+                    // Hide after 2 seconds
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            showExportSuccess = false
+                        }
+                    }
                 }
-                topVC.present(activityVC, animated: true)
             }
         }
     }
     
-    // Snapshot view for export (pretty version without export button)
+    // Snapshot view for export (matches app design exactly)
     private var tableSnapshotView: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Header row
-            HStack {
-                Text(fromCurrencyName)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
-                Text(toCurrencyName)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 16)
-            .background(Color.white.opacity(0.08))
+        ZStack {
+            // Flag-based gradient background
+            flagGradientBackground
             
-            // Conversion rows
-            ForEach(Array(conversions.enumerated()), id: \.offset) { index, conversion in
-                HStack {
-                    Text(formatAmount(conversion.amount, for: fromCurrencyCode))
-                        .font(.system(size: 28, weight: .regular))
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: 0) {
+                // Header with currency codes (no flags)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Text(fromCurrencyCode)
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.white)
+                        
+                        Text("→")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.white)
+                        
+                        Text(toCurrencyCode)
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
                     
-                    Text(formatAmount(conversion.converted, for: toCurrencyCode))
-                        .font(.system(size: 28, weight: .bold))
-                        .foregroundColor(Color(red: 0.6, green: 0.4, blue: 0.9))
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    if let rate = exchangeRate {
+                        Text("1 \(fromCurrencyCode) = \(String(format: "%.4f", rate)) \(toCurrencyCode)")
+                            .font(.system(size: 14, weight: .regular))
+                            .foregroundColor(.white.opacity(0.7))
+                    }
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 20)
-                .background(
-                    index % 2 == 0 ? Color.clear : Color.white.opacity(0.03)
-                )
-            }
-            
-            // Branding footer
-            HStack {
-                Spacer()
-                Text("Made with Tilo")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.white.opacity(0.5))
-                Spacer()
-            }
-            .padding(.vertical, 12)
-        }
-        .background(
-            ZStack {
-                // Glass effect as base layer
-                RoundedRectangle(cornerRadius: 20)
-                    .fill(Color(red: 20/255, green: 8/255, blue: 58/255).opacity(0.95))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.white.opacity(0.05))
                 
-                // Gradient overlay
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        Color(red: 0.24, green: 0.11, blue: 0.48).opacity(0.6),
-                        Color(red: 0.13, green: 0.05, blue: 0.26).opacity(0.8)
-                    ]),
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+                // Conversion rows with dotted lines (same as app)
+                ForEach(Array(conversions.enumerated()), id: \.offset) { index, conversion in
+                    HStack(spacing: 0) {
+                        Text(formatAmount(conversion.amount, for: fromCurrencyCode))
+                            .font(.system(size: 24, weight: .regular))
+                            .foregroundColor(.white)
+                        
+                        // Dotted leader line
+                        GeometryReader { geo in
+                            Path { path in
+                                let y = geo.size.height / 2
+                                var x: CGFloat = 8
+                                while x < geo.size.width - 8 {
+                                    path.move(to: CGPoint(x: x, y: y))
+                                    path.addLine(to: CGPoint(x: x + 2, y: y))
+                                    x += 6
+                                }
+                            }
+                            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                        }
+                        .frame(height: 24)
+                        
+                        Text(formatAmount(conversion.converted, for: toCurrencyCode))
+                            .font(.system(size: 24, weight: .semibold))
+                            .foregroundColor(Color("primary100"))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background(
+                        index % 2 == 0 ? Color.clear : Color.white.opacity(0.03)
+                    )
+                }
+                
+                // Branding footer
+                HStack {
+                    Spacer()
+                    Text("Made with Tilo")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(.white.opacity(0.35))
+                    Spacer()
+                }
+                .padding(.vertical, 12)
             }
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.white.opacity(0.15), lineWidth: 2)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color.black.opacity(0.3))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .padding(24)
+        }
         .frame(width: 400)
-        .padding(20)
+    }
+    
+    // Flag-based gradient background for export (based on destination/to currency)
+    private var flagGradientBackground: some View {
+        let colors = getFlagColors(for: toCurrencyCode)
+        return ZStack {
+            // Base dark layer
+            Color.black
+            
+            // Primary flag color gradient
+            LinearGradient(
+                gradient: Gradient(stops: [
+                    .init(color: colors.0, location: 0.0),
+                    .init(color: colors.1, location: 0.5),
+                    .init(color: colors.0.opacity(0.8), location: 1.0)
+                ]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .opacity(0.85)
+            
+            // Dark overlay for readability
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.black.opacity(0.2),
+                    Color.black.opacity(0.4)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+        }
+    }
+    
+    // Get flag colors for currency - using actual flag hex colors
+    private func getFlagColors(for currencyCode: String) -> (Color, Color) {
+        switch currencyCode {
+        // Japan - Hinomaru red
+        case "JPY": return (Color(red: 0.74, green: 0.07, blue: 0.17), Color(red: 0.95, green: 0.95, blue: 0.95))
+            
+        // China - Chinese red and gold
+        case "CNY": return (Color(red: 0.87, green: 0.16, blue: 0.06), Color(red: 1.0, green: 0.87, blue: 0.0))
+            
+        // UK - Union Jack blue and red
+        case "GBP": return (Color(red: 0.0, green: 0.14, blue: 0.42), Color(red: 0.81, green: 0.06, blue: 0.19))
+            
+        // USA - Old Glory blue and red
+        case "USD": return (Color(red: 0.0, green: 0.13, blue: 0.30), Color(red: 0.70, green: 0.13, blue: 0.20))
+            
+        // EU - European blue and gold stars
+        case "EUR": return (Color(red: 0.0, green: 0.20, blue: 0.50), Color(red: 1.0, green: 0.80, blue: 0.0))
+            
+        // Switzerland - Swiss red
+        case "CHF": return (Color(red: 0.85, green: 0.0, blue: 0.05), Color(red: 1.0, green: 1.0, blue: 1.0))
+            
+        // Canada - Maple red
+        case "CAD": return (Color(red: 0.85, green: 0.08, blue: 0.16), Color(red: 1.0, green: 1.0, blue: 1.0))
+            
+        // Australia - Australian blue
+        case "AUD": return (Color(red: 0.0, green: 0.0, blue: 0.55), Color(red: 1.0, green: 1.0, blue: 1.0))
+            
+        // Thailand - Thai blue and red
+        case "THB": return (Color(red: 0.14, green: 0.23, blue: 0.46), Color(red: 0.65, green: 0.15, blue: 0.22))
+            
+        // India - Saffron and green
+        case "INR": return (Color(red: 1.0, green: 0.60, blue: 0.20), Color(red: 0.07, green: 0.53, blue: 0.03))
+            
+        // Singapore - Red and white
+        case "SGD": return (Color(red: 0.93, green: 0.11, blue: 0.14), Color(red: 1.0, green: 1.0, blue: 1.0))
+            
+        // Hong Kong - Bauhinia red
+        case "HKD": return (Color(red: 0.87, green: 0.0, blue: 0.15), Color(red: 1.0, green: 1.0, blue: 1.0))
+            
+        // South Korea - Taegukgi blue and red
+        case "KRW": return (Color(red: 0.0, green: 0.28, blue: 0.58), Color(red: 0.80, green: 0.15, blue: 0.20))
+            
+        // Taiwan - Blue sky and white sun
+        case "TWD": return (Color(red: 0.0, green: 0.0, blue: 0.60), Color(red: 0.87, green: 0.16, blue: 0.19))
+            
+        // Vietnam - Vietnamese red and gold star
+        case "VND": return (Color(red: 0.85, green: 0.09, blue: 0.09), Color(red: 1.0, green: 0.80, blue: 0.0))
+            
+        // Indonesia - Red and white
+        case "IDR": return (Color(red: 0.80, green: 0.0, blue: 0.0), Color(red: 1.0, green: 1.0, blue: 1.0))
+            
+        // Malaysia - Jalur Gemilang
+        case "MYR": return (Color(red: 0.0, green: 0.0, blue: 0.55), Color(red: 0.80, green: 0.0, blue: 0.0))
+            
+        // Philippines - Blue, red, gold
+        case "PHP": return (Color(red: 0.0, green: 0.22, blue: 0.55), Color(red: 0.80, green: 0.07, blue: 0.19))
+            
+        // Mexico - Green, white, red
+        case "MXN": return (Color(red: 0.0, green: 0.40, blue: 0.24), Color(red: 0.80, green: 0.12, blue: 0.18))
+            
+        // Brazil - Green and gold
+        case "BRL": return (Color(red: 0.0, green: 0.60, blue: 0.30), Color(red: 1.0, green: 0.87, blue: 0.0))
+            
+        // Turkey - Turkish red
+        case "TRY": return (Color(red: 0.89, green: 0.04, blue: 0.17), Color(red: 1.0, green: 1.0, blue: 1.0))
+            
+        // South Africa - Rainbow nation
+        case "ZAR": return (Color(red: 0.0, green: 0.47, blue: 0.28), Color(red: 1.0, green: 0.72, blue: 0.0))
+            
+        // UAE - Green, white, black, red
+        case "AED": return (Color(red: 0.0, green: 0.45, blue: 0.24), Color(red: 0.80, green: 0.0, blue: 0.0))
+            
+        // Saudi Arabia - Green
+        case "SAR": return (Color(red: 0.0, green: 0.44, blue: 0.24), Color(red: 1.0, green: 1.0, blue: 1.0))
+            
+        // Egypt - Red, white, black
+        case "EGP": return (Color(red: 0.78, green: 0.09, blue: 0.21), Color(red: 0.0, green: 0.0, blue: 0.0))
+            
+        // New Zealand - Blue and red
+        case "NZD": return (Color(red: 0.0, green: 0.14, blue: 0.42), Color(red: 0.80, green: 0.0, blue: 0.15))
+            
+        // Sweden - Blue and gold
+        case "SEK": return (Color(red: 0.0, green: 0.41, blue: 0.65), Color(red: 0.99, green: 0.80, blue: 0.0))
+            
+        // Norway - Red, white, blue
+        case "NOK": return (Color(red: 0.73, green: 0.12, blue: 0.19), Color(red: 0.0, green: 0.20, blue: 0.50))
+            
+        // Denmark - Danish red
+        case "DKK": return (Color(red: 0.78, green: 0.06, blue: 0.18), Color(red: 1.0, green: 1.0, blue: 1.0))
+            
+        // Poland - White and red
+        case "PLN": return (Color(red: 0.86, green: 0.12, blue: 0.22), Color(red: 1.0, green: 1.0, blue: 1.0))
+            
+        // Czech - Blue, white, red
+        case "CZK": return (Color(red: 0.07, green: 0.20, blue: 0.53), Color(red: 0.84, green: 0.09, blue: 0.20))
+            
+        // Hungary - Red, white, green
+        case "HUF": return (Color(red: 0.80, green: 0.25, blue: 0.22), Color(red: 0.28, green: 0.55, blue: 0.27))
+            
+        // Russia - White, blue, red
+        case "RUB": return (Color(red: 0.0, green: 0.22, blue: 0.55), Color(red: 0.84, green: 0.09, blue: 0.20))
+            
+        // Israel - Blue and white
+        case "ILS": return (Color(red: 0.0, green: 0.22, blue: 0.55), Color(red: 1.0, green: 1.0, blue: 1.0))
+            
+        // Default - Tilo purple brand
+        default: return (Color(red: 0.31, green: 0.19, blue: 0.65), Color(red: 0.18, green: 0.09, blue: 0.38))
+        }
+    }
+    
+    // Helper to format current date
+    private var formattedCurrentDate: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter.string(from: Date())
+    }
+    
+    // Helper to format current time
+    private var formattedTime: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: Date())
+    }
+    
+}
+
+// MARK: - Conversion Row View
+
+private struct ConversionRowView: View {
+    let fromAmount: String
+    let toAmount: String
+    let fromCode: String
+    let toCode: String
+    let isAlternate: Bool
+    
+    var body: some View {
+        HStack(spacing: 0) {
+            Text(fromAmount)
+                .font(.system(size: 24, weight: .regular))
+                .foregroundColor(.white)
+            
+            DottedLineView()
+                .frame(height: 24)
+                .accessibilityHidden(true)
+            
+            Text(toAmount)
+                .font(.system(size: 24, weight: .semibold))
+                .foregroundColor(Color("primary100"))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(isAlternate ? Color.white.opacity(0.03) : Color.clear)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(fromAmount) \(fromCode) equals \(toAmount) \(toCode)")
+    }
+}
+
+private struct DottedLineView: View {
+    var body: some View {
+        GeometryReader { geo in
+            Path { path in
+                let y = geo.size.height / 2
+                var x: CGFloat = 8
+                while x < geo.size.width - 8 {
+                    path.move(to: CGPoint(x: x, y: y))
+                    path.addLine(to: CGPoint(x: x + 2, y: y))
+                    x += 6
+                }
+            }
+            .stroke(Color.white.opacity(0.2), lineWidth: 1)
+        }
     }
 }
 

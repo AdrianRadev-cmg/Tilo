@@ -235,12 +235,34 @@ struct CurrencyChartView: View {
     }
     
     private func errorView(_ error: Error) -> some View {
-        VStack {
-            Image(systemName: "exclamationmark.triangle")
-                .foregroundColor(.red)
-            Text(error.localizedDescription)
-                .foregroundColor(Color("grey100"))
-                .multilineTextAlignment(.center)
+        VStack(spacing: 12) {
+            Image(systemName: "wifi.exclamationmark")
+                .font(.system(size: 28, weight: .light))
+                .foregroundColor(Color("primary100").opacity(0.6))
+            
+            Text("Unable to load chart data")
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.white)
+            
+            Button(action: {
+                Task { await viewModel.fetchRates(for: selectedRange) }
+            }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 11, weight: .semibold))
+                    Text("Retry")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(
+                    Capsule()
+                        .fill(Color("primary500").opacity(0.6))
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Retry loading chart")
         }
         .frame(height: 132)
         .frame(maxWidth: .infinity)
@@ -665,8 +687,9 @@ struct CurrencyLineChart: View {
                         .gesture(
                             DragGesture(minimumDistance: 0)
                                 .onChanged { value in
-                                    let x = value.location.x - geometry[proxy.plotAreaFrame].origin.x
-                                    guard x >= 0, x <= geometry[proxy.plotAreaFrame].width else { return }
+                                    guard let plotFrame = proxy.plotFrame else { return }
+                                    let x = value.location.x - geometry[plotFrame].origin.x
+                                    guard x >= 0, x <= geometry[plotFrame].width else { return }
                                     // Convert x to date
                                     if let date = proxy.value(atX: x, as: Date.self) {
                                         // Find the closest rate
@@ -702,6 +725,9 @@ struct CurrencyLineChart: View {
                     .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
             }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Exchange rate chart showing rates from a month ago to yesterday. High: \(String(format: "%.4f", highRate)), Median: \(String(format: "%.4f", medianRate)), Low: \(String(format: "%.4f", lowRate))")
+        .accessibilityHint("Drag horizontally to explore rates on different dates")
     }
     
     private func formatDate(_ date: Date) -> String {
@@ -748,11 +774,9 @@ struct Constants {
 }
 
 // MARK: - Preview
-#Preview {
+#Preview(traits: .sizeThatFitsLayout) {
     CurrencyChartView(fromCurrency: "GBP", toCurrency: "EUR")
         .preferredColorScheme(.dark)
-        .environment(\.colorScheme, .dark)
-        .previewLayout(.sizeThatFits)
         .frame(width: 375, height: 200)
         .padding()
         .background(Color("grey800"))

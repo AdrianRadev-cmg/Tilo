@@ -7,10 +7,11 @@ struct CurrencySelector: View {
     let onSelect: (Currency) -> Void
     
     private var filteredCurrencies: [Currency] {
+        let sortedCurrencies = Currency.allCurrenciesSorted
         if searchText.isEmpty {
-            return Currency.mockData
+            return sortedCurrencies
         } else {
-            return Currency.mockData.filter { currency in
+            return sortedCurrencies.filter { currency in
                 currency.name.localizedCaseInsensitiveContains(searchText) ||
                 currency.code.localizedCaseInsensitiveContains(searchText)
             }
@@ -40,6 +41,8 @@ struct CurrencySelector: View {
                                 )
                                 .clipShape(Circle())
                         }
+                        .accessibilityLabel("Close")
+                        .accessibilityHint("Double tap to close currency selector")
                     }
                     .padding(.horizontal)
                     .padding(.top, 16)
@@ -51,6 +54,7 @@ struct CurrencySelector: View {
                         .foregroundColor(Color("grey100"))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal)
+                        .accessibilityAddTraits(.isHeader)
                     
                     // Search Bar
                     SearchBar(text: $searchText, placeholder: "Search currency name or code")
@@ -62,18 +66,19 @@ struct CurrencySelector: View {
                 // Content
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
-                        // Frequently Used Section
+                        // Recently Used Section (last 5 used currencies)
                         if searchText.isEmpty {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Frequently used")
+                                Text("Recently used")
                                     .font(.footnote)
                                     .fontWeight(.semibold)
                                     .foregroundColor(Color("grey600"))
                                     .textCase(.uppercase)
                                     .padding(.horizontal)
                                     .padding(.bottom, 8)
-                                ForEach(Currency.frequentlyUsed) { currency in
+                                ForEach(Currency.recentlyUsed) { currency in
                                     Button(action: {
+                                        Currency.addToRecentlyUsed(currency)
                                         onSelect(currency)
                                         dismiss()
                                     }) {
@@ -103,6 +108,7 @@ struct CurrencySelector: View {
                                 .padding(.bottom, 8)
                             ForEach(filteredCurrencies) { currency in
                                 Button(action: {
+                                    Currency.addToRecentlyUsed(currency)
                                     onSelect(currency)
                                     dismiss()
                                 }) {

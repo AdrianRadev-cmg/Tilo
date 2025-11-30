@@ -74,7 +74,7 @@ class ExchangeRateService: ObservableObject {
     @Published var isMockMode: Bool = false // Set to true for development, false for production
     
     // Private properties
-    private let apiKey = "cur_live_ekGkTC1IKGFiCe85LkBEwkjMNnZRA05iaVDqYq6G"
+    private var apiKey: String { APIKeyManager.apiKey }
     private let baseURL = "https://api.currencyapi.com/v3/latest"
     private let historicalURL = "https://api.currencyapi.com/v3/historical"
     private let rangeURL = "https://api.currencyapi.com/v3/range"
@@ -501,7 +501,7 @@ class ExchangeRateService: ObservableObject {
     private func fetchHistoricalFromAPI_OLD(from: String, to: String, days: Int) async throws -> [HistoricalRate] {
         let calendar = Calendar.current
         let endDate = Date()
-        guard let startDate = calendar.date(byAdding: .day, value: -days, to: endDate) else {
+        guard calendar.date(byAdding: .day, value: -days, to: endDate) != nil else {
             throw ExchangeRateError.invalidURL
         }
         

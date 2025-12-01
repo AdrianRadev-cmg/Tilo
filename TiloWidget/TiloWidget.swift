@@ -26,7 +26,7 @@ struct CurrencyEntry: TimelineEntry {
                 toFlag: "🇪🇺",
                 exchangeRate: 1.17
             ),
-            conversions: [(10, 11.70), (50, 58.50), (100, 117.00), (500, 585.00)]
+            conversions: [(10, 11.70), (20, 23.40), (50, 58.50), (100, 117.00), (200, 234.00), (500, 585.00), (1000, 1170.00), (2000, 2340.00)]
         )
     }
 }
@@ -100,55 +100,57 @@ struct TiloWidgetEntryView: View {
     }
 }
 
-// MARK: - Small Widget (2 conversions)
+// MARK: - Small Widget (4 conversions)
 struct SmallWidgetView: View {
     let entry: CurrencyEntry
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            // Header with flags
-            HStack(spacing: 4) {
-                Text(entry.currencyPair.fromFlag)
-                    .font(.system(size: 18))
-                Text("→")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.white.opacity(0.5))
-                Text(entry.currencyPair.toFlag)
-                    .font(.system(size: 18))
-            }
-            
-            // Currency codes
+        VStack(alignment: .leading, spacing: 0) {
+            // Header with currency codes
             HStack(spacing: 4) {
                 Text(entry.currencyPair.fromCode)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.white)
                 Text("→")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundColor(.white.opacity(0.4))
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.white)
                 Text(entry.currencyPair.toCode)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(Color(red: 0.85, green: 0.75, blue: 1.0))
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
             }
             
             Spacer()
             
-            // 2 conversion rows
-            VStack(alignment: .leading, spacing: 4) {
-                ForEach(Array(entry.conversions.prefix(2).enumerated()), id: \.offset) { _, conversion in
+            // 4 conversion rows - alternating backgrounds for visual rhythm
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(Array(entry.conversions.prefix(4).enumerated()), id: \.offset) { index, conversion in
                     HStack {
                         Text(formatAmount(conversion.from))
                             .font(.system(size: 13, weight: .regular))
-                            .foregroundColor(.white)
+                            .foregroundColor(.white.opacity(0.7))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+                        
                         Spacer()
+                        
                         Text(formatAmount(conversion.to))
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(Color(red: 0.85, green: 0.75, blue: 1.0))
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
                     }
+                    .padding(.vertical, 5)
+                    .padding(.horizontal, 6)
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(index % 2 == 1 ? Color.white.opacity(0.05) : Color.clear)
+                    )
                 }
             }
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
 

@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Charts
+import WidgetKit
 
 struct HomeView: View {
     @State private var selectedTab = 0
@@ -42,8 +43,9 @@ struct HomeView: View {
     var gradientColor4: Color = Color(red: 0.13, green: 0.05, blue: 0.26)
     var gradientColor5: Color = Color(red: 0.08, green: 0.03, blue: 0.15)
     
-    // Save currency state to UserDefaults
+    // Save currency state to UserDefaults (both standard and shared for widget)
     private func saveCurrencyState() {
+        // Save to standard UserDefaults (for app persistence)
         UserDefaults.standard.set(fromCurrencyName, forKey: "fromCurrencyName")
         UserDefaults.standard.set(fromFlagEmoji, forKey: "fromFlagEmoji")
         UserDefaults.standard.set(fromCurrencyCode, forKey: "fromCurrencyCode")
@@ -53,6 +55,27 @@ struct HomeView: View {
         UserDefaults.standard.set(toFlagEmoji, forKey: "toFlagEmoji")
         UserDefaults.standard.set(toCurrencyCode, forKey: "toCurrencyCode")
         UserDefaults.standard.set(toAmount, forKey: "toAmount")
+        
+        // Save to shared UserDefaults for widget
+        updateWidgetData()
+    }
+    
+    // Update widget with current currency pair and rate
+    private func updateWidgetData() {
+        let currencyPair = CurrencyPair(
+            fromCode: fromCurrencyCode,
+            fromName: fromCurrencyName,
+            fromFlag: fromFlagEmoji,
+            toCode: toCurrencyCode,
+            toName: toCurrencyName,
+            toFlag: toFlagEmoji,
+            exchangeRate: exchangeRate > 0 ? exchangeRate : nil
+        )
+        
+        SharedCurrencyDataManager.shared.currentCurrencyPair = currencyPair
+        
+        // Reload widget timeline
+        WidgetCenter.shared.reloadTimelines(ofKind: "TiloWidget")
     }
     
     private func swapCurrencies() {
@@ -71,20 +94,20 @@ struct HomeView: View {
         
         // At midpoint, swap the data
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            // Swap the currency values
-            let tempName = fromCurrencyName
-            let tempFlag = fromFlagEmoji
-            let tempCode = fromCurrencyCode
+        // Swap the currency values
+        let tempName = fromCurrencyName
+        let tempFlag = fromFlagEmoji
+        let tempCode = fromCurrencyCode
             let tempAmount = fromAmount
-            
-            fromCurrencyName = toCurrencyName
-            fromFlagEmoji = toFlagEmoji
-            fromCurrencyCode = toCurrencyCode
+        
+        fromCurrencyName = toCurrencyName
+        fromFlagEmoji = toFlagEmoji
+        fromCurrencyCode = toCurrencyCode
             fromAmount = toAmount
-            
-            toCurrencyName = tempName
-            toFlagEmoji = tempFlag
-            toCurrencyCode = tempCode
+        
+        toCurrencyName = tempName
+        toFlagEmoji = tempFlag
+        toCurrencyCode = tempCode
             toAmount = tempAmount
             
             // Animate cards moving back to original positions
@@ -122,6 +145,9 @@ struct HomeView: View {
             if let converted = await exchangeService.convert(amount: fromAmount, from: fromCurrencyCode, to: toCurrencyCode) {
                 toAmount = converted
             }
+            
+            // Update widget with new rate
+            updateWidgetData()
         } else {
             // Show error if rate couldn't be fetched
             if let serviceError = exchangeService.errorMessage {
@@ -150,6 +176,9 @@ struct HomeView: View {
             if let converted = await exchangeService.convert(amount: toAmount, from: toCurrencyCode, to: fromCurrencyCode) {
                 fromAmount = converted
             }
+            
+            // Update widget with new rate
+            updateWidgetData()
         } else {
             // Show error if rate couldn't be fetched
             if let serviceError = exchangeService.errorMessage {
@@ -393,10 +422,10 @@ struct HomeView: View {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 12) {
                                     ForEach(getChipAmounts(for: fromCurrencyCode), id: \.self) { amount in
-                                        QuickAmountChip(
+                                    QuickAmountChip(
                                             symbol: getCurrencySymbol(for: fromCurrencyCode),
-                                            amount: amount,
-                                            selectedAmount: .constant(0),
+                                        amount: amount,
+                                        selectedAmount: .constant(0),
                                             onSelect: { selectedAmount in
                                                 // Fill top card with selected amount
                                                 fromAmount = selectedAmount

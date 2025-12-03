@@ -23,6 +23,7 @@ struct HomeView: View {
     @State private var toAmount: Double = UserDefaults.standard.double(forKey: "toAmount")
     
     @State private var exchangeRate: Double = 0.0
+    @State private var rateLastFetched: Date = Date() // Track when rate was actually fetched from API
     @State private var isLoadingRate: Bool = false
     @State private var isEditingTopCard: Bool = false
     @State private var isEditingBottomCard: Bool = false
@@ -69,7 +70,8 @@ struct HomeView: View {
             toCode: toCurrencyCode,
             toName: toCurrencyName,
             toFlag: toFlagEmoji,
-            exchangeRate: exchangeRate > 0 ? exchangeRate : nil
+            exchangeRate: exchangeRate > 0 ? exchangeRate : nil,
+            lastUpdated: rateLastFetched // Use actual API fetch time, not current time
         )
         
         SharedCurrencyDataManager.shared.currentCurrencyPair = currencyPair
@@ -140,6 +142,7 @@ struct HomeView: View {
         // Get exchange rate
         if let rate = await exchangeService.getRate(from: fromCurrencyCode, to: toCurrencyCode) {
             exchangeRate = rate
+            rateLastFetched = Date() // Track when rate was actually fetched
             
             // Convert amount from top card to bottom card
             if let converted = await exchangeService.convert(amount: fromAmount, from: fromCurrencyCode, to: toCurrencyCode) {
@@ -171,6 +174,7 @@ struct HomeView: View {
         // Get exchange rate
         if let rate = await exchangeService.getRate(from: fromCurrencyCode, to: toCurrencyCode) {
             exchangeRate = rate
+            rateLastFetched = Date() // Track when rate was actually fetched
             
             // Convert amount from bottom card to top card (reverse)
             if let converted = await exchangeService.convert(amount: toAmount, from: toCurrencyCode, to: fromCurrencyCode) {

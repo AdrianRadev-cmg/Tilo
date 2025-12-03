@@ -73,7 +73,8 @@ struct CurrencyProvider: TimelineProvider {
         }
         
         return CurrencyEntry(
-            date: Date(),
+            // Use the lastUpdated from the cached pair - this reflects when rates were actually fetched
+            date: pair.lastUpdated,
             currencyPair: pair,
             conversions: conversions
         )
@@ -126,21 +127,21 @@ struct SmallWidgetView: View {
                 ForEach(Array(entry.conversions.prefix(4).enumerated()), id: \.offset) { index, conversion in
                     HStack {
                         Text(formatAmount(conversion.from))
-                            .font(.system(size: 13, weight: .regular))
-                            .foregroundColor(.white.opacity(0.7))
+                            .font(.system(size: 15, weight: .regular))
+                            .foregroundColor(.white)
                             .lineLimit(1)
                             .minimumScaleFactor(0.6)
                         
                         Spacer()
                         
                         Text(formatAmount(conversion.to))
-                            .font(.system(size: 13, weight: .bold))
+                            .font(.system(size: 15, weight: .bold))
                             .foregroundColor(.white)
                             .lineLimit(1)
                             .minimumScaleFactor(0.6)
                     }
                     .padding(.vertical, 5)
-                    .padding(.horizontal, 6)
+                    .padding(.horizontal, 4)
                     .frame(maxWidth: .infinity)
                     .background(
                         RoundedRectangle(cornerRadius: 4)
@@ -149,40 +150,36 @@ struct SmallWidgetView: View {
                 }
             }
         }
-        .padding(8)
+        .padding(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
 
-// MARK: - Medium Widget (4 conversions)
+// MARK: - Medium Widget (5 conversions)
 struct MediumWidgetView: View {
     let entry: CurrencyEntry
     
     var body: some View {
-        HStack(spacing: 12) {
-            // Left side - Header
-            VStack(alignment: .leading, spacing: 6) {
-                // Overlapping flags
-                ZStack {
+        HStack(spacing: 20) {
+            // Left side - Header (centered vertically with table)
+            VStack(alignment: .leading, spacing: 10) {
+                // Flags side by side with 8px gap, in circles
+                HStack(spacing: 8) {
                     Text(entry.currencyPair.fromFlag)
-                        .font(.system(size: 24))
+                        .font(.system(size: 20))
+                        .frame(width: 32, height: 32)
                         .background(
                             Circle()
-                                .fill(Color.white.opacity(0.1))
-                                .frame(width: 36, height: 36)
+                                .fill(Color.white.opacity(0.15))
                         )
-                        .offset(x: -6, y: -4)
-                        .zIndex(1)
                     Text(entry.currencyPair.toFlag)
-                        .font(.system(size: 24))
+                        .font(.system(size: 20))
+                        .frame(width: 32, height: 32)
                         .background(
                             Circle()
-                                .fill(Color.white.opacity(0.1))
-                                .frame(width: 36, height: 36)
+                                .fill(Color.white.opacity(0.15))
                         )
-                        .offset(x: 6, y: 4)
                 }
-                .frame(width: 50, height: 44)
                 
                 // Currency codes
                 VStack(alignment: .leading, spacing: 2) {
@@ -192,44 +189,35 @@ struct MediumWidgetView: View {
                             .foregroundColor(.white)
                         Text("→")
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.white.opacity(0.4))
+                            .foregroundColor(.white)
                         Text(entry.currencyPair.toCode)
                             .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(Color(red: 0.85, green: 0.75, blue: 1.0))
+                            .foregroundColor(.white)
                     }
                     
-                    // Rate
+                    // Exchange rate
                     if let rate = entry.currencyPair.exchangeRate {
                         Text("1 = \(String(format: "%.2f", rate))")
                             .font(.system(size: 10, weight: .regular))
                             .foregroundColor(.white.opacity(0.5))
                     }
                 }
-                
-                Spacer()
             }
             .frame(width: 90)
             
-            // Right side - Conversions
-            VStack(spacing: 4) {
-                ForEach(Array(entry.conversions.prefix(4).enumerated()), id: \.offset) { index, conversion in
+            // Right side - Conversions (5 rows)
+            VStack(spacing: 2) {
+                ForEach(Array(entry.conversions.prefix(5).enumerated()), id: \.offset) { index, conversion in
                     HStack {
                         Text(formatAmount(conversion.from))
-                            .font(.system(size: 14, weight: .regular))
+                            .font(.system(size: 16, weight: .regular))
                             .foregroundColor(.white)
                         
                         Spacer()
                         
-                        // Dots
-                        Text("···")
-                            .font(.system(size: 10))
-                            .foregroundColor(.white.opacity(0.2))
-                        
-                        Spacer()
-                        
                         Text(formatAmount(conversion.to))
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color(red: 0.85, green: 0.75, blue: 1.0))
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.white)
                     }
                     .padding(.vertical, 3)
                     .padding(.horizontal, 6)
@@ -240,7 +228,7 @@ struct MediumWidgetView: View {
                 }
             }
         }
-        .padding(14)
+        .padding(EdgeInsets(top: 16, leading: 16, bottom: 16, trailing: 16))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
@@ -252,29 +240,8 @@ struct LargeWidgetView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             // Header
-            HStack(spacing: 10) {
-                // Overlapping flags
-                ZStack {
-                    Text(entry.currencyPair.fromFlag)
-                        .font(.system(size: 26))
-                        .background(
-                            Circle()
-                                .fill(Color.white.opacity(0.1))
-                                .frame(width: 40, height: 40)
-                        )
-                        .offset(x: -8, y: -4)
-                        .zIndex(1)
-                    Text(entry.currencyPair.toFlag)
-                        .font(.system(size: 26))
-                        .background(
-                            Circle()
-                                .fill(Color.white.opacity(0.1))
-                                .frame(width: 40, height: 40)
-                        )
-                        .offset(x: 8, y: 4)
-                }
-                .frame(width: 56, height: 48)
-                
+            HStack(spacing: 12) {
+                // Currency codes left-aligned
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 6) {
                         Text(entry.currencyPair.fromCode)
@@ -282,46 +249,53 @@ struct LargeWidgetView: View {
                             .foregroundColor(.white)
                         Text("→")
                             .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(.white.opacity(0.4))
+                            .foregroundColor(.white)
                         Text(entry.currencyPair.toCode)
                             .font(.system(size: 18, weight: .bold))
-                            .foregroundColor(Color(red: 0.85, green: 0.75, blue: 1.0))
+                            .foregroundColor(.white)
                     }
                     
                     if let rate = entry.currencyPair.exchangeRate {
-                        Text("1 \(entry.currencyPair.fromCode) = \(String(format: "%.4f", rate)) \(entry.currencyPair.toCode)")
+                        Text("1 = \(String(format: "%.4f", rate))")
                             .font(.system(size: 11, weight: .regular))
                             .foregroundColor(.white.opacity(0.5))
                     }
                 }
                 
                 Spacer()
+                
+                // Flags right-aligned, side by side with 8px gap, in circles
+                HStack(spacing: 8) {
+                    Text(entry.currencyPair.fromFlag)
+                        .font(.system(size: 22))
+                        .frame(width: 36, height: 36)
+                        .background(
+                            Circle()
+                                .fill(Color.white.opacity(0.15))
+                        )
+                    Text(entry.currencyPair.toFlag)
+                        .font(.system(size: 22))
+                        .frame(width: 36, height: 36)
+                        .background(
+                            Circle()
+                                .fill(Color.white.opacity(0.15))
+                        )
+                }
             }
-            .padding(.bottom, 4)
             
             // Conversion rows
             VStack(spacing: 2) {
                 ForEach(Array(entry.conversions.prefix(8).enumerated()), id: \.offset) { index, conversion in
                     HStack {
                         Text(formatAmount(conversion.from))
-                            .font(.system(size: 16, weight: .regular))
+                            .font(.system(size: 18, weight: .regular))
                             .foregroundColor(.white)
-                            .frame(width: 70, alignment: .leading)
                         
-                        // Dotted line
-                        HStack(spacing: 3) {
-                            ForEach(0..<8, id: \.self) { _ in
-                                Circle()
-                                    .fill(Color.white.opacity(0.15))
-                                    .frame(width: 2, height: 2)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
+                        Spacer()
                         
                         Text(formatAmount(conversion.to))
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(Color(red: 0.85, green: 0.75, blue: 1.0))
-                            .frame(width: 90, alignment: .trailing)
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.white)
                     }
                     .padding(.vertical, 6)
                     .padding(.horizontal, 8)
@@ -332,24 +306,9 @@ struct LargeWidgetView: View {
                 }
             }
             
-            Spacer()
-            
-            // Footer
-            HStack {
-                Spacer()
-                Text("Updated \(formattedTime)")
-                    .font(.system(size: 9, weight: .regular))
-                    .foregroundColor(.white.opacity(0.3))
-            }
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-    
-    private var formattedTime: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter.string(from: entry.date)
+        .padding(EdgeInsets(top: 24, leading: 24, bottom: 24, trailing: 24))
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
 
@@ -398,6 +357,7 @@ struct TiloWidget: Widget {
         .configurationDisplayName("Currency Converter")
         .description("Quick currency conversions at a glance.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        .contentMarginsDisabled()
     }
 }
 

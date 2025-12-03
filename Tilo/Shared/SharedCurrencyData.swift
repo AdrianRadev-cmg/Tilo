@@ -26,14 +26,15 @@ struct CurrencyPair: Codable, Equatable {
     
     init(fromCode: String, fromName: String, fromFlag: String,
          toCode: String, toName: String, toFlag: String,
-         exchangeRate: Double? = nil) {
+         exchangeRate: Double? = nil,
+         lastUpdated: Date = Date()) {
         self.fromCode = fromCode
         self.fromName = fromName
         self.fromFlag = fromFlag
         self.toCode = toCode
         self.toName = toName
         self.toFlag = toFlag
-        self.lastUpdated = Date()
+        self.lastUpdated = lastUpdated
         self.exchangeRate = exchangeRate
     }
 }

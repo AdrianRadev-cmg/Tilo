@@ -26,7 +26,7 @@ struct CurrencyEntry: TimelineEntry {
                 toFlag: "🇪🇺",
                 exchangeRate: 1.17
             ),
-            conversions: [(10, 11.70), (20, 23.40), (50, 58.50), (100, 117.00), (200, 234.00), (500, 585.00), (1000, 1170.00), (2000, 2340.00)]
+            conversions: [(10, 11.70), (20, 23.40), (50, 58.50), (100, 117.00), (200, 234.00), (500, 585.00), (1000, 1170.00)]
         )
     }
 }
@@ -64,7 +64,7 @@ struct CurrencyProvider: TimelineProvider {
         )
         
         // Get amounts based on currency
-        let amounts = dataManager.getWidgetAmounts(for: pair.fromCode, count: 8)
+        let amounts = dataManager.getWidgetAmounts(for: pair.fromCode, count: 7)
         
         // Calculate conversions using cached rate or default
         let rate = pair.exchangeRate ?? 1.0
@@ -233,7 +233,7 @@ struct MediumWidgetView: View {
     }
 }
 
-// MARK: - Large Widget (6-8 conversions)
+// MARK: - Large Widget (7 conversions)
 struct LargeWidgetView: View {
     let entry: CurrencyEntry
     
@@ -285,16 +285,16 @@ struct LargeWidgetView: View {
             
             // Conversion rows
             VStack(spacing: 2) {
-                ForEach(Array(entry.conversions.prefix(8).enumerated()), id: \.offset) { index, conversion in
+                ForEach(Array(entry.conversions.prefix(7).enumerated()), id: \.offset) { index, conversion in
                     HStack {
                         Text(formatAmount(conversion.from))
-                            .font(.system(size: 18, weight: .regular))
+                            .font(.system(size: 20, weight: .regular))
                             .foregroundColor(.white)
                         
                         Spacer()
                         
                         Text(formatAmount(conversion.to))
-                            .font(.system(size: 18, weight: .bold))
+                            .font(.system(size: 20, weight: .bold))
                             .foregroundColor(.white)
                     }
                     .padding(.vertical, 6)

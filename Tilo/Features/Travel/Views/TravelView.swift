@@ -106,6 +106,8 @@ struct ConversionTable: View {
     @State private var flipDegrees: Double = 0
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var currentLevel: Int = 0 // 0 = base level, 1 = higher values
+    @State private var showValueHighlight: Bool = false // For flash effect after flip
     @StateObject private var exchangeService = ExchangeRateService.shared
     
     var body: some View {
@@ -115,7 +117,7 @@ struct ConversionTable: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Currency conversion table from \(fromCurrencyCode) to \(toCurrencyCode)")
-        .accessibilityHint("Double tap to flip and swap currencies")
+        .accessibilityHint("Tap right side for higher values, left side for lower values")
         .background(
             ZStack {
                 // Glass effect as base layer
@@ -183,60 +185,124 @@ struct ConversionTable: View {
                 }
             }
         )
-        // Tap to flip
-        .onTapGesture {
-            flipCard()
-        }
+        // Tap left/right to change value levels
+        .contentShape(Rectangle())
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onEnded { value in
+                    // Detect which side was tapped
+                    let tapX = value.location.x
+                    // We'll use the startLocation to determine tap position
+                    handleTap(at: value.startLocation.x)
+                }
+        )
         .task {
             await fetchConversions()
         }
         .onChange(of: fromCurrencyCode) { _, _ in
+            currentLevel = 0 // Reset to base level when currency changes
             Task { await fetchConversions() }
         }
         .onChange(of: toCurrencyCode) { _, _ in
+            currentLevel = 0 // Reset to base level when currency changes
             Task { await fetchConversions() }
+        }
+    }
+    
+    // MARK: - Tap Handling
+    
+    private func handleTap(at xPosition: CGFloat) {
+        // Get the width of the view to determine left/right
+        // We'll use UIScreen as a fallback - the gesture provides relative position
+        let screenWidth = UIScreen.main.bounds.width - 32 // Account for padding
+        let midPoint = screenWidth / 2
+        
+        if xPosition > midPoint {
+            // Tapped right side - increase level
+            if currentLevel < 1 {
+                flipCard(increasing: true)
+            } else {
+                // Already at max level - haptic feedback only
+                let generator = UIImpactFeedbackGenerator(style: .light)
+                generator.impactOccurred()
+            }
+        } else {
+            // Tapped left side - decrease level
+            if currentLevel > 0 {
+                flipCard(increasing: false)
+            } else {
+                // Already at min level - haptic feedback only
+                let generator = UIImpactFeedbackGenerator(style: .light)
+                generator.impactOccurred()
+            }
         }
     }
     
     // MARK: - Flip Animation
     
-    private func flipCard() {
+    private func flipCard(increasing: Bool) {
         // Haptic feedback
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
         
-        // Animate first half of flip (0 to 90 degrees)
+        // Flip direction: right tap = flip right (positive), left tap = flip left (negative)
+        let firstHalfTarget: Double = increasing ? 90 : -90
+        let secondHalfStart: Double = increasing ? -90 : 90
+        
+        // Animate first half of flip
         withAnimation(.easeIn(duration: 0.15)) {
-            flipDegrees = 90
+            flipDegrees = firstHalfTarget
         }
         
-        // At 90 degrees (edge-on), swap the data and flip back
+        // At 90 degrees (edge-on), change the level and recalculate
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            // Swap currencies while card is edge-on (invisible)
-            swapCurrencies()
+            // Change level while card is edge-on (invisible)
+            if increasing {
+                currentLevel = min(1, currentLevel + 1)
+            } else {
+                currentLevel = max(0, currentLevel - 1)
+            }
             
-            // Set to -90 so we animate back to 0 (completing the illusion)
-            flipDegrees = -90
+            // Recalculate conversions with new level
+            Task {
+                await updateConversionsForCurrentLevel()
+            }
             
-            // Animate second half of flip (-90 to 0 degrees)
+            // Set to opposite side so we animate back to 0 (completing the illusion)
+            flipDegrees = secondHalfStart
+            
+            // Animate second half of flip back to 0
             withAnimation(.easeOut(duration: 0.15)) {
                 flipDegrees = 0
+            }
+            
+            // Trigger highlight effect after flip completes
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                withAnimation(.easeIn(duration: 0.1)) {
+                    showValueHighlight = true
+                }
+                // Fade out the highlight after 0.6s
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    withAnimation(.easeOut(duration: 0.4)) {
+                        showValueHighlight = false
+                    }
+                }
             }
         }
     }
     
-    private func swapCurrencies() {
-        let tempCode = fromCurrencyCode
-        let tempName = fromCurrencyName
-        let tempFlag = fromFlagEmoji
+    private func updateConversionsForCurrentLevel() async {
+        guard let rate = exchangeRate else { return }
         
-        fromCurrencyCode = toCurrencyCode
-        fromCurrencyName = toCurrencyName
-        fromFlagEmoji = toFlagEmoji
+        let amounts = getTableAmounts(for: fromCurrencyCode, level: currentLevel)
+        var results: [(amount: Double, converted: Double)] = []
         
-        toCurrencyCode = tempCode
-        toCurrencyName = tempName
-        toFlagEmoji = tempFlag
+        for amount in amounts {
+            let converted = amount * rate
+            results.append((amount: amount, converted: converted))
+        }
+        
+        conversions = results
     }
     
     // MARK: - Data Fetching
@@ -250,7 +316,7 @@ struct ConversionTable: View {
         if let rate = await exchangeService.getRate(from: fromCurrencyCode, to: toCurrencyCode) {
             exchangeRate = rate
             
-            let amounts = getTableAmounts(for: fromCurrencyCode)
+            let amounts = getTableAmounts(for: fromCurrencyCode, level: currentLevel)
             var results: [(amount: Double, converted: Double)] = []
             
             for amount in amounts {
@@ -275,11 +341,15 @@ struct ConversionTable: View {
     
     // MARK: - Helper Functions
     
-    private func getTableAmounts(for currencyCode: String) -> [Double] {
+    private func getTableAmounts(for currencyCode: String, level: Int = 0) -> [Double] {
         // Very high-value currencies (GBP, KWD, etc.) - practical travel amounts
         let veryHighValue = ["KWD", "BHD", "OMR", "JOD", "GBP", "CHF"]
         if veryHighValue.contains(currencyCode) {
-            return [10, 20, 50, 100, 200, 500, 1000, 2000]
+            if level == 0 {
+                return [10, 20, 50, 100, 200, 500, 1000, 2000]
+            } else {
+                return [3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
+            }
         }
         
         // High-value currencies (EUR, USD, etc.) - practical travel amounts
@@ -289,7 +359,11 @@ struct ConversionTable: View {
             "PEN", "BOB", "GTQ", "BBD", "TTD", "MUR", "MVR"
         ]
         if highValue.contains(currencyCode) {
-            return [10, 20, 50, 100, 200, 500, 1000, 2000]
+            if level == 0 {
+                return [10, 20, 50, 100, 200, 500, 1000, 2000]
+            } else {
+                return [3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
+            }
         }
         
         // Medium-value currencies (CNY, THB, MXN, etc.) - amounts you'd spend on meals, transport
@@ -299,13 +373,21 @@ struct ConversionTable: View {
             "DOP", "HNL", "NIO", "MAD", "TND", "GHS", "NAD"
         ]
         if mediumValue.contains(currencyCode) {
-            return [50, 100, 200, 500, 1000, 2000, 5000, 10000]
+            if level == 0 {
+                return [50, 100, 200, 500, 1000, 2000, 5000, 10000]
+            } else {
+                return [15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000]
+            }
         }
         
         // Lower-medium currencies (THB, INR, PHP) - common travel spending
         let lowerMedium = ["THB", "INR", "PHP", "KES", "UGX", "TZS"]
         if lowerMedium.contains(currencyCode) {
-            return [100, 200, 500, 1000, 2000, 5000, 10000, 20000]
+            if level == 0 {
+                return [100, 200, 500, 1000, 2000, 5000, 10000, 20000]
+            } else {
+                return [30000, 40000, 50000, 60000, 70000, 80000, 90000, 100000]
+            }
         }
         
         // Low-value currencies (JPY, KRW, etc.) - amounts for everyday purchases
@@ -315,7 +397,11 @@ struct ConversionTable: View {
             "KMF", "MGA", "PYG", "KHR", "MNT"
         ]
         if lowValue.contains(currencyCode) {
-            return [500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]
+            if level == 0 {
+                return [500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]
+            } else {
+                return [150000, 200000, 300000, 400000, 500000, 750000, 1000000, 2000000]
+            }
         }
         
         // Very low-value currencies (VND, IDR, etc.) - large denominations common
@@ -323,11 +409,19 @@ struct ConversionTable: View {
             "VND", "IDR", "IRR", "LAK", "UZS", "SLL", "LBP", "SYP", "STN", "VES"
         ]
         if veryLowValue.contains(currencyCode) {
-            return [10000, 20000, 50000, 100000, 200000, 500000, 1000000, 2000000]
+            if level == 0 {
+                return [10000, 20000, 50000, 100000, 200000, 500000, 1000000, 2000000]
+            } else {
+                return [3000000, 4000000, 5000000, 6000000, 7000000, 8000000, 9000000, 10000000]
+            }
         }
         
         // Default to high-value pattern
-        return [10, 20, 50, 100, 200, 500, 1000, 2000]
+        if level == 0 {
+            return [10, 20, 50, 100, 200, 500, 1000, 2000]
+        } else {
+            return [3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000]
+        }
     }
     
     private func formatAmount(_ amount: Double, for currencyCode: String) -> String {
@@ -368,17 +462,22 @@ struct ConversionTable: View {
                 toAmount: formatAmount(conversion.converted, for: toCurrencyCode),
                 fromCode: fromCurrencyCode,
                 toCode: toCurrencyCode,
-                isAlternate: index % 2 != 0
+                isAlternate: index % 2 != 0,
+                isHighlighted: showValueHighlight
             )
         }
     }
     
     private var flipHintView: some View {
         HStack(spacing: 6) {
-            Image(systemName: "arrow.left.arrow.right")
-                .font(.system(size: 11, weight: .medium))
-            Text("Tap to flip")
+            Image(systemName: "chevron.left")
+                .font(.system(size: 10, weight: .medium))
+                .opacity(currentLevel > 0 ? 1.0 : 0.3)
+            Text(currentLevel == 0 ? "Tap right for higher values" : "Tap left for lower values")
                 .font(.system(size: 12, weight: .medium))
+            Image(systemName: "chevron.right")
+                .font(.system(size: 10, weight: .medium))
+                .opacity(currentLevel < 1 ? 1.0 : 0.3)
         }
         .foregroundColor(.white)
         .frame(maxWidth: .infinity)
@@ -811,12 +910,20 @@ private struct ConversionRowView: View {
     let fromCode: String
     let toCode: String
     let isAlternate: Bool
+    let isHighlighted: Bool
+    
+    // Highlight color for the flash effect
+    private var highlightColor: Color {
+        Color(white: 0.55) // Subtle grey flash
+    }
     
     var body: some View {
         HStack(spacing: 0) {
             Text(fromAmount)
                 .font(.system(size: 24, weight: .regular))
-                .foregroundColor(.white)
+                .foregroundColor(isHighlighted ? highlightColor : .white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
             
             DottedLineView()
                 .frame(height: 24)
@@ -824,7 +931,9 @@ private struct ConversionRowView: View {
             
             Text(toAmount)
                 .font(.system(size: 24, weight: .semibold))
-                .foregroundColor(Color("primary100"))
+                .foregroundColor(isHighlighted ? highlightColor : Color("primary100"))
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)

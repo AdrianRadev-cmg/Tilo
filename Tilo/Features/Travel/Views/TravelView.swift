@@ -922,10 +922,12 @@ struct WidgetGuideView: View {
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(Color("grey100"))
                 
-                Text("Check exchange rates at a glance — while shopping, dining out, or exploring abroad.")
+                Text("Tilo's widget shows real-time prices on your home screen, perfect for quick checks in shops, cafés, and markets when travelling abroad.")
                     .font(.system(size: 15))
                     .foregroundColor(Color("grey300"))
                     .multilineTextAlignment(.center)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 24)
             }
             .padding(.top, 8)

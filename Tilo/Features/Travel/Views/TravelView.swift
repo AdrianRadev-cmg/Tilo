@@ -101,13 +101,13 @@ struct ConversionTable: View {
     @State private var conversions: [(amount: Double, converted: Double)] = []
     @State private var exchangeRate: Double?
     @State private var isLoading = false
-    @State private var showExportSuccess = false
     @State private var isFlipped = false
     @State private var flipDegrees: Double = 0
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var currentLevel: Int = 0 // 0 = base level, 1 = higher values
     @State private var showValueHighlight: Bool = false // For flash effect after flip
+    @State private var showWidgetGuide: Bool = false
     @StateObject private var exchangeService = ExchangeRateService.shared
     
     var body: some View {
@@ -153,38 +153,6 @@ struct ConversionTable: View {
             axis: (x: 0, y: 1, z: 0),
             perspective: 0.5
         )
-        .overlay(
-            // Success toast overlay
-            Group {
-                if showExportSuccess {
-                    VStack {
-                        Spacer()
-                        HStack(spacing: 8) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 18, weight: .medium))
-                                .foregroundColor(.green)
-                            
-                            Text("Saved to Photos")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.white)
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 14)
-                        .background(
-                            Capsule()
-                                .fill(Color(red: 30/255, green: 20/255, blue: 60/255).opacity(0.95))
-                                .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
-                        )
-                        .overlay(
-                            Capsule()
-                                .stroke(Color.white.opacity(0.15), lineWidth: 1)
-                        )
-                        .padding(.bottom, 20)
-                    }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-            }
-        )
         // Tap left/right to change value levels
         .contentShape(Rectangle())
         .simultaneousGesture(
@@ -206,6 +174,11 @@ struct ConversionTable: View {
         .onChange(of: toCurrencyCode) { _, _ in
             currentLevel = 0 // Reset to base level when currency changes
             Task { await fetchConversions() }
+        }
+        .sheet(isPresented: $showWidgetGuide) {
+            WidgetGuideView()
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
         }
     }
     
@@ -281,8 +254,8 @@ struct ConversionTable: View {
                 withAnimation(.easeIn(duration: 0.1)) {
                     showValueHighlight = true
                 }
-                // Fade out the highlight after 0.6s
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                // Fade out the highlight after 0.4s
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                     withAnimation(.easeOut(duration: 0.4)) {
                         showValueHighlight = false
                     }
@@ -535,7 +508,7 @@ struct ConversionTable: View {
             overlappingFlagsView
             currencyInfoView
             Spacer()
-            exportButtonView
+            addWidgetButtonView
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
@@ -599,10 +572,10 @@ struct ConversionTable: View {
         }
     }
     
-    private var exportButtonView: some View {
-        Button(action: saveToPhotos) {
-            Image(systemName: "arrow.down.circle")
-                .font(.system(size: 22, weight: .regular))
+    private var addWidgetButtonView: some View {
+        Button(action: { showWidgetGuide = true }) {
+            Image(systemName: "plus.rectangle.on.rectangle")
+                .font(.system(size: 20, weight: .regular))
                 .foregroundStyle(Color("grey100"))
                 .frame(width: 44, height: 44)
                 .glassEffect()
@@ -615,46 +588,11 @@ struct ConversionTable: View {
         }
         .buttonStyle(.plain)
         .shadow(color: .black.opacity(0.20), radius: 10, x: 0, y: 3)
-        .accessibilityLabel("Save to Photos")
-        .accessibilityHint("Double tap to save this conversion table as an image to your photo library")
+        .accessibilityLabel("Add Widget")
+        .accessibilityHint("Double tap to learn how to add Tilo widget to your home screen")
     }
     
-    // MARK: - Save to Photos Function
-    
-    private func saveToPhotos() {
-        // Add haptic feedback
-        let generator = UIImpactFeedbackGenerator(style: .medium)
-        generator.impactOccurred()
-        
-        // Create a snapshot of the table
-        let renderer = ImageRenderer(content: tableSnapshotView)
-        renderer.scale = 3.0 // High resolution
-        
-        if let image = renderer.uiImage {
-            // Save directly to photo library
-            ImageSaver.shared.saveImage(image) { success in
-                if success {
-                    // Success haptic
-                    let successGenerator = UINotificationFeedbackGenerator()
-                    successGenerator.notificationOccurred(.success)
-                    
-                    // Show success toast
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        showExportSuccess = true
-                    }
-                    
-                    // Hide after 2 seconds
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                        withAnimation(.easeInOut(duration: 0.3)) {
-                            showExportSuccess = false
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    // Snapshot view for export (matches app design exactly)
+    // Snapshot view for export (kept for potential future use)
     private var tableSnapshotView: some View {
         ZStack {
             // Flag-based gradient background
@@ -956,6 +894,89 @@ private struct DottedLineView: View {
                 }
             }
             .stroke(Color.white.opacity(0.2), lineWidth: 1)
+        }
+    }
+}
+
+// MARK: - Widget Guide View
+
+struct WidgetGuideView: View {
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        VStack(spacing: 24) {
+            // Header
+            VStack(spacing: 8) {
+                Image(systemName: "rectangle.3.group")
+                    .font(.system(size: 48, weight: .light))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color("primary300"), Color("primary500")],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                
+                Text("Add Tilo Widget")
+                    .font(.system(size: 24, weight: .bold))
+                    .foregroundColor(Color("grey100"))
+                
+                Text("Quick access to exchange rates on your home screen")
+                    .font(.system(size: 15))
+                    .foregroundColor(Color("grey300"))
+                    .multilineTextAlignment(.center)
+            }
+            .padding(.top, 8)
+            
+            // Steps
+            VStack(alignment: .leading, spacing: 16) {
+                StepRow(number: 1, text: "Long press on your home screen")
+                StepRow(number: 2, text: "Tap the + button in the top corner")
+                StepRow(number: 3, text: "Search for \"Tilo\"")
+                StepRow(number: 4, text: "Choose your preferred widget size")
+            }
+            .padding(.horizontal, 24)
+            
+            Spacer()
+            
+            // Got it button
+            Button(action: { dismiss() }) {
+                Text("Got it")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color("primary500"))
+                    )
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 16)
+        }
+        .padding(.top, 24)
+        .background(Color("background"))
+    }
+}
+
+struct StepRow: View {
+    let number: Int
+    let text: String
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            Text("\(number)")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(Color("primary500"))
+                .frame(width: 28, height: 28)
+                .background(
+                    Circle()
+                        .fill(Color("primary500").opacity(0.15))
+                )
+            
+            Text(text)
+                .font(.system(size: 16))
+                .foregroundColor(Color("grey100"))
         }
     }
 }

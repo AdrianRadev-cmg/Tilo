@@ -916,7 +916,6 @@ struct WidgetGuideView: View {
                             endPoint: .bottomTrailing
                         )
                     )
-                    .padding(.top, 8)
                 
                 Text("Add Tilo Widget")
                     .font(.system(size: 24, weight: .bold))
@@ -930,8 +929,7 @@ struct WidgetGuideView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 24)
             }
-            .padding(.top, 8)
-            
+
             // Steps
             VStack(alignment: .leading, spacing: 16) {
                 StepRow(number: 1, text: "Long press on your home screen")
@@ -963,7 +961,7 @@ struct WidgetGuideView: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 16)
         }
-        .padding(.top, 24)
+        .padding(.top, 16)
         .background(Color("background"))
     }
 }

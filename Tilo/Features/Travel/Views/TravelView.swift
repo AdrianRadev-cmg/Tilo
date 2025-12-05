@@ -916,15 +916,17 @@ struct WidgetGuideView: View {
                             endPoint: .bottomTrailing
                         )
                     )
+                    .padding(.top, 8)
                 
                 Text("Add Tilo Widget")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(Color("grey100"))
                 
-                Text("Quick access to exchange rates on your home screen")
+                Text("Check exchange rates at a glance — while shopping, dining out, or exploring abroad.")
                     .font(.system(size: 15))
                     .foregroundColor(Color("grey300"))
                     .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
             }
             .padding(.top, 8)
             
@@ -939,18 +941,23 @@ struct WidgetGuideView: View {
             
             Spacer()
             
-            // Got it button
+            // Got it button with glass effect
             Button(action: { dismiss() }) {
                 Text("Got it")
                     .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(.white)
+                    .foregroundColor(Color("grey100"))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(Color("primary500"))
+                            .fill(.ultraThinMaterial)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
                     )
             }
+            .buttonStyle(.plain)
             .padding(.horizontal, 24)
             .padding(.bottom, 16)
         }

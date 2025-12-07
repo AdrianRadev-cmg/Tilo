@@ -367,7 +367,13 @@ struct CurrencyChartView: View {
         if let selected = selectedRate {
             return dateFormatter.string(from: selected.date)
         } else {
-            return dateFormatter.string(from: Date())
+            // Show the last date in the chart (yesterday, since today is excluded)
+            if let lastDate = viewModel.rates.last?.date {
+                return dateFormatter.string(from: lastDate)
+            }
+            // Fallback to yesterday if no data
+            let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
+            return dateFormatter.string(from: yesterday)
         }
     }
     
@@ -712,6 +718,14 @@ struct CurrencyLineChart: View {
             }
             }
             
+            // Date label below chart
+            HStack {
+                Text("A month ago")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
+                
+                Spacer()
+            }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Exchange rate chart showing historical rates. High: \(String(format: "%.4f", highRate)), Median: \(String(format: "%.4f", medianRate)), Low: \(String(format: "%.4f", lowRate))")

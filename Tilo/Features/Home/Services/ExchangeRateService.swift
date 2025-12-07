@@ -11,29 +11,42 @@ struct CurrencyRate: Codable {
     let value: Double
 }
 
-// MARK: - Cached Rates Model
-struct CachedRates {
+// MARK: - Cached Rates Model (Codable for persistence)
+struct CachedRates: Codable {
     let rates: [String: Double]
     let timestamp: Date
     let baseCurrency: String
     
-    var isExpired: Bool {
-        // Cache expires after 5 hours
-        Date().timeIntervalSince(timestamp) > (5 * 60 * 60)
-    }
-    
     var age: TimeInterval {
         Date().timeIntervalSince(timestamp)
     }
+    
+    var isExpired: Bool {
+        age > CacheConfig.currentRatesExpiration
+    }
+    
+    var isStale: Bool {
+        age > CacheConfig.staleThreshold
+    }
+    
+    var ageDescription: String {
+        let minutes = Int(age / 60)
+        if minutes < 60 {
+            return "\(minutes)m ago"
+        } else {
+            let hours = minutes / 60
+            return "\(hours)h ago"
+        }
+    }
 }
 
-// MARK: - Historical Data Models
-struct HistoricalRate {
+// MARK: - Historical Data Models (Codable for persistence)
+struct HistoricalRate: Codable {
     let date: Date
     let rate: Double
 }
 
-struct CachedHistoricalData {
+struct CachedHistoricalData: Codable {
     let data: [HistoricalRate]
     let timestamp: Date
     let fromCurrency: String
@@ -43,6 +56,41 @@ struct CachedHistoricalData {
         // Cache expires after 24 hours (historical data doesn't change)
         Date().timeIntervalSince(timestamp) > (24 * 60 * 60)
     }
+}
+
+// MARK: - Cache Configuration
+struct CacheConfig {
+    // Market hours: Mon-Fri, 8am-8pm UTC
+    static var isMarketHours: Bool {
+        let calendar = Calendar.current
+        let now = Date()
+        let weekday = calendar.component(.weekday, from: now)
+        let hour = calendar.component(.hour, from: now)
+        
+        // Weekend (Saturday = 7, Sunday = 1)
+        if weekday == 1 || weekday == 7 {
+            return false
+        }
+        
+        // Check if within 8am-8pm UTC
+        // Note: This uses local time; for production, convert to UTC
+        return hour >= 8 && hour < 20
+    }
+    
+    // Cache expiration based on market hours
+    static var currentRatesExpiration: TimeInterval {
+        if isMarketHours {
+            return 1 * 60 * 60 // 1 hour during market hours
+        } else {
+            return 4 * 60 * 60 // 4 hours off-market
+        }
+    }
+    
+    // Stale threshold for background refresh
+    static let staleThreshold: TimeInterval = 30 * 60 // 30 minutes
+    
+    // Historical data expiration (doesn't change often)
+    static let historicalExpiration: TimeInterval = 24 * 60 * 60 // 24 hours
 }
 
 // API Response for historical data
@@ -69,6 +117,8 @@ class ExchangeRateService: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var lastUpdated: Date?
     @Published var errorMessage: String?
+    @Published var cacheAge: String = "" // For UI display
+    @Published var isOffline: Bool = false
     
     // Development mode toggle
     @Published var isMockMode: Bool = false // Set to true for development, false for production
@@ -80,9 +130,24 @@ class ExchangeRateService: ObservableObject {
     private let rangeURL = "https://api.currencyapi.com/v3/range"
     private let baseCurrency = "USD" // Using USD as base for all conversions
     
-    // Cache storage
-    private var cachedRates: CachedRates?
-    private var cachedHistoricalData: [String: CachedHistoricalData] = [:] // Key: "FROM_TO" (e.g., "USD_EUR")
+    // Persistence keys
+    private let cachedRatesKey = "cachedExchangeRates"
+    private let cachedHistoricalKey = "cachedHistoricalRates"
+    
+    // Cache storage (in-memory + persisted)
+    private var cachedRates: CachedRates? {
+        didSet {
+            if let rates = cachedRates {
+                saveCachedRatesToDisk(rates)
+                cacheAge = rates.ageDescription
+            }
+        }
+    }
+    private var cachedHistoricalData: [String: CachedHistoricalData] = [:] {
+        didSet {
+            saveCachedHistoricalToDisk(cachedHistoricalData)
+        }
+    }
     
     // Mock data for development (all 100 currencies with realistic rates vs USD)
     private let mockRates: [String: Double] = [
@@ -123,7 +188,48 @@ class ExchangeRateService: ObservableObject {
     // Singleton instance
     static let shared = ExchangeRateService()
     
-    private init() {}
+    private init() {
+        // Load cached data from disk on init
+        loadCachedRatesFromDisk()
+        loadCachedHistoricalFromDisk()
+        
+        if let rates = cachedRates {
+            lastUpdated = rates.timestamp
+            cacheAge = rates.ageDescription
+            print("📦 Loaded cached rates from disk (age: \(rates.ageDescription))")
+        }
+    }
+    
+    // MARK: - Persistence Methods
+    
+    private func saveCachedRatesToDisk(_ rates: CachedRates) {
+        if let data = try? JSONEncoder().encode(rates) {
+            UserDefaults.shared.set(data, forKey: cachedRatesKey)
+            print("💾 Saved rates to disk")
+        }
+    }
+    
+    private func loadCachedRatesFromDisk() {
+        if let data = UserDefaults.shared.data(forKey: cachedRatesKey),
+           let rates = try? JSONDecoder().decode(CachedRates.self, from: data) {
+            cachedRates = rates
+        }
+    }
+    
+    private func saveCachedHistoricalToDisk(_ historical: [String: CachedHistoricalData]) {
+        if let data = try? JSONEncoder().encode(historical) {
+            UserDefaults.shared.set(data, forKey: cachedHistoricalKey)
+            print("💾 Saved historical data to disk")
+        }
+    }
+    
+    private func loadCachedHistoricalFromDisk() {
+        if let data = UserDefaults.shared.data(forKey: cachedHistoricalKey),
+           let historical = try? JSONDecoder().decode([String: CachedHistoricalData].self, from: data) {
+            cachedHistoricalData = historical
+            print("📦 Loaded \(historical.count) historical cache entries from disk")
+        }
+    }
     
     // MARK: - Development Methods
     
@@ -148,29 +254,85 @@ class ExchangeRateService: ObservableObject {
     func clearCache() {
         cachedRates = nil
         cachedHistoricalData.removeAll()
-        print("🗑️ All cache cleared - next requests will use API")
+        UserDefaults.shared.removeObject(forKey: cachedRatesKey)
+        UserDefaults.shared.removeObject(forKey: cachedHistoricalKey)
+        cacheAge = ""
+        print("🗑️ All cache cleared (memory + disk) - next requests will use API")
     }
     
     // MARK: - Public Methods
     
     /// Fetch latest exchange rates from API or cache
+    /// Uses stale-while-revalidate: returns cached data immediately, refreshes in background if stale
     func fetchRates() async throws -> [String: Double] {
         // Mock mode - return mock data immediately
         if isMockMode {
             print("🧪 Mock mode: Using mock exchange rates")
             lastUpdated = Date()
             errorMessage = nil
+            isOffline = false
             return mockRates
         }
         
-        // Check if we have valid cached data
-        if let cached = cachedRates, !cached.isExpired {
-            print("✅ Using cached rates (age: \(Int(cached.age / 60)) minutes)")
-            lastUpdated = cached.timestamp
-            return cached.rates
+        // If we have cached data
+        if let cached = cachedRates {
+            let ageMinutes = Int(cached.age / 60)
+            
+            // Fresh cache - use immediately
+            if !cached.isExpired {
+                print("✅ Using cached rates (age: \(ageMinutes) minutes, market hours: \(CacheConfig.isMarketHours))")
+                lastUpdated = cached.timestamp
+                cacheAge = cached.ageDescription
+                isOffline = false
+                
+                // If stale (>30 min), trigger background refresh
+                if cached.isStale {
+                    print("🔄 Cache is stale, triggering background refresh...")
+                    Task {
+                        await refreshRatesInBackground()
+                    }
+                }
+                
+                return cached.rates
+            }
+            
+            // Expired cache - try to refresh, but return cached if offline
+            print("⏰ Cache expired (age: \(ageMinutes) minutes), fetching fresh data...")
         }
         
-        // Fetch fresh data from API
+        // No cache or expired - fetch fresh data
+        return try await fetchFreshRates()
+    }
+    
+    /// Force refresh rates (ignores cache)
+    func forceRefresh() async throws -> [String: Double] {
+        print("🔄 Force refresh requested")
+        return try await fetchFreshRates()
+    }
+    
+    /// Background refresh (doesn't throw, updates cache silently)
+    private func refreshRatesInBackground() async {
+        do {
+            let rates = try await fetchFromAPI()
+            
+            cachedRates = CachedRates(
+                rates: rates,
+                timestamp: Date(),
+                baseCurrency: baseCurrency
+            )
+            
+            lastUpdated = Date()
+            isOffline = false
+            print("✅ Background refresh completed")
+            
+        } catch {
+            print("⚠️ Background refresh failed: \(error.localizedDescription)")
+            // Don't update error state - we still have cached data
+        }
+    }
+    
+    /// Fetch fresh rates from API
+    private func fetchFreshRates() async throws -> [String: Double] {
         print("🌐 Fetching fresh rates from API...")
         isLoading = true
         errorMessage = nil
@@ -178,7 +340,7 @@ class ExchangeRateService: ObservableObject {
         do {
             let rates = try await fetchFromAPI()
             
-            // Cache the new rates
+            // Cache the new rates (triggers persistence via didSet)
             cachedRates = CachedRates(
                 rates: rates,
                 timestamp: Date(),
@@ -187,21 +349,25 @@ class ExchangeRateService: ObservableObject {
             
             lastUpdated = Date()
             isLoading = false
+            isOffline = false
             
             print("✅ Successfully fetched \(rates.count) currency rates")
             return rates
             
         } catch {
             isLoading = false
+            isOffline = true
             errorMessage = error.localizedDescription
             
-            // Fallback to cached data even if expired
+            // Fallback to cached data even if expired (offline support)
             if let cached = cachedRates {
-                print("⚠️ API failed, using cached rates (age: \(Int(cached.age / 3600)) hours)")
+                print("⚠️ API failed, using cached rates (age: \(cached.ageDescription)) - OFFLINE MODE")
                 return cached.rates
             }
             
-            throw error
+            // No cache available - use mock rates as last resort
+            print("⚠️ No cache available, using mock rates as fallback")
+            return mockRates
         }
     }
     

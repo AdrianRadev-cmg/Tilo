@@ -153,17 +153,7 @@ struct ConversionTable: View {
             axis: (x: 0, y: 1, z: 0),
             perspective: 0.5
         )
-        // Tap left/right to change value levels
-        .contentShape(Rectangle())
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onEnded { value in
-                    // Detect which side was tapped
-                    let tapX = value.location.x
-                    // We'll use the startLocation to determine tap position
-                    handleTap(at: value.startLocation.x)
-                }
-        )
+        // Note: Flip gesture is applied to conversion rows only, not header
         .task {
             await fetchConversions()
         }
@@ -439,6 +429,14 @@ struct ConversionTable: View {
                 isHighlighted: showValueHighlight
             )
         }
+        .contentShape(Rectangle())
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onEnded { value in
+                    // Detect which side was tapped
+                    handleTap(at: value.startLocation.x)
+                }
+        )
     }
     
     private var flipHintView: some View {
@@ -904,19 +902,18 @@ struct WidgetGuideView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        VStack(spacing: 24) {
-            // Header
+        VStack(spacing: 0) {
+            // Widget preview image
+            Image("WidgetPreview")
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .frame(maxWidth: 340)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 6)
+                .padding(.top, 16)
+            
+            // Text content
             VStack(spacing: 8) {
-                Image(systemName: "rectangle.3.group")
-                    .font(.system(size: 48, weight: .light))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color("primary300"), Color("primary500")],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                
                 Text("Add Tilo Widget")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(Color("grey100"))
@@ -927,21 +924,12 @@ struct WidgetGuideView: View {
                     .multilineTextAlignment(.center)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 24)
             }
-
-            // Steps
-            VStack(alignment: .leading, spacing: 16) {
-                StepRow(number: 1, text: "Long press on your home screen")
-                StepRow(number: 2, text: "Tap the + button in the top corner")
-                StepRow(number: 3, text: "Search for \"Tilo\"")
-                StepRow(number: 4, text: "Choose your preferred widget size")
-            }
-            .padding(.horizontal, 24)
+            .padding(.top, 24)
             
             Spacer()
             
-            // Got it button with glass effect
+            // Got it button with glass effect (pinned to bottom)
             Button(action: { dismiss() }) {
                 Text("Got it")
                     .font(.system(size: 17, weight: .semibold))
@@ -958,33 +946,9 @@ struct WidgetGuideView: View {
                     )
             }
             .buttonStyle(.plain)
-            .padding(.horizontal, 24)
-            .padding(.bottom, 16)
         }
-        .padding(.top, 16)
+        .padding(24)
         .background(Color("background"))
-    }
-}
-
-struct StepRow: View {
-    let number: Int
-    let text: String
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            Text("\(number)")
-                .font(.system(size: 15, weight: .bold))
-                .foregroundColor(Color("primary500"))
-                .frame(width: 28, height: 28)
-                .background(
-                    Circle()
-                        .fill(Color("primary500").opacity(0.15))
-                )
-            
-            Text(text)
-                .font(.system(size: 16))
-                .foregroundColor(Color("grey100"))
-        }
     }
 }
 

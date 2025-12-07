@@ -712,21 +712,9 @@ struct CurrencyLineChart: View {
             }
             }
             
-            // Date labels below chart
-            HStack {
-                Text("A month ago")
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
-                
-                Spacer()
-                
-                Text("Yesterday")
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
-            }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Exchange rate chart showing rates from a month ago to yesterday. High: \(String(format: "%.4f", highRate)), Median: \(String(format: "%.4f", medianRate)), Low: \(String(format: "%.4f", lowRate))")
+        .accessibilityLabel("Exchange rate chart showing historical rates. High: \(String(format: "%.4f", highRate)), Median: \(String(format: "%.4f", medianRate)), Low: \(String(format: "%.4f", lowRate))")
         .accessibilityHint("Drag horizontally to explore rates on different dates")
     }
     

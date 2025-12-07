@@ -80,14 +80,17 @@ struct CacheConfig {
     // Cache expiration based on market hours
     static var currentRatesExpiration: TimeInterval {
         if isMarketHours {
-            return 1 * 60 * 60 // 1 hour during market hours
+            return 2 * 60 * 60 // 2 hours during market hours
         } else {
             return 4 * 60 * 60 // 4 hours off-market
         }
     }
     
-    // Stale threshold for background refresh
-    static let staleThreshold: TimeInterval = 30 * 60 // 30 minutes
+    // Stale threshold for background refresh (triggers refresh but returns cached data)
+    static let staleThreshold: TimeInterval = 1 * 60 * 60 // 1 hour
+    
+    // Background refresh cooldown (prevents multiple refreshes)
+    static let backgroundRefreshCooldown: TimeInterval = 1 * 60 * 60 // 1 hour
     
     // Historical data expiration (doesn't change often)
     static let historicalExpiration: TimeInterval = 24 * 60 * 60 // 24 hours
@@ -148,6 +151,9 @@ class ExchangeRateService: ObservableObject {
             saveCachedHistoricalToDisk(cachedHistoricalData)
         }
     }
+    
+    // Background refresh cooldown tracking
+    private var lastBackgroundRefresh: Date?
     
     // Mock data for development (all 100 currencies with realistic rates vs USD)
     private let mockRates: [String: Double] = [
@@ -285,8 +291,8 @@ class ExchangeRateService: ObservableObject {
                 cacheAge = cached.ageDescription
                 isOffline = false
                 
-                // If stale (>30 min), trigger background refresh
-                if cached.isStale {
+                // If stale (>1h), trigger background refresh with cooldown check
+                if cached.isStale && canBackgroundRefresh() {
                     print("🔄 Cache is stale, triggering background refresh...")
                     Task {
                         await refreshRatesInBackground()
@@ -310,8 +316,28 @@ class ExchangeRateService: ObservableObject {
         return try await fetchFreshRates()
     }
     
+    /// Check if background refresh is allowed (cooldown check)
+    private func canBackgroundRefresh() -> Bool {
+        guard let lastRefresh = lastBackgroundRefresh else {
+            return true // Never refreshed before
+        }
+        
+        let timeSinceLastRefresh = Date().timeIntervalSince(lastRefresh)
+        let canRefresh = timeSinceLastRefresh > CacheConfig.backgroundRefreshCooldown
+        
+        if !canRefresh {
+            let minutesRemaining = Int((CacheConfig.backgroundRefreshCooldown - timeSinceLastRefresh) / 60)
+            print("⏳ Background refresh on cooldown (\(minutesRemaining) min remaining)")
+        }
+        
+        return canRefresh
+    }
+    
     /// Background refresh (doesn't throw, updates cache silently)
     private func refreshRatesInBackground() async {
+        // Mark refresh time immediately to prevent duplicate calls
+        lastBackgroundRefresh = Date()
+        
         do {
             let rates = try await fetchFromAPI()
             

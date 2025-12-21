@@ -18,7 +18,7 @@ struct CurrencySelectorChip: View {
                     .font(.system(size: 20, weight: .semibold))
                     .foregroundColor(.white)
                     .padding(.trailing, 2) // Add 2px after code
-
+                
                 Image(systemName: "chevron.down")
                     .font(.system(size: 16))
                     .foregroundColor(.white)

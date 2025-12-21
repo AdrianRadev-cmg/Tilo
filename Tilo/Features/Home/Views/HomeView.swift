@@ -20,7 +20,7 @@ struct HomeView: View {
     @State private var toCurrencyName = UserDefaults.standard.string(forKey: "toCurrencyName") ?? "Euro"
     @State private var toFlagEmoji = UserDefaults.standard.string(forKey: "toFlagEmoji") ?? "🇪🇺"
     @State private var toCurrencyCode = UserDefaults.standard.string(forKey: "toCurrencyCode") ?? "EUR"
-    @State private var toAmount: Double = UserDefaults.standard.double(forKey: "toAmount")
+    @State private var toAmount: Double = UserDefaults.standard.double(forKey: "toAmount") != 0 ? UserDefaults.standard.double(forKey: "toAmount") : 100.00
     
     @State private var exchangeRate: Double = 0.0
     @State private var rateLastFetched: Date = Date() // Track when rate was actually fetched from API
@@ -225,9 +225,9 @@ struct HomeView: View {
     private func formatExchangeRate(_ rate: Double) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 4
-        formatter.maximumFractionDigits = 4
-        return formatter.string(from: NSNumber(value: rate)) ?? String(format: "%.4f", rate)
+        formatter.minimumFractionDigits = 3
+        formatter.maximumFractionDigits = 3
+        return formatter.string(from: NSNumber(value: rate)) ?? String(format: "%.3f", rate)
     }
     
     // Get appropriate chip amounts based on currency value category
@@ -554,26 +554,6 @@ struct DebugHomeViewWrapper: View {
                             Button(action: { showControls.toggle() }) {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundColor(.white.opacity(0.7))
-                            }
-                        }
-                        
-                        // API Mode Toggle
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text("API Mode:")
-                                    .font(.subheadline)
-                                    .foregroundColor(.white.opacity(0.8))
-                                Spacer()
-                                Button(action: {
-                                    exchangeService.toggleMockMode()
-                                }) {
-                                    Text(exchangeService.isMockMode ? "🧪 Mock" : "🌐 Live")
-                                        .font(.caption)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(exchangeService.isMockMode ? Color.orange.opacity(0.8) : Color.green.opacity(0.8))
-                                        .cornerRadius(6)
-                                }
                             }
                         }
                         

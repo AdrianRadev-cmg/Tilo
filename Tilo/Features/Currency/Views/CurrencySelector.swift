@@ -12,8 +12,8 @@ struct CurrencySelector: View {
             return sortedCurrencies
         } else {
             return sortedCurrencies.filter { currency in
-                currency.name.localizedCaseInsensitiveContains(searchText) ||
-                currency.code.localizedCaseInsensitiveContains(searchText)
+            currency.name.localizedCaseInsensitiveContains(searchText) ||
+            currency.code.localizedCaseInsensitiveContains(searchText)
             }
         }
     }

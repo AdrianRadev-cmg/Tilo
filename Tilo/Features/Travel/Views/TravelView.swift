@@ -563,7 +563,7 @@ struct ConversionTable: View {
             
             // Rate info
             if let rate = exchangeRate {
-                Text("1 \(fromCurrencyCode) = \(String(format: "%.4f", rate)) \(toCurrencyCode)")
+                Text("1 \(fromCurrencyCode) = \(String(format: "%.3f", rate)) \(toCurrencyCode)")
                     .font(.system(size: 14, weight: .regular))
                     .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.7))
             }
@@ -614,7 +614,7 @@ struct ConversionTable: View {
                     }
                     
                     if let rate = exchangeRate {
-                        Text("1 \(fromCurrencyCode) = \(String(format: "%.4f", rate)) \(toCurrencyCode)")
+                        Text("1 \(fromCurrencyCode) = \(String(format: "%.3f", rate)) \(toCurrencyCode)")
                             .font(.system(size: 14, weight: .regular))
                             .foregroundColor(.white.opacity(0.7))
                     }

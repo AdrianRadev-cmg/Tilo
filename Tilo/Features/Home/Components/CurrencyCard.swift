@@ -113,7 +113,7 @@ struct CurrencyCard: View {
                     Text(currencySymbol)
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.white)
-                    
+
                     if isAmountFocused && isEditable {
                         TextField("", text: $amountInput)
                             .font(.system(size: 24, weight: .semibold))
@@ -155,9 +155,9 @@ struct CurrencyCard: View {
                 .frame(height: 42)
                 .overlay {
                     // Show stroke only on error
-                    if isInputError {
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color(red: 0.8, green: 0.2, blue: 0.2), lineWidth: 1)
+                        if isInputError {
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color(red: 0.8, green: 0.2, blue: 0.2), lineWidth: 1)
                     }
                 }
                 .glassEffect()
@@ -203,8 +203,8 @@ struct CurrencyCard: View {
         .onChange(of: amount) { oldAmount, newAmount in
             // Only update amountInput if not currently editing
             if !isAmountFocused {
-                amountInput = newAmount
-                isInputError = false
+            amountInput = newAmount
+            isInputError = false
             }
         }
         .contentShape(Rectangle())
@@ -212,7 +212,7 @@ struct CurrencyCard: View {
              if isAmountFocused {
                  // Dismiss keyboard and keep the raw input
                  isAmountFocused = false
-                 amountFieldIsFocused = false
+                 amountFieldIsFocused = false 
                  onEditingChanged?(false)
              }
          }
@@ -226,7 +226,7 @@ struct CurrencyCard: View {
                     .glassEffect(in: .rect(cornerRadius: 16))
                 
                 // Dark purple overlay to reduce grey appearance
-                RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: 16)
                     .fill(Color(red: 20/255, green: 8/255, blue: 58/255).opacity(0.75))
             }
             .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
@@ -279,27 +279,27 @@ struct CurrencyCardPreviewWrapper: View {
     ]
     
     var body: some View {
-        CurrencyCard(
-            currencyName: $currencyName,
-            flagEmoji: $flagEmoji,
-            currencyCode: $currencyCode,
-            amount: "50.00",
+    CurrencyCard(
+        currencyName: $currencyName,
+        flagEmoji: $flagEmoji,
+        currencyCode: $currencyCode,
+        amount: "50.00",
             exchangeRateInfo: "1 GBP = 1.1700 EUR",
             currencySymbol: "£",
             isEditable: true,
             isCurrentlyActive: true
-        )
-        .padding()
-        .background(
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(stops: gradientStops),
-                    startPoint: .topTrailing,
-                    endPoint: .bottomLeading
-                )
-                Color.black.opacity(0.20)
-            }
-            .ignoresSafeArea()
-        )
+    )
+    .padding()
+    .background(
+        ZStack {
+            LinearGradient(
+                gradient: Gradient(stops: gradientStops),
+                startPoint: .topTrailing,
+                endPoint: .bottomLeading
+            )
+            Color.black.opacity(0.20)
+        }
+        .ignoresSafeArea()
+    )
     }
 } 

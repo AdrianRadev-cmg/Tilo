@@ -753,7 +753,7 @@ struct CurrencyLineChart: View {
             
             // Date label below chart
             HStack {
-                Text("A month ago")
+                Text("14 days ago")
                     .font(.system(size: 12, weight: .regular))
                     .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
                 

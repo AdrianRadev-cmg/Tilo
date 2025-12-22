@@ -445,15 +445,21 @@ class ExchangeRateService: ObservableObject {
             do {
                 let data = try await fetchHistoricalFromAPI(from: from, to: to, days: days)
                 
-                // Cache the data
-                cachedHistoricalData[cacheKey] = CachedHistoricalData(
-                    data: data,
-                    timestamp: Date(),
-                    fromCurrency: from,
-                    toCurrency: to
-                )
+                // Only cache if we have at least 70% of expected data points
+                // This prevents caching incomplete data due to rate limiting
+                let minimumDataPoints = Int(Double(days) * 0.7)
+                if data.count >= minimumDataPoints {
+                    cachedHistoricalData[cacheKey] = CachedHistoricalData(
+                        data: data,
+                        timestamp: Date(),
+                        fromCurrency: from,
+                        toCurrency: to
+                    )
+                    print("✅ Fetched and cached historical data for \(cacheKey) (\(data.count)/\(days) days)")
+                } else {
+                    print("⚠️ Only got \(data.count)/\(days) days - not caching incomplete data")
+                }
                 
-                print("✅ Fetched historical data via Historical endpoint for \(cacheKey) (\(data.count) days) - \(days) API calls")
                 return data
                 
             } catch {
@@ -585,85 +591,79 @@ class ExchangeRateService: ObservableObject {
         return historicalData.sorted { $0.date < $1.date }
     }
     
-    /// Fetch historical data using free Historical endpoint (1 call per day)
+    /// Fetch historical data using free Historical endpoint (parallel calls for speed)
     private func fetchHistoricalFromAPI(from: String, to: String, days: Int) async throws -> [HistoricalRate] {
         let calendar = Calendar.current
         let endDate = Date()
-        guard calendar.date(byAdding: .day, value: -days, to: endDate) != nil else {
-            throw ExchangeRateError.invalidURL
-        }
         
-        var historicalData: [HistoricalRate] = []
-        
-        // Fetch data for each day (CurrencyAPI requires individual date queries)
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         
-        // Fetch data for each day, starting from yesterday (today's data may be incomplete)
-        // This ensures we always show complete daily data
-        print("🔄 Starting loop for \(days) days (excluding today)...")
+        print("🚀 Starting PARALLEL fetch for \(days) days...")
+        
+        // Create all date/URL pairs upfront
+        var requests: [(date: Date, dateString: String, url: URL)] = []
         for dayOffset in (1...days) {
-            print("🔄 Processing day \(dayOffset)/\(days) (offset: \(dayOffset))")
-            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: endDate) else { 
-                print("❌ Failed to create date for offset \(dayOffset)")
-                continue 
-            }
+            guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: endDate) else { continue }
             let dateString = dateFormatter.string(from: date)
-            print("📅 Fetching data for date: \(dateString)")
             
-            guard var urlComponents = URLComponents(string: historicalURL) else {
-                throw ExchangeRateError.invalidURL
-            }
-            
+            guard var urlComponents = URLComponents(string: historicalURL) else { continue }
             urlComponents.queryItems = [
                 URLQueryItem(name: "apikey", value: apiKey),
                 URLQueryItem(name: "date", value: dateString),
                 URLQueryItem(name: "base_currency", value: from),
                 URLQueryItem(name: "currencies", value: to)
             ]
-            
-            guard let url = urlComponents.url else {
-                throw ExchangeRateError.invalidURL
-            }
-            
-            do {
-                print("🌐 Making API call \(dayOffset)/\(days) to: \(url)")
-                let (data, response) = try await URLSession.shared.data(from: url)
-                
-                guard let httpResponse = response as? HTTPURLResponse else {
-                    print("❌ Invalid response for \(dateString), skipping...")
-                    continue
-                }
-                
-                print("📡 HTTP Status for \(dateString): \(httpResponse.statusCode)")
-                guard httpResponse.statusCode == 200 else {
-                    print("❌ HTTP Error \(httpResponse.statusCode) for \(dateString), skipping...")
-                    continue
-                }
-                
-                let decoder = JSONDecoder()
-                let apiResponse = try decoder.decode(CurrencyAPIResponse.self, from: data)
-                
-                print("🔍 API Response for \(dateString): \(apiResponse)")
-                
-                if let rate = apiResponse.data[to]?.value {
-                    print("✅ Found rate for \(to): \(rate)")
-                    historicalData.append(HistoricalRate(date: date, rate: rate))
-                } else {
-                    print("❌ No rate found for \(to) in response: \(apiResponse.data.keys)")
-                }
-                
-                // Add small delay to avoid rate limiting
-                try await Task.sleep(nanoseconds: 100_000_000) // 0.1 second delay
-                
-            } catch {
-                print("❌ Error fetching data for \(dateString): \(error.localizedDescription), skipping...")
-                continue
-            }
+            guard let url = urlComponents.url else { continue }
+            requests.append((date: date, dateString: dateString, url: url))
         }
         
-        print("🏁 Loop completed. Total data points collected: \(historicalData.count)")
+        // Fetch all days in parallel using TaskGroup (much faster!)
+        let historicalData = await withTaskGroup(of: HistoricalRate?.self) { group in
+            var results: [HistoricalRate] = []
+            
+            for request in requests {
+                group.addTask {
+                    await self.fetchSingleDay(date: request.date, dateString: request.dateString, url: request.url, targetCurrency: to)
+                }
+            }
+            
+            // Collect results
+            for await result in group {
+                if let rate = result {
+                    results.append(rate)
+                }
+            }
+            
+            return results
+        }
+        
+        print("🏁 Parallel fetch completed. Got \(historicalData.count)/\(days) days")
         return historicalData.sorted { $0.date < $1.date }
+    }
+    
+    /// Fetch a single day's rate (helper for parallel fetching)
+    private func fetchSingleDay(date: Date, dateString: String, url: URL, targetCurrency: String) async -> HistoricalRate? {
+        do {
+            let (data, response) = try await URLSession.shared.data(from: url)
+            
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                print("❌ Failed for \(dateString)")
+                return nil
+            }
+            
+            let decoder = JSONDecoder()
+            let apiResponse = try decoder.decode(CurrencyAPIResponse.self, from: data)
+            
+            if let rate = apiResponse.data[targetCurrency]?.value {
+                print("✅ \(dateString): \(rate)")
+                return HistoricalRate(date: date, rate: rate)
+            }
+        } catch {
+            print("❌ Error for \(dateString): \(error.localizedDescription)")
+        }
+        return nil
     }
 }
 

@@ -446,11 +446,11 @@ struct HomeView: View {
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .padding(.top, 32)
+                        .padding(.top, 40) // 8px more spacing
                         
-                        // Rate history section
+                        // Last 14 days section
                         VStack(alignment: .leading, spacing: 20) {
-                            Text("Rate history")
+                            Text("Last 14 days")
                                 .font(.title2)
                                 .foregroundColor(.white)
                             
@@ -458,7 +458,7 @@ struct HomeView: View {
                                 .id("\(fromCurrencyCode)-\(toCurrencyCode)")
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .padding(.top, 32)
+                        .padding(.top, 40) // 8px more spacing
                         .padding(.horizontal, max(16, geometry.size.width * 0.04))
                         .padding(.bottom, min(40, geometry.size.height * 0.05))
                     }
@@ -477,7 +477,7 @@ struct HomeView: View {
                 await updateConversion()
             }
             
-            // Travel view Tab
+            // Cheat sheet Tab
             TravelView(
                 fromCurrencyCode: $fromCurrencyCode,
                 fromCurrencyName: $fromCurrencyName,
@@ -488,7 +488,7 @@ struct HomeView: View {
             )
                 .tabItem {
                 Image(systemName: "tablecells.fill")
-                Text("Travel view")
+                Text("Cheat sheet")
                 }
                 .tag(1)
         }

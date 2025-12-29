@@ -328,6 +328,11 @@ struct HomeView: View {
                                                 activeEditingCard = nil
                                             }
                                         },
+                                        onActivationRequest: {
+                                            // User tapped this card while other card was editing
+                                            isEditingBottomCard = false
+                                            activeEditingCard = "top"
+                                        },
                                         isEditable: true,
                                         isCurrentlyActive: activeEditingCard == "top" || activeEditingCard == nil,
                                         tintOpacity: tintOpacity,
@@ -369,6 +374,11 @@ struct HomeView: View {
                                             } else {
                                                 activeEditingCard = nil
                                             }
+                                        },
+                                        onActivationRequest: {
+                                            // User tapped this card while other card was editing
+                                            isEditingTopCard = false
+                                            activeEditingCard = "bottom"
                                         },
                                         isEditable: true,
                                         isCurrentlyActive: activeEditingCard == "bottom" || activeEditingCard == nil,

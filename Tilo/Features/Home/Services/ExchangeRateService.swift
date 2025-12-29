@@ -163,7 +163,6 @@ class ExchangeRateService: ObservableObject {
         if let rates = cachedRates {
             lastUpdated = rates.timestamp
             cacheAge = rates.ageDescription
-            print("📦 Loaded cached rates from disk (age: \(rates.ageDescription))")
         }
     }
     
@@ -172,7 +171,6 @@ class ExchangeRateService: ObservableObject {
     private func saveCachedRatesToDisk(_ rates: CachedRates) {
         if let data = try? JSONEncoder().encode(rates) {
             UserDefaults.shared.set(data, forKey: cachedRatesKey)
-            print("💾 Saved rates to disk")
         }
     }
     
@@ -186,7 +184,6 @@ class ExchangeRateService: ObservableObject {
     private func saveCachedHistoricalToDisk(_ historical: [String: CachedHistoricalData]) {
         if let data = try? JSONEncoder().encode(historical) {
             UserDefaults.shared.set(data, forKey: cachedHistoricalKey)
-            print("💾 Saved historical data to disk")
         }
     }
     
@@ -194,7 +191,6 @@ class ExchangeRateService: ObservableObject {
         if let data = UserDefaults.shared.data(forKey: cachedHistoricalKey),
            let historical = try? JSONDecoder().decode([String: CachedHistoricalData].self, from: data) {
             cachedHistoricalData = historical
-            print("📦 Loaded \(historical.count) historical cache entries from disk")
         }
     }
     
@@ -205,7 +201,6 @@ class ExchangeRateService: ObservableObject {
         UserDefaults.shared.removeObject(forKey: cachedRatesKey)
         UserDefaults.shared.removeObject(forKey: cachedHistoricalKey)
         cacheAge = ""
-        print("🗑️ All cache cleared (memory + disk) - next requests will use API")
     }
     
     // MARK: - Public Methods
@@ -219,14 +214,12 @@ class ExchangeRateService: ObservableObject {
             
             // Fresh cache - use immediately
             if !cached.isExpired {
-                print("✅ Using cached rates (age: \(ageMinutes) minutes, market hours: \(CacheConfig.isMarketHours))")
                 lastUpdated = cached.timestamp
                 cacheAge = cached.ageDescription
                 isOffline = false
                 
                 // If stale (>1h), trigger background refresh with cooldown check
                 if cached.isStale && canBackgroundRefresh() {
-                    print("🔄 Cache is stale, triggering background refresh...")
                     Task {
                         await refreshRatesInBackground()
                     }
@@ -234,9 +227,6 @@ class ExchangeRateService: ObservableObject {
                 
                 return cached.rates
             }
-            
-            // Expired cache - try to refresh, but return cached if offline
-            print("⏰ Cache expired (age: \(ageMinutes) minutes), fetching fresh data...")
         }
         
         // No cache or expired - fetch fresh data
@@ -245,7 +235,6 @@ class ExchangeRateService: ObservableObject {
     
     /// Force refresh rates (ignores cache)
     func forceRefresh() async throws -> [String: Double] {
-        print("🔄 Force refresh requested")
         return try await fetchFreshRates()
     }
     
@@ -256,14 +245,7 @@ class ExchangeRateService: ObservableObject {
         }
         
         let timeSinceLastRefresh = Date().timeIntervalSince(lastRefresh)
-        let canRefresh = timeSinceLastRefresh > CacheConfig.backgroundRefreshCooldown
-        
-        if !canRefresh {
-            let minutesRemaining = Int((CacheConfig.backgroundRefreshCooldown - timeSinceLastRefresh) / 60)
-            print("⏳ Background refresh on cooldown (\(minutesRemaining) min remaining)")
-        }
-        
-        return canRefresh
+        return timeSinceLastRefresh > CacheConfig.backgroundRefreshCooldown
     }
     
     /// Background refresh (doesn't throw, updates cache silently)
@@ -282,17 +264,14 @@ class ExchangeRateService: ObservableObject {
             
             lastUpdated = Date()
             isOffline = false
-            print("✅ Background refresh completed")
             
         } catch {
-            print("⚠️ Background refresh failed: \(error.localizedDescription)")
             // Don't update error state - we still have cached data
         }
     }
     
     /// Fetch fresh rates from API
     private func fetchFreshRates() async throws -> [String: Double] {
-        print("🌐 Fetching fresh rates from API...")
         isLoading = true
         errorMessage = nil
         
@@ -310,7 +289,6 @@ class ExchangeRateService: ObservableObject {
             isLoading = false
             isOffline = false
             
-            print("✅ Successfully fetched \(rates.count) currency rates")
             return rates
             
         } catch {
@@ -320,12 +298,10 @@ class ExchangeRateService: ObservableObject {
             
             // Fallback to cached data even if expired (offline support)
             if let cached = cachedRates {
-                print("⚠️ API failed, using cached rates (age: \(cached.ageDescription)) - OFFLINE MODE")
                 return cached.rates
             }
             
-            // No cache available - throw error (no mock fallback)
-            print("❌ No cache available and API failed - cannot provide rates")
+            // No cache available - throw error
             throw error
         }
     }
@@ -356,73 +332,46 @@ class ExchangeRateService: ObservableObject {
             return convertedAmount
             
         } catch {
-            print("❌ Conversion error: \(error.localizedDescription)")
             return nil
         }
     }
     
     /// Get exchange rate between two currencies
     func getRate(from: String, to: String) async -> Double? {
-        print("🔍 Getting rate: \(from) → \(to)")
         do {
             let rates = try await fetchRates()
-            print("🔍 Available rates: \(rates.keys.sorted())")
             
             // If getting rate from base currency (USD)
             if from == baseCurrency {
-                let rate = rates[to]
-                print("🔍 USD → \(to): \(rate ?? 0)")
-                return rate
+                return rates[to]
             }
             
             // If getting rate to base currency (USD)
             if to == baseCurrency {
                 let fromRate = rates[from] ?? 1.0
-                let rate = 1.0 / fromRate
-                print("🔍 \(from) → USD: \(rate) (from rate: \(fromRate))")
-                return rate
+                return 1.0 / fromRate
             }
             
             // Cross-rate: EUR → GBP = (USD → GBP) ÷ (USD → EUR)
             guard let fromRate = rates[from], let toRate = rates[to] else {
-                print("❌ Missing rates - \(from): \(rates[from] ?? 0), \(to): \(rates[to] ?? 0)")
                 return nil
             }
             
-            let rate = toRate / fromRate
-            print("🔍 \(from) → \(to): \(rate) (fromRate: \(fromRate), toRate: \(toRate))")
-            return rate
+            return toRate / fromRate
             
         } catch {
-            print("❌ Get rate error: \(error.localizedDescription)")
-            // No mock fallback - return nil if API fails and no cache
             return nil
         }
     }
     
     /// Fetch historical rates for the past N days (default: 14 days)
     func fetchHistoricalRates(from: String, to: String, days: Int = 14) async -> [HistoricalRate]? {
-        print("📊 fetchHistoricalRates called: \(from) → \(to), \(days) days")
         let cacheKey = "\(from)_\(to)"
-        
-        print("🔍 CACHE CHECK: Looking for cached data for key: \(cacheKey)")
-        if let cached = cachedHistoricalData[cacheKey] {
-            let ageHours = Int(Date().timeIntervalSince(cached.timestamp) / 3600)
-            let ageMinutes = Int(Date().timeIntervalSince(cached.timestamp) / 60)
-            print("🔍 CACHE FOUND: Age = \(ageHours)h \(ageMinutes % 60)m, Expired = \(cached.isExpired)")
-            print("🔍 CACHE DATA: \(cached.data.count) data points from \(cached.fromCurrency) to \(cached.toCurrency)")
-        } else {
-            print("🔍 CACHE MISS: No cached data found for \(cacheKey)")
-        }
         
         // Check cache first - ensures data stability when switching tabs
         if let cached = cachedHistoricalData[cacheKey], !cached.isExpired {
-            print("✅ Using cached historical data for \(cacheKey) (age: \(Int(Date().timeIntervalSince(cached.timestamp) / 3600)) hours)")
             return cached.data
         }
-        
-        // Try Range endpoint first (premium - 1 call for all days)
-        print("🌐 Attempting RANGE API call (premium): About to fetch \(days) days of data for \(from)→\(to)")
         do {
             let data = try await fetchHistoricalRangeFromAPI(from: from, to: to, days: days)
             
@@ -434,19 +383,14 @@ class ExchangeRateService: ObservableObject {
                 toCurrency: to
             )
             
-            print("✅ Fetched historical data via Range endpoint for \(cacheKey) (\(data.count) days) - 1 API call")
             return data
             
         } catch {
-            print("⚠️ Range endpoint failed (likely premium feature): \(error.localizedDescription)")
-            print("🔄 Falling back to Historical endpoint (free): Will make \(days) individual API calls")
-            
             // Fallback to Historical endpoint (free - 1 call per day)
             do {
                 let data = try await fetchHistoricalFromAPI(from: from, to: to, days: days)
                 
                 // Only cache if we have at least 70% of expected data points
-                // This prevents caching incomplete data due to rate limiting
                 let minimumDataPoints = Int(Double(days) * 0.7)
                 if data.count >= minimumDataPoints {
                     cachedHistoricalData[cacheKey] = CachedHistoricalData(
@@ -455,22 +399,15 @@ class ExchangeRateService: ObservableObject {
                         fromCurrency: from,
                         toCurrency: to
                     )
-                    print("✅ Fetched and cached historical data for \(cacheKey) (\(data.count)/\(days) days)")
-                } else {
-                    print("⚠️ Only got \(data.count)/\(days) days - not caching incomplete data")
                 }
                 
                 return data
                 
             } catch {
-                print("❌ Historical endpoint also failed: \(error.localizedDescription)")
                 // Return cached data even if expired (offline support)
                 if let cached = cachedHistoricalData[cacheKey] {
-                    print("⚠️ Using expired cache for \(cacheKey) - OFFLINE MODE")
                     return cached.data
                 }
-                // No cache available - return nil
-                print("❌ No cache available and both API endpoints failed - cannot provide historical data")
                 return nil
             }
         }
@@ -515,13 +452,6 @@ class ExchangeRateService: ObservableObject {
             rates[code] = rate.value
         }
         
-        // Log all available currencies (for development)
-        print("🌍 Available currencies from API (\(rates.count) total):")
-        let sortedCodes = rates.keys.sorted()
-        for code in sortedCodes {
-            print("  - \(code): \(rates[code] ?? 0)")
-        }
-        
         return rates
         
     }
@@ -542,8 +472,6 @@ class ExchangeRateService: ObservableObject {
         let startDateString = dateFormatter.string(from: startDate)
         let endDateString = dateFormatter.string(from: endDate)
         
-        print("📅 Fetching range: \(startDateString) to \(endDateString)")
-        
         guard var urlComponents = URLComponents(string: rangeURL) else {
             throw ExchangeRateError.invalidURL
         }
@@ -560,14 +488,11 @@ class ExchangeRateService: ObservableObject {
             throw ExchangeRateError.invalidURL
         }
         
-        print("🌐 Making SINGLE range API call to: \(url)")
         let (data, response) = try await URLSession.shared.data(from: url)
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw ExchangeRateError.invalidResponse
         }
-        
-        print("📡 HTTP Status: \(httpResponse.statusCode)")
         guard httpResponse.statusCode == 200 else {
             throw ExchangeRateError.httpError(statusCode: httpResponse.statusCode)
         }
@@ -575,19 +500,14 @@ class ExchangeRateService: ObservableObject {
         let decoder = JSONDecoder()
         let apiResponse = try decoder.decode(RangeAPIResponse.self, from: data)
         
-        print("🔍 Range API Response: \(apiResponse.data.keys.count) dates received")
-        
         var historicalData: [HistoricalRate] = []
         
         for (dateString, currencies) in apiResponse.data {
             if let rate = currencies[to]?.value,
                let date = dateFormatter.date(from: dateString) {
                 historicalData.append(HistoricalRate(date: date, rate: rate))
-                print("✅ Added rate for \(dateString): \(rate)")
             }
         }
-        
-        print("🏁 Range API completed. Total data points: \(historicalData.count)")
         return historicalData.sorted { $0.date < $1.date }
     }
     
@@ -598,8 +518,6 @@ class ExchangeRateService: ObservableObject {
         
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
-        
-        print("🚀 Starting PARALLEL fetch for \(days) days...")
         
         // Create all date/URL pairs upfront
         var requests: [(date: Date, dateString: String, url: URL)] = []
@@ -638,7 +556,6 @@ class ExchangeRateService: ObservableObject {
             return results
         }
         
-        print("🏁 Parallel fetch completed. Got \(historicalData.count)/\(days) days")
         return historicalData.sorted { $0.date < $1.date }
     }
     
@@ -649,7 +566,6 @@ class ExchangeRateService: ObservableObject {
             
             guard let httpResponse = response as? HTTPURLResponse,
                   httpResponse.statusCode == 200 else {
-                print("❌ Failed for \(dateString)")
                 return nil
             }
             
@@ -657,11 +573,10 @@ class ExchangeRateService: ObservableObject {
             let apiResponse = try decoder.decode(CurrencyAPIResponse.self, from: data)
             
             if let rate = apiResponse.data[targetCurrency]?.value {
-                print("✅ \(dateString): \(rate)")
                 return HistoricalRate(date: date, rate: rate)
             }
         } catch {
-            print("❌ Error for \(dateString): \(error.localizedDescription)")
+            // Silent failure - handled by caller
         }
         return nil
     }

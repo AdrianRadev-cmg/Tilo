@@ -10,6 +10,7 @@ struct CurrencyCard: View {
     let currencySymbol: String
     var onAmountChange: ((Double) -> Void)? = nil
     var onEditingChanged: ((Bool) -> Void)? = nil
+    var onActivationRequest: (() -> Void)? = nil // Called when user taps this card while another is active
     let isEditable: Bool
     let isCurrentlyActive: Bool
     
@@ -28,6 +29,7 @@ struct CurrencyCard: View {
     @FocusState private var amountFieldIsFocused: Bool
     @State private var isInputError: Bool = false // State for error tracking
     @State private var showCurrencySelector: Bool = false // Add state for currency selector
+    @State private var pendingActivation: Bool = false // Track if we requested activation
     
     // Helper to format the input string
     private func formatAmount(_ string: String) -> String? {
@@ -165,16 +167,22 @@ struct CurrencyCard: View {
                 .accessibilityLabel("Amount to convert: \(currencyName)")
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    if isEditable && !isAmountFocused && isCurrentlyActive {
-                        // Clear the input when user taps to edit
-                        amountInput = ""
-                        isInputError = false
-                        isAmountFocused = true
-                        onEditingChanged?(true)
-                        
-                        // Focus the text field to show keyboard
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            amountFieldIsFocused = true
+                    if isEditable && !isAmountFocused {
+                        if isCurrentlyActive {
+                            // Clear the input when user taps to edit
+                            amountInput = ""
+                            isInputError = false
+                            isAmountFocused = true
+                            onEditingChanged?(true)
+                            
+                            // Focus the text field to show keyboard
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                amountFieldIsFocused = true
+                            }
+                        } else {
+                            // Another card is active - request activation transfer
+                            pendingActivation = true
+                            onActivationRequest?()
                         }
                     }
                 }
@@ -205,6 +213,20 @@ struct CurrencyCard: View {
             if !isAmountFocused {
             amountInput = newAmount
             isInputError = false
+            }
+        }
+        .onChange(of: isCurrentlyActive) { wasActive, isNowActive in
+            // When this card becomes active after requesting activation, start editing
+            if isNowActive && !wasActive && pendingActivation && isEditable && !isAmountFocused {
+                pendingActivation = false
+                amountInput = ""
+                isInputError = false
+                isAmountFocused = true
+                onEditingChanged?(true)
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    amountFieldIsFocused = true
+                }
             }
         }
         .contentShape(Rectangle())

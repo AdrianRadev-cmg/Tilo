@@ -1,29 +1,4 @@
 import SwiftUI
-import Photos
-
-// MARK: - Image Saver Helper
-class ImageSaver: NSObject {
-    static let shared = ImageSaver()
-    private var completion: ((Bool) -> Void)?
-    
-    func saveImage(_ image: UIImage, completion: @escaping (Bool) -> Void) {
-        self.completion = completion
-        
-        // Check if we're in a preview or simulator environment where this might fail
-        #if targetEnvironment(simulator)
-        // Still try to save on simulator
-        UIImageWriteToSavedPhotosAlbum(image, self, #selector(saveCompleted), nil)
-        #else
-        UIImageWriteToSavedPhotosAlbum(image, self, #selector(saveCompleted), nil)
-        #endif
-    }
-    
-    @objc func saveCompleted(_ image: UIImage, didFinishSavingWithError error: Error?, contextInfo: UnsafeRawPointer) {
-        DispatchQueue.main.async {
-            self.completion?(error == nil)
-        }
-    }
-}
 
 struct TravelView: View {
     // Passed from Convert tab

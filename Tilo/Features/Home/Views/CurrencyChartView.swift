@@ -33,21 +33,16 @@ final class CurrencyChartViewModel: ObservableObject {
         
         // Skip fetch if we already have data for this pair (prevents re-fetch on tab switch)
         if !forceRefresh && hasFetchedForCurrentPair && lastFetchedPair == currentPair && !rates.isEmpty {
-            print("📊 Skipping fetch - already have data for \(currentPair) (\(rates.count) points)")
             return
         }
         
         isLoading = true
         error = nil
         
-        print("📊 ViewModel fetchRates: \(fromCurrency) → \(toCurrency) (forceRefresh: \(forceRefresh))")
-        
         // Fetch historical data from ExchangeRateService (14 days)
         if let historicalData = await exchangeService.fetchHistoricalRates(from: fromCurrency, to: toCurrency, days: 14) {
-            print("📊 Received \(historicalData.count) historical data points")
             // Convert to ExchangeRate format
             // Note: Historical data already excludes today (starts from yesterday)
-            // This ensures we only show complete daily data
             let ratesArray = historicalData.map { histRate in
                 ExchangeRate(date: histRate.date, rate: histRate.rate)
             }
@@ -55,15 +50,12 @@ final class CurrencyChartViewModel: ObservableObject {
             rates = ratesArray
             hasFetchedForCurrentPair = true
             lastFetchedPair = currentPair
-            print("📊 Chart rates updated: \(rates.count) points, marked as fetched for \(currentPair)")
         } else {
-            print("❌ No historical data received!")
             error = NSError(domain: "CurrencyChart", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to fetch historical data"])
             rates = []
         }
         
         isLoading = false
-        print("📊 fetchRates completed, isLoading: \(isLoading), rates count: \(rates.count)")
     }
     
     var currentRate: Double {
@@ -125,7 +117,6 @@ struct CurrencyChartView: View {
     @GestureState private var isSwapPressed: Bool = false
     
     init(fromCurrency: String, toCurrency: String) {
-        print("🔄 CurrencyChartView init: \(fromCurrency) → \(toCurrency)")
         self._fromCurrencyCode = State(initialValue: fromCurrency)
         self._toCurrencyCode = State(initialValue: toCurrency)
         self._viewModel = StateObject(wrappedValue: CurrencyChartViewModel(
@@ -177,18 +168,15 @@ struct CurrencyChartView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .task {
-            print("📊 .task triggered for chart")
             await viewModel.fetchRates(for: selectedRange)
         }
         .onChange(of: fromCurrencyCode) { oldValue, newValue in
-            print("📊 fromCurrencyCode changed: \(oldValue) → \(newValue)")
             viewModel.updateCurrencies(from: newValue, to: toCurrencyCode)
             Task {
                 await viewModel.fetchRates(for: selectedRange)
             }
         }
         .onChange(of: toCurrencyCode) { oldValue, newValue in
-            print("📊 toCurrencyCode changed: \(oldValue) → \(newValue)")
             viewModel.updateCurrencies(from: fromCurrencyCode, to: newValue)
             Task {
                 await viewModel.fetchRates(for: selectedRange)
@@ -284,8 +272,8 @@ struct CurrencyChartView: View {
             // Rate text with styled date
             HStack(spacing: 0) {
                 Text(rateMainText)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(Color("grey100"))
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundColor(Color("grey100"))
                 
                 Text(rateDateText)
                     .font(.system(size: 18, weight: .semibold))

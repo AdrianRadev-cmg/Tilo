@@ -8,6 +8,7 @@
 import SwiftUI
 import Charts
 import WidgetKit
+import StoreKit
 
 struct HomeView: View {
     @State private var selectedTab = 0
@@ -34,6 +35,7 @@ struct HomeView: View {
     @State private var errorMessage: String = ""
     
     @StateObject private var exchangeService = ExchangeRateService.shared
+    @Environment(\.requestReview) private var requestReview
     
     // Preview-only debug controls
     var tintOpacity: Double = 0.6
@@ -151,6 +153,9 @@ struct HomeView: View {
             
             // Update widget with new rate
             updateWidgetData()
+            
+            // Check if we should request a review
+            checkAndRequestReview()
         } else {
             // Show error if rate couldn't be fetched
             if let serviceError = exchangeService.errorMessage {
@@ -183,6 +188,9 @@ struct HomeView: View {
             
             // Update widget with new rate
             updateWidgetData()
+            
+            // Check if we should request a review
+            checkAndRequestReview()
         } else {
             // Show error if rate couldn't be fetched
             if let serviceError = exchangeService.errorMessage {
@@ -194,6 +202,32 @@ struct HomeView: View {
         }
         
         isLoadingRate = false
+    }
+    
+    // MARK: - App Store Review Request
+    
+    private func checkAndRequestReview() {
+        let conversionCountKey = "totalConversionCount"
+        let hasRequestedReviewKey = "hasRequestedReviewThisVersion"
+        
+        // Get current count and increment
+        var conversionCount = UserDefaults.standard.integer(forKey: conversionCountKey)
+        conversionCount += 1
+        UserDefaults.standard.set(conversionCount, forKey: conversionCountKey)
+        
+        // Check if we've already requested review for this app version
+        let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        let lastReviewedVersion = UserDefaults.standard.string(forKey: hasRequestedReviewKey)
+        
+        // Request review on 2nd conversion, but only once per app version
+        if conversionCount == 2 && lastReviewedVersion != currentVersion {
+            UserDefaults.standard.set(currentVersion, forKey: hasRequestedReviewKey)
+            
+            // Small delay to let the conversion complete visually
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                requestReview()
+            }
+        }
     }
     
     private func formatAmount(_ amount: Double) -> String {

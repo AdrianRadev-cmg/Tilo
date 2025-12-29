@@ -126,17 +126,6 @@ struct CurrencyCard: View {
                             .lineLimit(1)
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(height: 24)
-                            .toolbar {
-                                ToolbarItemGroup(placement: .keyboard) {
-                                    Spacer()
-                                    Button("Done") {
-                                        isAmountFocused = false
-                                        amountFieldIsFocused = false
-                                        onEditingChanged?(false)
-                                    }
-                                    .font(.system(size: 18, weight: .semibold))
-                                }
-                            }
                             .onChange(of: amountInput) { oldValue, newValue in
                                 handleAmountInputChange(oldValue: oldValue, newValue: newValue)
                             }
@@ -228,6 +217,13 @@ struct CurrencyCard: View {
                     amountFieldIsFocused = true
                 }
             }
+            
+            // When this card becomes inactive while editing, clean up editing state
+            if !isNowActive && wasActive && isAmountFocused {
+                isAmountFocused = false
+                amountFieldIsFocused = false
+                onEditingChanged?(false)
+            }
         }
         .contentShape(Rectangle())
         .onTapGesture {
@@ -270,6 +266,19 @@ struct CurrencyCard: View {
                 .allowsHitTesting(false)
         )
         .clipShape(RoundedRectangle(cornerRadius: 16))
+        .toolbar {
+            if amountFieldIsFocused {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        isAmountFocused = false
+                        amountFieldIsFocused = false
+                        onEditingChanged?(false)
+                    }
+                    .font(.system(size: 18, weight: .semibold))
+                }
+            }
+        }
         .sheet(isPresented: $showCurrencySelector) {
             CurrencySelector { selectedCurrency in
                 // Update the currency card with selected currency

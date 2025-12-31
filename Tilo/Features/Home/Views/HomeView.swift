@@ -219,8 +219,8 @@ struct HomeView: View {
         let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
         let lastReviewedVersion = UserDefaults.standard.string(forKey: hasRequestedReviewKey)
         
-        // Request review on 2nd conversion, but only once per app version
-        if conversionCount == 2 && lastReviewedVersion != currentVersion {
+        // Request review on 1st conversion, but only once per app version
+        if conversionCount == 1 && lastReviewedVersion != currentVersion {
             UserDefaults.standard.set(currentVersion, forKey: hasRequestedReviewKey)
             
             // Small delay to let the conversion complete visually

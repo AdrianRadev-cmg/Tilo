@@ -80,17 +80,17 @@ struct CacheConfig {
     // Cache expiration based on market hours
     static var currentRatesExpiration: TimeInterval {
         if isMarketHours {
-            return 2 * 60 * 60 // 2 hours during market hours
+            return 30 * 60 // 30 minutes during market hours
         } else {
-            return 4 * 60 * 60 // 4 hours off-market
+            return 1 * 60 * 60 // 1 hour off-market
         }
     }
     
     // Stale threshold for background refresh (triggers refresh but returns cached data)
-    static let staleThreshold: TimeInterval = 1 * 60 * 60 // 1 hour
+    static let staleThreshold: TimeInterval = 15 * 60 // 15 minutes
     
     // Background refresh cooldown (prevents multiple refreshes)
-    static let backgroundRefreshCooldown: TimeInterval = 1 * 60 * 60 // 1 hour
+    static let backgroundRefreshCooldown: TimeInterval = 15 * 60 // 15 minutes
     
     // Historical data expiration (doesn't change often)
     static let historicalExpiration: TimeInterval = 24 * 60 * 60 // 24 hours

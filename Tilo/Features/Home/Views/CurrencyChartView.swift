@@ -40,7 +40,7 @@ final class CurrencyChartViewModel: ObservableObject {
         error = nil
         
         // Fetch historical data from ExchangeRateService (14 days)
-        if let historicalData = await exchangeService.fetchHistoricalRates(from: fromCurrency, to: toCurrency, days: 14) {
+        if let historicalData = await exchangeService.fetchHistoricalRates(from: fromCurrency, to: toCurrency, days: 14), !historicalData.isEmpty {
             // Convert to ExchangeRate format
             // Note: Historical data already excludes today (starts from yesterday)
             let ratesArray = historicalData.map { histRate in
@@ -50,9 +50,13 @@ final class CurrencyChartViewModel: ObservableObject {
             rates = ratesArray
             hasFetchedForCurrentPair = true
             lastFetchedPair = currentPair
+            error = nil
         } else {
-            error = NSError(domain: "CurrencyChart", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to fetch historical data"])
-            rates = []
+            // Only set error if we don't already have data (preserve existing cache for offline)
+            if rates.isEmpty || lastFetchedPair != currentPair {
+                error = NSError(domain: "CurrencyChart", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to fetch historical data"])
+            }
+            // Don't clear rates - keep existing data for offline support
         }
         
         isLoading = false

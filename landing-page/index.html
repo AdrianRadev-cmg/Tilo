@@ -611,13 +611,15 @@
             }
 
             .hero-wrapper {
-                height: 100svh;
-                height: 100dvh;
+                height: auto;
+                min-height: 100svh;
+                min-height: 100dvh;
+                padding-bottom: 88px;
             }
 
             @supports not (height: 100svh) {
                 .hero-wrapper {
-                    height: calc(100vh - 80px);
+                    min-height: calc(100vh - 60px);
                 }
             }
 
@@ -643,11 +645,15 @@
             }
 
             .phone-container {
-                transform: translateY(20%);
+                transform: translateY(5%);
             }
 
             .phone-main.mockup img {
-                max-height: 500px;
+                max-height: 480px;
+            }
+
+            .phone-showcase {
+                overflow: visible;
             }
 
             .matrix-row {

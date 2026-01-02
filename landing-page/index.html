@@ -36,57 +36,48 @@
             position: relative;
         }
 
-        /* Currency Matrix Background */
+        /* Currency Matrix Background - full hero background like Flighty */
         .currency-matrix {
             position: absolute;
-            top: 0;
+            top: 28%;
             left: 0;
             right: 0;
+            bottom: 0;
             overflow: hidden;
             pointer-events: none;
             z-index: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding-top: 20px;
+            -webkit-mask-image: 
+                radial-gradient(ellipse 70% 80% at 50% 40%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0) 70%);
+            mask-image: 
+                radial-gradient(ellipse 70% 80% at 50% 40%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0) 70%);
         }
 
         .matrix-row {
             font-family: 'JetBrains Mono', monospace;
             font-size: 18px;
-            letter-spacing: 0.4em;
+            letter-spacing: 0.5em;
             white-space: nowrap;
             color: #a855f7;
-            animation: scroll-left 60s linear infinite;
-            padding: 14px 0;
-            opacity: 0.22;
+            animation: scroll-left 80s linear infinite;
+            padding: 12px 0;
+            opacity: 0.28;
         }
 
-        /* Gradually fade out rows as they go down */
-        .matrix-row:nth-child(1) { opacity: 0.14; }
-        .matrix-row:nth-child(2) { opacity: 0.13; }
-        .matrix-row:nth-child(3) { opacity: 0.12; }
-        .matrix-row:nth-child(4) { opacity: 0.11; }
-        .matrix-row:nth-child(5) { opacity: 0.10; }
-        .matrix-row:nth-child(6) { opacity: 0.09; }
-        .matrix-row:nth-child(7) { opacity: 0.08; }
-        .matrix-row:nth-child(8) { opacity: 0.07; }
-        .matrix-row:nth-child(9) { opacity: 0.06; }
-        .matrix-row:nth-child(10) { opacity: 0.05; }
-        .matrix-row:nth-child(11) { opacity: 0.04; }
-        .matrix-row:nth-child(12) { opacity: 0.03; }
-        .matrix-row:nth-child(13) { opacity: 0.025; }
-        .matrix-row:nth-child(14) { opacity: 0.02; }
-        .matrix-row:nth-child(15) { opacity: 0.015; }
-        .matrix-row:nth-child(n+16) { opacity: 0.01; }
-
         .matrix-row:nth-child(even) {
-            animation: scroll-right 55s linear infinite;
-            color: #6366f1;
+            animation: scroll-right 75s linear infinite;
+            color: #8b5cf6;
         }
 
         .matrix-row:nth-child(3n) {
-            animation-duration: 70s;
+            animation-duration: 90s;
         }
 
         .matrix-row:nth-child(4n) {
-            animation-duration: 50s;
+            animation-duration: 70s;
         }
 
         @keyframes scroll-left {
@@ -99,18 +90,6 @@
             100% { transform: translateX(0); }
         }
 
-        /* Gradient Overlay - subtle vignette */
-        .gradient-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(ellipse at 50% 0%, transparent 0%, rgba(13, 4, 21, 0.3) 100%);
-            pointer-events: none;
-            z-index: 1;
-        }
-
         .container {
             max-width: var(--max-width);
             margin: 0 auto;
@@ -121,15 +100,15 @@
 
         /* Header */
         header {
-            padding: 24px 0;
+            padding: 20px 0;
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
             z-index: 100;
-            background: rgba(13, 4, 21, 0.7);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            background: linear-gradient(180deg, #1a0a2e 0%, rgba(26, 10, 46, 0.95) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
         }
 
         .header-inner {
@@ -145,14 +124,14 @@
         }
 
         .logo {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
         }
 
         .logo-text {
-            font-size: 20px;
-            font-weight: 700;
+            font-size: 18px;
+            font-weight: 600;
             color: #fff;
         }
 
@@ -160,47 +139,65 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #fff;
-            padding: 10px 20px;
-            border-radius: 100px;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.9);
+            padding: 8px 0;
             text-decoration: none;
             font-weight: 500;
             font-size: 14px;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
         }
 
         .header-btn:hover {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(255, 255, 255, 0.3);
+            color: #fff;
+        }
+
+        .header-btn svg {
+            width: 18px;
+            height: 18px;
+            opacity: 0.8;
         }
 
         /* Hero Section */
+        .hero-wrapper {
+            height: 100vh;
+            max-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
         .hero {
-            padding-top: 180px;
-            padding-bottom: 60px;
+            padding-top: 114px;
+            padding-bottom: 20px;
             text-align: center;
             position: relative;
+            z-index: 10;
         }
 
         .hero h1 {
-            font-size: clamp(40px, 6vw, 64px);
+            font-size: 48px;
             font-weight: 800;
-            line-height: 1.05;
-            margin-bottom: 24px;
+            line-height: 1.15;
+            margin-bottom: 16px;
             letter-spacing: -0.03em;
-            max-width: 800px;
+            max-width: 600px;
             margin-left: auto;
             margin-right: auto;
         }
 
+        .hero h1 .line-break {
+            display: block;
+        }
+
         .hero p {
-            font-size: 18px;
-            line-height: 1.7;
-            color: rgba(255, 255, 255, 0.6);
-            margin-bottom: 40px;
-            max-width: 560px;
+            font-size: 20px;
+            line-height: 1.5;
+            color: #ffffff;
+            margin-bottom: 24px;
+            max-width: 620px;
             margin-left: auto;
             margin-right: auto;
         }
@@ -209,7 +206,7 @@
         .app-store-btn {
             display: inline-flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             background: #fff;
             color: #000;
             padding: 14px 28px;
@@ -217,187 +214,314 @@
             text-decoration: none;
             font-weight: 600;
             font-size: 15px;
-            transition: transform 0.2s, box-shadow 0.2s;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            border: none;
         }
 
         .app-store-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 20px 60px rgba(168, 85, 247, 0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 30px rgba(255, 255, 255, 0.15);
         }
 
         .app-store-btn svg {
-            width: 20px;
-            height: 20px;
+            width: 18px;
+            height: 18px;
         }
 
-        /* Phone Showcase */
+        /* Phone Showcase - Peeking from bottom */
         .phone-showcase {
-            padding: 40px 0 80px;
+            flex: 1;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
             position: relative;
+            overflow: hidden;
+            z-index: 10;
         }
 
         .phone-container {
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-end;
+            transform: translateY(35%);
+            width: 100%;
         }
 
         .phone-main {
             width: 280px;
         }
 
+        .phone-main.mockup {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
         .phone-main img {
             width: 100%;
             height: auto;
             display: block;
-            filter: drop-shadow(0 40px 80px rgba(0, 0, 0, 0.4));
         }
 
-        /* Feature Screens Section */
-        .feature-screens {
-            padding: 80px 0;
-        }
-
-        .feature-screen {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 80px;
-            align-items: center;
-            padding: 60px 0;
-        }
-
-        .feature-screen:nth-child(even) {
-            direction: rtl;
-        }
-
-        .feature-screen:nth-child(even) > * {
-            direction: ltr;
-        }
-
-        .feature-screen-image {
-            display: flex;
-            justify-content: center;
-        }
-
-        .feature-screen-image img {
-            width: 260px;
-            height: auto;
-            filter: drop-shadow(0 30px 60px rgba(0, 0, 0, 0.4));
-        }
-
-        .feature-screen-content {
-            padding: 20px 0;
-        }
-
-        .feature-screen-content .label {
-            font-size: 13px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: #a78bfa;
-            margin-bottom: 16px;
-        }
-
-        .feature-screen-content h3 {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 20px;
-            line-height: 1.2;
-        }
-
-        .feature-screen-content p {
-            font-size: 17px;
-            line-height: 1.7;
-            color: rgba(255, 255, 255, 0.6);
-            margin-bottom: 24px;
-        }
-
-        .feature-screen-content ul {
-            list-style: none;
-            padding: 0;
-        }
-
-        .feature-screen-content li {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 12px;
-            font-size: 15px;
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        .feature-screen-content li span {
-            font-size: 18px;
-        }
-
-        /* Features Section */
-        .features {
-            padding: 100px 0;
-            background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.5) 100%);
-        }
-
-        .features-header {
-            text-align: center;
-            margin-bottom: 64px;
-        }
-
-        .features-header h2 {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 16px;
-        }
-
-        .features-header p {
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 18px;
-            max-width: 500px;
+        .phone-main.mockup img {
+            max-height: 800px;
+            width: auto;
             margin: 0 auto;
         }
 
-        .features-grid {
+        /* Hero bottom fade - lighter purple like Flighty */
+        .hero-wrapper::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 120px;
+            background: linear-gradient(to bottom, transparent, #0d0518);
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        /* Widget Showcase Section - Flighty style card */
+        .widget-showcase {
+            padding: 104px 0;
+            background: linear-gradient(180deg, #0d0518 0%, #080210 100%);
+        }
+
+        .widget-card {
+            background: linear-gradient(145deg, rgba(20, 10, 35, 0.9) 0%, rgba(10, 5, 20, 0.95) 100%);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-radius: 24px;
+            padding: 60px;
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            min-height: 500px;
+            position: relative;
+            overflow: hidden;
         }
 
-        .feature-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            border-radius: 20px;
-            padding: 28px;
-            transition: transform 0.2s, background 0.2s, border-color 0.2s;
+        .widget-card::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            border-radius: 24px;
+            background: linear-gradient(145deg, rgba(168, 85, 247, 0.3) 0%, transparent 50%, rgba(99, 102, 241, 0.2) 100%);
+            z-index: -1;
+            opacity: 0.5;
         }
 
-        .feature-card:hover {
-            transform: translateY(-4px);
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.12);
-        }
-
-        .feature-icon {
-            width: 44px;
-            height: 44px;
-            background: rgba(168, 85, 247, 0.12);
-            border-radius: 12px;
+        .widget-content {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            margin-bottom: 16px;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
         }
 
-        .feature-card h3 {
-            font-size: 16px;
+        .widget-content h2 {
+            font-size: 36px;
             font-weight: 600;
-            margin-bottom: 10px;
+            line-height: 1.15;
+            margin-bottom: 0;
+            letter-spacing: -0.02em;
+            max-width: 380px;
         }
 
-        .feature-card p {
-            font-size: 14px;
-            color: rgba(255, 255, 255, 0.5);
-            line-height: 1.6;
+        .widget-content p {
+            font-size: 17px;
+            line-height: 1.7;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: auto;
+            max-width: 400px;
         }
+
+        .widget-image {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .widget-image::before {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, transparent 70%);
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .widget-image img {
+            position: relative;
+            z-index: 1;
+            max-width: 100%;
+            height: auto;
+            max-height: 380px;
+        }
+
+        /* Two-column feature cards */
+        .feature-cards-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-top: 32px;
+        }
+
+        .feature-card-small {
+            background: linear-gradient(145deg, rgba(20, 10, 35, 0.9) 0%, rgba(10, 5, 20, 0.95) 100%);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-radius: 24px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .feature-card-small::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            border-radius: 24px;
+            background: linear-gradient(145deg, rgba(168, 85, 247, 0.3) 0%, transparent 50%, rgba(99, 102, 241, 0.2) 100%);
+            z-index: -1;
+            opacity: 0.5;
+        }
+
+        .feature-card-small .card-text {
+            margin-bottom: 24px;
+        }
+
+        .feature-card-small h3 {
+            font-size: 24px;
+            font-weight: 600;
+            line-height: 1.2;
+            margin-bottom: 12px;
+        }
+
+        .feature-card-small p {
+            font-size: 15px;
+            line-height: 1.6;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .feature-card-small .card-image {
+            margin-top: auto;
+            display: flex;
+            justify-content: center;
+        }
+
+        .feature-card-small .card-image img {
+            max-width: 100%;
+            height: auto;
+            max-height: 280px;
+            border-radius: 12px;
+        }
+
+        /* Chart card - tilted from bottom, clipped */
+        .chart-card {
+            overflow: hidden;
+        }
+
+        .chart-card .card-text {
+            margin-bottom: 48px;
+        }
+
+        .chart-card .chart-image {
+            position: relative;
+            margin-bottom: -60px;
+        }
+
+        .chart-card .chart-image img {
+            transform: rotate(-5deg) translateY(40px);
+            transform-origin: center bottom;
+            max-height: 340px;
+            max-width: 110%;
+        }
+
+        /* Currencies card - animated carousel */
+        .currencies-card {
+            overflow: hidden;
+        }
+
+        .currencies-card .card-text {
+            margin-bottom: 32px;
+        }
+
+        .currencies-card .currencies-image {
+            display: none;
+        }
+
+        .currencies-carousel {
+            position: relative;
+            margin-top: auto;
+            overflow: hidden;
+        }
+
+        .currencies-carousel::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            width: 80px;
+            z-index: 2;
+            pointer-events: none;
+            background: linear-gradient(to left, rgba(10, 5, 20, 1), transparent);
+        }
+
+        .carousel-track {
+            display: flex;
+            gap: 14px;
+            animation: scroll-chips 25s linear infinite;
+            width: max-content;
+        }
+
+        .carousel-track:nth-child(2) {
+            animation: scroll-chips-reverse 28s linear infinite;
+            margin-top: 14px;
+        }
+
+        @keyframes scroll-chips {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        @keyframes scroll-chips-reverse {
+            0% { transform: translateX(-50%); }
+            100% { transform: translateX(0); }
+        }
+
+        .currency-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(45, 27, 80, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(168, 85, 247, 0.25);
+            border-radius: 100px;
+            padding: 12px 22px;
+            font-size: 17px;
+            font-weight: 600;
+            white-space: nowrap;
+            color: rgba(255, 255, 255, 0.9);
+            box-shadow: 
+                0 4px 16px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .currency-chip .flag {
+            font-size: 22px;
+        }
+
 
         /* CTA Section */
         .cta {
@@ -431,7 +555,7 @@
         footer {
             padding: 40px 0;
             border-top: 1px solid rgba(255, 255, 255, 0.06);
-            background: rgba(0, 0, 0, 0.3);
+            background: #080210;
         }
 
         .footer-inner {
@@ -441,14 +565,20 @@
         }
 
         footer p {
-            color: rgba(255, 255, 255, 0.4);
+            color: #ffffff;
             font-size: 14px;
         }
 
+        .footer-links {
+            display: flex;
+            gap: 24px;
+        }
+
         footer a {
-            color: rgba(255, 255, 255, 0.5);
+            color: rgba(255, 255, 255, 0.6);
             text-decoration: none;
             font-size: 14px;
+            transition: color 0.2s ease;
         }
 
         footer a:hover {
@@ -470,32 +600,103 @@
                 align-items: center;
             }
 
-            .phone-main {
-                width: 240px;
+            .hero-wrapper {
+                height: 100vh;
             }
 
-            .feature-screen {
+            .hero {
+                padding-top: 90px;
+                padding-bottom: 12px;
+            }
+
+            .hero h1 {
+                font-size: 32px;
+                max-width: 320px;
+            }
+
+            .hero p {
+                font-size: 16px;
+                padding: 0 24px;
+                max-width: 400px;
+            }
+
+            .phone-showcase {
+                z-index: 10;
+                margin-top: 10px;
+            }
+
+            .phone-container {
+                transform: translateY(20%);
+            }
+
+            .phone-main.mockup img {
+                max-height: 500px;
+            }
+
+            .matrix-row {
+                font-size: 12px;
+                padding: 6px 0;
+            }
+
+            .currency-matrix {
+                z-index: 1;
+            }
+
+            .widget-card {
                 grid-template-columns: 1fr;
-                gap: 40px;
-                text-align: center;
-            }
-
-            .feature-screen:nth-child(even) {
-                direction: ltr;
-            }
-
-            .feature-screen-image img {
-                width: 220px;
-            }
-
-            .feature-screen-content h3 {
-                font-size: 26px;
-            }
-
-            .feature-screen-content ul {
+                gap: 32px;
+                padding: 40px 24px;
                 text-align: left;
-                max-width: 300px;
-                margin: 0 auto;
+                min-height: auto;
+            }
+
+            .widget-content {
+                order: 1;
+                gap: 24px;
+            }
+
+            .widget-content h2 {
+                font-size: 28px;
+                max-width: 100%;
+                margin-bottom: 20px;
+            }
+
+            .widget-content p {
+                font-size: 15px;
+                max-width: 100%;
+                margin-top: 0;
+            }
+
+            .widget-image {
+                order: 2;
+            }
+
+            .widget-image img {
+                max-height: 350px;
+            }
+
+            .feature-cards-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-card-small {
+                padding: 32px 24px;
+            }
+
+            .feature-card-small h3 {
+                font-size: 22px;
+            }
+
+            .feature-card-small .card-text {
+                margin-bottom: 32px;
+            }
+
+            .chart-card .card-text {
+                margin-bottom: 56px;
+            }
+
+            .currencies-card .card-text {
+                margin-bottom: 40px;
             }
 
             .features-grid {
@@ -534,28 +735,6 @@
     </style>
 </head>
 <body>
-    <!-- Currency Matrix Background -->
-    <div class="currency-matrix">
-        <div class="matrix-row">GBP 127.50 € EUR ¥ 4,990 JPY $ 89.99 USD THB ฿ 350 KRW ₩ 15,000 MXN $ 299 AUD $ 156 INR ₹ 8,500 CHF 45.90 GBP 127.50 € EUR ¥ 4,990 JPY $ 89.99 USD THB ฿ 350 KRW ₩ 15,000 MXN $ 299 AUD $ 156 INR ₹ 8,500 CHF 45.90</div>
-        <div class="matrix-row">TOKYO ¥ 2,800 PARIS € 35 LONDON £ 28 BANGKOK ฿ 450 SEOUL ₩ 12,000 NEW YORK $ 42 SYDNEY $ 55 TOKYO ¥ 2,800 PARIS € 35 LONDON £ 28 BANGKOK ฿ 450 SEOUL ₩ 12,000 NEW YORK $ 42 SYDNEY $ 55</div>
-        <div class="matrix-row">1.27 0.85 156.42 35.21 1,328.50 17.15 1.52 82.75 0.91 1.27 0.85 156.42 35.21 1,328.50 17.15 1.52 82.75 0.91 1.27 0.85 156.42 35.21 1,328.50 17.15 1.52 82.75 0.91</div>
-        <div class="matrix-row">€ 15.90 MILAN £ 45 BERLIN € 22 OSAKA ¥ 1,200 DUBAI د.إ 85 SINGAPORE $ 38 AMSTERDAM € 18 € 15.90 MILAN £ 45 BERLIN € 22 OSAKA ¥ 1,200 DUBAI د.إ 85 SINGAPORE $ 38 AMSTERDAM € 18</div>
-        <div class="matrix-row">VND ₫ 250,000 IDR Rp 150,000 PHP ₱ 2,500 TWD $ 890 HKD $ 312 NZD $ 68 SEK kr 425 NOK kr 380 VND ₫ 250,000 IDR Rp 150,000 PHP ₱ 2,500 TWD $ 890 HKD $ 312 NZD $ 68 SEK kr 425 NOK kr 380</div>
-        <div class="matrix-row">BARCELONA € 12 ROME € 8.50 VIENNA € 19 PRAGUE Kč 350 BUDAPEST Ft 4,500 WARSAW zł 85 LISBON € 14 BARCELONA € 12 ROME € 8.50 VIENNA € 19 PRAGUE Kč 350 BUDAPEST Ft 4,500 WARSAW zł 85 LISBON € 14</div>
-        <div class="matrix-row">USD EUR GBP JPY THB KRW AUD CAD CHF CNY HKD SGD MXN BRL INR RUB ZAR TRY USD EUR GBP JPY THB KRW AUD CAD CHF CNY HKD SGD MXN BRL INR RUB ZAR TRY USD EUR GBP JPY THB</div>
-        <div class="matrix-row">KYOTO ¥ 3,500 FLORENCE € 28 MUNICH € 32 COPENHAGEN kr 195 ZURICH CHF 48 HONG KONG $ 280 TAIPEI $ 650 KYOTO ¥ 3,500 FLORENCE € 28 MUNICH € 32 COPENHAGEN kr 195 ZURICH CHF 48 HONG KONG $ 280 TAIPEI $ 650</div>
-        <div class="matrix-row">£ 26.50 = ¥ 4,990 € 42 = $ 45.80 $ 100 = ฿ 3,520 £ 50 = € 58.50 $ 25 = ₩ 33,200 £ 26.50 = ¥ 4,990 € 42 = $ 45.80 $ 100 = ฿ 3,520 £ 50 = € 58.50 $ 25 = ₩ 33,200</div>
-        <div class="matrix-row">REYKJAVIK kr 2,800 ATHENS € 9 ISTANBUL ₺ 450 MARRAKECH د.م. 180 CAPE TOWN R 350 BUENOS AIRES $ 12,500 REYKJAVIK kr 2,800 ATHENS € 9 ISTANBUL ₺ 450 MARRAKECH د.م. 180 CAPE TOWN R 350 BUENOS AIRES $ 12,500</div>
-        <div class="matrix-row">0.024 42.85 1.08 0.73 23,450 4.12 0.65 1.38 8.92 0.13 0.024 42.85 1.08 0.73 23,450 4.12 0.65 1.38 8.92 0.13 0.024 42.85 1.08 0.73 23,450 4.12 0.65 1.38 8.92</div>
-        <div class="matrix-row">BALI Rp 85,000 PHUKET ฿ 1,200 MALDIVES $ 95 CANCUN $ 680 SANTORINI € 45 AMALFI € 38 KYOTO ¥ 4,200 BALI Rp 85,000 PHUKET ฿ 1,200 MALDIVES $ 95 CANCUN $ 680 SANTORINI € 45 AMALFI € 38 KYOTO ¥ 4,200</div>
-        <div class="matrix-row">GBP 127.50 € EUR ¥ 4,990 JPY $ 89.99 USD THB ฿ 350 KRW ₩ 15,000 MXN $ 299 AUD $ 156 INR ₹ 8,500 CHF 45.90 GBP 127.50 € EUR ¥ 4,990 JPY $ 89.99 USD THB ฿ 350 KRW ₩ 15,000 MXN $ 299 AUD $ 156</div>
-        <div class="matrix-row">STOCKHOLM kr 285 OSLO kr 320 HELSINKI € 24 TALLINN € 15 RIGA € 12 VILNIUS € 18 DUBROVNIK € 35 STOCKHOLM kr 285 OSLO kr 320 HELSINKI € 24 TALLINN € 15 RIGA € 12 VILNIUS € 18 DUBROVNIK € 35</div>
-        <div class="matrix-row">£ 1 = ¥ 188 € 1 = $ 1.09 $ 1 = ฿ 35.2 £ 1 = € 1.17 $ 1 = ₩ 1,328 € 1 = £ 0.85 £ 1 = ¥ 188 € 1 = $ 1.09 $ 1 = ฿ 35.2 £ 1 = € 1.17 $ 1 = ₩ 1,328 € 1 = £ 0.85</div>
-    </div>
-    
-    <!-- Gradient Overlay -->
-    <div class="gradient-overlay"></div>
-
     <header>
         <div class="container">
             <div class="header-inner">
@@ -564,140 +743,36 @@
                     <span class="logo-text">Tilo</span>
                 </div>
                 <a href="#" class="header-btn">
-                    <span>Get the app</span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                        <line x1="12" y1="18" x2="12.01" y2="18"></line>
                     </svg>
+                    <span>Get the app</span>
                 </a>
             </div>
         </div>
     </header>
 
     <main>
-        <section class="hero">
-            <div class="container">
-                <h1>Know the price before you pay.</h1>
-                <p>Convert currencies instantly while you shop, dine, and explore abroad. Real-time exchange rates in your pocket—built for travellers.</p>
-                <a href="#" class="app-store-btn">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-                    </svg>
-                    Download on App Store
-                </a>
+        <div class="hero-wrapper">
+            <!-- Currency Matrix - behind mockups in hero only -->
+            <div class="currency-matrix">
+                <div class="matrix-row">GBP 127.50 € EUR ¥ 4,990 JPY $ 89.99 USD THB ฿ 350 KRW ₩ 15,000 MXN $ 299 AUD $ 156 INR ₹ 8,500 CHF 45.90 GBP 127.50 € EUR ¥ 4,990 JPY $ 89.99 USD THB ฿ 350 KRW ₩ 15,000 MXN $ 299 AUD $ 156 INR ₹ 8,500 CHF 45.90</div>
+                <div class="matrix-row">TOKYO ¥ 2,800 PARIS € 35 LONDON £ 28 BANGKOK ฿ 450 SEOUL ₩ 12,000 NEW YORK $ 42 SYDNEY $ 55 TOKYO ¥ 2,800 PARIS € 35 LONDON £ 28 BANGKOK ฿ 450 SEOUL ₩ 12,000 NEW YORK $ 42 SYDNEY $ 55</div>
+                <div class="matrix-row">1.27 0.85 156.42 35.21 1,328.50 17.15 1.52 82.75 0.91 1.27 0.85 156.42 35.21 1,328.50 17.15 1.52 82.75 0.91 1.27 0.85 156.42 35.21 1,328.50 17.15 1.52 82.75 0.91</div>
+                <div class="matrix-row">€ 15.90 MILAN £ 45 BERLIN € 22 OSAKA ¥ 1,200 DUBAI 85 SINGAPORE $ 38 AMSTERDAM € 18 € 15.90 MILAN £ 45 BERLIN € 22 OSAKA ¥ 1,200 DUBAI 85 SINGAPORE $ 38 AMSTERDAM € 18</div>
+                <div class="matrix-row">VND 250,000 IDR Rp 150,000 PHP 2,500 TWD $ 890 HKD $ 312 NZD $ 68 SEK kr 425 NOK kr 380 VND 250,000 IDR Rp 150,000 PHP 2,500 TWD $ 890 HKD $ 312 NZD $ 68 SEK kr 425 NOK kr 380</div>
+                <div class="matrix-row">BARCELONA € 12 ROME € 8.50 VIENNA € 19 PRAGUE 350 BUDAPEST Ft 4,500 WARSAW 85 LISBON € 14 BARCELONA € 12 ROME € 8.50 VIENNA € 19 PRAGUE 350 BUDAPEST Ft 4,500 WARSAW 85 LISBON € 14</div>
+                <div class="matrix-row">USD EUR GBP JPY THB KRW AUD CAD CHF CNY HKD SGD MXN BRL INR RUB ZAR TRY USD EUR GBP JPY THB KRW AUD CAD CHF CNY HKD SGD MXN BRL INR RUB ZAR TRY USD EUR GBP JPY THB</div>
+                <div class="matrix-row">KYOTO ¥ 3,500 FLORENCE € 28 MUNICH € 32 COPENHAGEN kr 195 ZURICH CHF 48 HONG KONG $ 280 TAIPEI $ 650 KYOTO ¥ 3,500 FLORENCE € 28 MUNICH € 32 COPENHAGEN kr 195 ZURICH CHF 48 HONG KONG $ 280 TAIPEI $ 650</div>
+                <div class="matrix-row">£ 26.50 = ¥ 4,990 € 42 = $ 45.80 $ 100 = ฿ 3,520 £ 50 = € 58.50 $ 25 = ₩ 33,200 £ 26.50 = ¥ 4,990 € 42 = $ 45.80 $ 100 = ฿ 3,520 £ 50 = € 58.50 $ 25 = ₩ 33,200</div>
+                <div class="matrix-row">REYKJAVIK kr 2,800 ATHENS € 9 ISTANBUL 450 MARRAKECH 180 CAPE TOWN R 350 BUENOS AIRES $ 12,500 REYKJAVIK kr 2,800 ATHENS € 9 ISTANBUL 450 MARRAKECH 180 CAPE TOWN R 350 BUENOS AIRES $ 12,500</div>
             </div>
-        </section>
-
-        <section class="phone-showcase">
-            <div class="container">
-                <div class="phone-container">
-                    <div class="phone-main">
-                        <img src="assets/3lp.png" alt="Tilo Currency Converter">
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="feature-screens">
-            <div class="container">
-                <!-- Feature 1: Main Converter -->
-                <div class="feature-screen">
-                    <div class="feature-screen-image">
-                        <img src="assets/3lp.png" alt="Tilo Currency Converter">
-                    </div>
-                    <div class="feature-screen-content">
-                        <div class="label">Instant Conversion</div>
-                        <h3>Know the price before you pay</h3>
-                        <p>Type any amount and see it converted instantly. Perfect for checking prices in shops, restaurants, and markets abroad.</p>
-                        <ul>
-                            <li><span>⚡</span> Real-time exchange rates</li>
-                            <li><span>🎯</span> Quick conversion chips for common amounts</li>
-                            <li><span>📊</span> 14-day rate history to spot trends</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- Feature 2: Widget -->
-                <div class="feature-screen">
-                    <div class="feature-screen-image">
-                        <img src="assets/1lp.png" alt="Tilo Widget">
-                    </div>
-                    <div class="feature-screen-content">
-                        <div class="label">Home Screen Widget</div>
-                        <h3>Glance and go—no app needed</h3>
-                        <p>Add the Tilo widget to your home screen and check conversions without even opening the app. Ideal for quick price checks on the go.</p>
-                        <ul>
-                            <li><span>👀</span> See rates at a glance</li>
-                            <li><span>📱</span> Multiple widget sizes</li>
-                            <li><span>🔄</span> Always up to date</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <!-- Feature 3: Currency Selector -->
-                <div class="feature-screen">
-                    <div class="feature-screen-image">
-                        <img src="assets/2lp.png" alt="Tilo Currency Selector">
-                    </div>
-                    <div class="feature-screen-content">
-                        <div class="label">100+ Currencies</div>
-                        <h3>Every currency, wherever you travel</h3>
-                        <p>From Japanese Yen to Thai Baht, Mexican Peso to Euro—Tilo supports every currency you'll encounter on your travels.</p>
-                        <ul>
-                            <li><span>🌍</span> 100+ world currencies</li>
-                            <li><span>🔍</span> Quick search by name or code</li>
-                            <li><span>⭐</span> Recently used currencies at the top</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="features">
-            <div class="container">
-                <div class="features-header">
-                    <h2>Built for real moments abroad</h2>
-                    <p>Everything you need to check prices quickly while travelling.</p>
-                </div>
-                <div class="features-grid">
-                    <div class="feature-card">
-                        <div class="feature-icon">📱</div>
-                        <h3>Home Screen Widget</h3>
-                        <p>Check exchange rates without opening the app. Glance at your home screen and know the price.</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">📋</div>
-                        <h3>Cheat Sheet</h3>
-                        <p>Common amounts pre-converted and ready. Perfect for menus, price tags, and markets.</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">📴</div>
-                        <h3>Works Offline</h3>
-                        <p>No WiFi? No problem. Cached rates keep you converting without internet.</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">📊</div>
-                        <h3>14-Day History</h3>
-                        <p>Track how rates have moved. Know if you're getting a good deal.</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">⚡</div>
-                        <h3>Quick Conversions</h3>
-                        <p>Tap preset amounts for instant results. No typing needed.</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">🌍</div>
-                        <h3>100+ Currencies</h3>
-                        <p>From Yen to Peso. Every currency you need, wherever you go.</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="cta">
-            <div class="container">
-                <div class="cta-box">
-                    <h2>Ready to travel smarter?</h2>
-                    <p>Download Tilo and make every purchase abroad a confident one.</p>
+            
+            <section class="hero">
+                <div class="container">
+                    <h1>The Currency App <span class="line-break">for Travellers</span></h1>
+                    <p>Convert currencies instantly while you shop, dine, and explore abroad. Real-time exchange rates, built for travellers.</p>
                     <a href="#" class="app-store-btn">
                         <svg viewBox="0 0 24 24" fill="currentColor">
                             <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
@@ -705,15 +780,95 @@
                         Download on App Store
                     </a>
                 </div>
+            </section>
+
+            <section class="phone-showcase">
+                <div class="phone-container">
+                    <div class="phone-main mockup">
+                        <img src="assets/tilo_final.png" alt="Tilo Currency Converter">
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <section class="widget-showcase">
+            <div class="container">
+                <div class="widget-card">
+                    <div class="widget-content">
+                        <h2>Check prices without opening the app.</h2>
+                        <p>Add the widget to your home screen for instant conversions. Perfect for quick price checks while shopping, dining, or exploring abroad.</p>
+                    </div>
+                    <div class="widget-image">
+                        <img src="assets/widget1.png" alt="Tilo Widget on Home Screen">
+                    </div>
+                </div>
+
+                <div class="feature-cards-grid">
+                    <div class="feature-card-small chart-card">
+                        <div class="card-text">
+                            <h3>Track rate changes</h3>
+                            <p>See how exchange rates have moved recently. Know if you're getting a good deal before you spend.</p>
+                        </div>
+                        <div class="card-image chart-image">
+                            <img src="assets/chart.png" alt="Tilo Chart History">
+                        </div>
+                    </div>
+
+                    <div class="feature-card-small currencies-card">
+                        <div class="card-text">
+                            <h3>100+ Currencies</h3>
+                            <p>From Japanese Yen to Thai Baht, Euro to Mexican Peso. Every currency you need, wherever you travel.</p>
+                        </div>
+                        <div class="currencies-carousel">
+                            <div class="carousel-track">
+                                <span class="currency-chip"><span class="flag">🇬🇧</span> GBP</span>
+                                <span class="currency-chip"><span class="flag">🇯🇵</span> JPY</span>
+                                <span class="currency-chip"><span class="flag">🇦🇪</span> AED</span>
+                                <span class="currency-chip"><span class="flag">🇹🇭</span> THB</span>
+                                <span class="currency-chip"><span class="flag">🇺🇸</span> USD</span>
+                                <span class="currency-chip"><span class="flag">🇪🇺</span> EUR</span>
+                                <span class="currency-chip"><span class="flag">🇦🇺</span> AUD</span>
+                                <span class="currency-chip"><span class="flag">🇨🇦</span> CAD</span>
+                                <span class="currency-chip"><span class="flag">🇬🇧</span> GBP</span>
+                                <span class="currency-chip"><span class="flag">🇯🇵</span> JPY</span>
+                                <span class="currency-chip"><span class="flag">🇦🇪</span> AED</span>
+                                <span class="currency-chip"><span class="flag">🇹🇭</span> THB</span>
+                                <span class="currency-chip"><span class="flag">🇺🇸</span> USD</span>
+                                <span class="currency-chip"><span class="flag">🇪🇺</span> EUR</span>
+                                <span class="currency-chip"><span class="flag">🇦🇺</span> AUD</span>
+                                <span class="currency-chip"><span class="flag">🇨🇦</span> CAD</span>
+                            </div>
+                            <div class="carousel-track">
+                                <span class="currency-chip"><span class="flag">🇨🇭</span> CHF</span>
+                                <span class="currency-chip"><span class="flag">🇰🇷</span> KRW</span>
+                                <span class="currency-chip"><span class="flag">🇸🇬</span> SGD</span>
+                                <span class="currency-chip"><span class="flag">🇲🇽</span> MXN</span>
+                                <span class="currency-chip"><span class="flag">🇮🇳</span> INR</span>
+                                <span class="currency-chip"><span class="flag">🇧🇷</span> BRL</span>
+                                <span class="currency-chip"><span class="flag">🇳🇿</span> NZD</span>
+                                <span class="currency-chip"><span class="flag">🇭🇰</span> HKD</span>
+                                <span class="currency-chip"><span class="flag">🇨🇭</span> CHF</span>
+                                <span class="currency-chip"><span class="flag">🇰🇷</span> KRW</span>
+                                <span class="currency-chip"><span class="flag">🇸🇬</span> SGD</span>
+                                <span class="currency-chip"><span class="flag">🇲🇽</span> MXN</span>
+                                <span class="currency-chip"><span class="flag">🇮🇳</span> INR</span>
+                                <span class="currency-chip"><span class="flag">🇧🇷</span> BRL</span>
+                                <span class="currency-chip"><span class="flag">🇳🇿</span> NZD</span>
+                                <span class="currency-chip"><span class="flag">🇭🇰</span> HKD</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
+
     </main>
 
     <footer>
         <div class="container">
             <div class="footer-inner">
                 <p>© 2025 Tilo. Made with ❤️ for travellers.</p>
-                <a href="#">Privacy Policy</a>
+                <a href="privacy.html">Privacy Policy</a>
             </div>
         </div>
     </footer>

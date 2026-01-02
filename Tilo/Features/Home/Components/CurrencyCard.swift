@@ -120,7 +120,7 @@ struct CurrencyCard: View {
                         TextField("", text: $amountInput)
                             .font(.system(size: 24, weight: .semibold))
                             .foregroundColor(.white)
-                            .keyboardType(.numberPad)
+                            .keyboardType(.decimalPad)
                             .tint(.white)
                             .focused($amountFieldIsFocused)
                             .lineLimit(1)

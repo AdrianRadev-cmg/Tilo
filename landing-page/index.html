@@ -161,12 +161,22 @@
 
         /* Hero Section */
         .hero-wrapper {
-            height: 100vh;
-            max-height: 100vh;
+            height: 100svh;
+            height: 100dvh;
+            max-height: 100svh;
+            max-height: 100dvh;
             display: flex;
             flex-direction: column;
             position: relative;
             overflow: hidden;
+        }
+
+        /* Fallback for older browsers */
+        @supports not (height: 100svh) {
+            .hero-wrapper {
+                height: calc(100vh - 60px);
+                max-height: calc(100vh - 60px);
+            }
         }
 
         .hero {
@@ -452,7 +462,7 @@
         }
 
         .currencies-card .card-text {
-            margin-bottom: 32px;
+            margin-bottom: 48px;
         }
 
         .currencies-card .currencies-image {
@@ -601,7 +611,14 @@
             }
 
             .hero-wrapper {
-                height: 100vh;
+                height: 100svh;
+                height: 100dvh;
+            }
+
+            @supports not (height: 100svh) {
+                .hero-wrapper {
+                    height: calc(100vh - 80px);
+                }
             }
 
             .hero {
@@ -702,7 +719,7 @@
             }
 
             .currencies-card .card-text {
-                margin-bottom: 56px;
+                margin-bottom: 64px;
             }
 
             .features-grid {

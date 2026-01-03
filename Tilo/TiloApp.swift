@@ -4,6 +4,16 @@ import UIKit
 @main
 struct TiloApp: App {
     init() {
+        // MARK: - Early Adopter Flag (for future grandfathering)
+        // This flag is set ONCE on first ever app launch.
+        // When you add a paywall later, check this flag to give early users free access.
+        // DO NOT REMOVE OR MODIFY THIS LOGIC - it's crucial for grandfathering!
+        if UserDefaults.standard.object(forKey: "isEarlyAdopter") == nil {
+            UserDefaults.standard.set(true, forKey: "isEarlyAdopter")
+            UserDefaults.standard.set(Date(), forKey: "earlyAdopterInstallDate")
+            UserDefaults.standard.set("1.0", forKey: "earlyAdopterVersion")
+        }
+        
         // Set solid tab bar background color
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()

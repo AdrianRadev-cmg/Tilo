@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tilo - Currency Converter for Travellers</title>
+    <meta name="description" content="Convert currencies instantly while travelling abroad. Check prices in shops, restaurants, and markets with real-time exchange rates.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --max-width: 1120px;
+            --padding-x: 48px;
+            --padding-x-mobile: 24px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(180deg, #1a0a2e 0%, #0d0415 50%, #0a0a0a 100%);
+            min-height: 100vh;
+            color: #ffffff;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Currency Matrix Background - full hero background like Flighty */
+        .currency-matrix {
+            position: absolute;
+            top: 28%;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding-top: 20px;
+            -webkit-mask-image: 
+                radial-gradient(ellipse 70% 80% at 50% 40%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0) 70%);
+            mask-image: 
+                radial-gradient(ellipse 70% 80% at 50% 40%, rgba(0,0,0,1) 0%, rgba(0,0,0,0.6) 40%, rgba(0,0,0,0) 70%);
+        }
+
+        .matrix-row {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px;
+            letter-spacing: 0.5em;
+            white-space: nowrap;
+            color: #a855f7;
+            animation: scroll-left 80s linear infinite;
+            padding: 12px 0;
+            opacity: 0.28;
+        }
+
+        .matrix-row:nth-child(even) {
+            animation: scroll-right 75s linear infinite;
+            color: #8b5cf6;
+        }
+
+        .matrix-row:nth-child(3n) {
+            animation-duration: 90s;
+        }
+
+        .matrix-row:nth-child(4n) {
+            animation-duration: 70s;
+        }
+
+        @keyframes scroll-left {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        @keyframes scroll-right {
+            0% { transform: translateX(-50%); }
+            100% { transform: translateX(0); }
+        }
+
+        .container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 0 var(--padding-x);
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Header */
+        header {
+            padding: 20px 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: linear-gradient(180deg, #1a0a2e 0%, rgba(26, 10, 46, 0.95) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .header-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.9);
+            padding: 8px 0;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .header-btn:hover {
+            color: #fff;
+        }
+
+        .header-btn svg {
+            width: 18px;
+            height: 18px;
+            opacity: 0.8;
+        }
+
+        /* Hero Section */
+        .hero-wrapper {
+            height: 100svh;
+            height: 100dvh;
+            max-height: 100svh;
+            max-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Fallback for older browsers */
+        @supports not (height: 100svh) {
+            .hero-wrapper {
+                height: calc(100vh - 60px);
+                max-height: calc(100vh - 60px);
+            }
+        }
+
+        .hero {
+            padding-top: 114px;
+            padding-bottom: 20px;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 800;
+            line-height: 1.15;
+            margin-bottom: 16px;
+            letter-spacing: -0.03em;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero h1 .line-break {
+            display: block;
+        }
+
+        .hero p {
+            font-size: 20px;
+            line-height: 1.5;
+            color: #ffffff;
+            margin-bottom: 24px;
+            max-width: 620px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* App Store Button */
+        .app-store-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: #fff;
+            color: #000;
+            padding: 14px 28px;
+            border-radius: 100px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .app-store-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 30px rgba(255, 255, 255, 0.15);
+        }
+
+        .app-store-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Phone Showcase - Peeking from bottom */
+        .phone-showcase {
+            flex: 1;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            z-index: 10;
+        }
+
+        .phone-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            transform: translateY(35%);
+            width: 100%;
+        }
+
+        .phone-main {
+            width: 280px;
+        }
+
+        .phone-main.mockup {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .phone-main img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .phone-main.mockup img {
+            max-height: 800px;
+            width: auto;
+            margin: 0 auto;
+        }
+
+        /* Hero bottom fade - lighter purple like Flighty */
+        .hero-wrapper::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 120px;
+            background: linear-gradient(to bottom, transparent, #0d0518);
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        /* Widget Showcase Section - Flighty style card */
+        .widget-showcase {
+            padding: 104px 0;
+            background: linear-gradient(180deg, #0d0518 0%, #080210 100%);
+        }
+
+        .widget-card {
+            background: linear-gradient(145deg, rgba(20, 10, 35, 0.9) 0%, rgba(10, 5, 20, 0.95) 100%);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-radius: 24px;
+            padding: 60px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            min-height: 500px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .widget-card::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            border-radius: 24px;
+            background: linear-gradient(145deg, rgba(168, 85, 247, 0.3) 0%, transparent 50%, rgba(99, 102, 241, 0.2) 100%);
+            z-index: -1;
+            opacity: 0.5;
+        }
+
+        .widget-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+
+        .widget-content h2 {
+            font-size: 36px;
+            font-weight: 600;
+            line-height: 1.15;
+            margin-bottom: 0;
+            letter-spacing: -0.02em;
+            max-width: 380px;
+        }
+
+        .widget-content p {
+            font-size: 17px;
+            line-height: 1.7;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: auto;
+            max-width: 400px;
+        }
+
+        .widget-image {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .widget-image::before {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, transparent 70%);
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .widget-image img {
+            position: relative;
+            z-index: 1;
+            max-width: 100%;
+            height: auto;
+            max-height: 380px;
+        }
+
+        /* Two-column feature cards */
+        .feature-cards-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            margin-top: 32px;
+        }
+
+        .feature-card-small {
+            background: linear-gradient(145deg, rgba(20, 10, 35, 0.9) 0%, rgba(10, 5, 20, 0.95) 100%);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-radius: 24px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .feature-card-small::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: -1px;
+            right: -1px;
+            bottom: -1px;
+            border-radius: 24px;
+            background: linear-gradient(145deg, rgba(168, 85, 247, 0.3) 0%, transparent 50%, rgba(99, 102, 241, 0.2) 100%);
+            z-index: -1;
+            opacity: 0.5;
+        }
+
+        .feature-card-small .card-text {
+            margin-bottom: 24px;
+        }
+
+        .feature-card-small h3 {
+            font-size: 24px;
+            font-weight: 600;
+            line-height: 1.2;
+            margin-bottom: 12px;
+        }
+
+        .feature-card-small p {
+            font-size: 17px;
+            line-height: 1.7;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .feature-card-small .card-image {
+            margin-top: auto;
+            display: flex;
+            justify-content: center;
+        }
+
+        .feature-card-small .card-image img {
+            max-width: 100%;
+            height: auto;
+            max-height: 280px;
+            border-radius: 12px;
+        }
+
+        /* Chart card - tilted from bottom, clipped */
+        .chart-card {
+            overflow: hidden;
+        }
+
+        .chart-card .card-text {
+            margin-bottom: 48px;
+        }
+
+        .chart-card .chart-image {
+            position: relative;
+            margin-bottom: -60px;
+        }
+
+        .chart-card .chart-image img {
+            transform: rotate(-5deg) translateY(40px);
+            transform-origin: center bottom;
+            max-height: 340px;
+            max-width: 110%;
+        }
+
+        /* Currencies card - animated carousel */
+        .currencies-card {
+            overflow: hidden;
+        }
+
+        .currencies-card .card-text {
+            margin-bottom: 48px;
+        }
+
+        .currencies-card .currencies-image {
+            display: none;
+        }
+
+        .currencies-carousel {
+            position: relative;
+            margin-top: auto;
+            overflow: hidden;
+        }
+
+        .currencies-carousel::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            width: 80px;
+            z-index: 2;
+            pointer-events: none;
+            background: linear-gradient(to left, rgba(10, 5, 20, 1), transparent);
+        }
+
+        .carousel-track {
+            display: flex;
+            gap: 14px;
+            animation: scroll-chips 25s linear infinite;
+            width: max-content;
+        }
+
+        .carousel-track:nth-child(2) {
+            animation: scroll-chips-reverse 28s linear infinite;
+            margin-top: 14px;
+        }
+
+        @keyframes scroll-chips {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        @keyframes scroll-chips-reverse {
+            0% { transform: translateX(-50%); }
+            100% { transform: translateX(0); }
+        }
+
+        .currency-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(45, 27, 80, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(168, 85, 247, 0.25);
+            border-radius: 100px;
+            padding: 12px 22px;
+            font-size: 17px;
+            font-weight: 600;
+            white-space: nowrap;
+            color: rgba(255, 255, 255, 0.9);
+            box-shadow: 
+                0 4px 16px rgba(0, 0, 0, 0.2),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .currency-chip .flag {
+            font-size: 22px;
+        }
+
+
+        /* CTA Section */
+        .cta {
+            padding: 100px 0;
+            text-align: center;
+        }
+
+        .cta-box {
+            background: linear-gradient(145deg, rgba(168, 85, 247, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%);
+            border: 1px solid rgba(168, 85, 247, 0.15);
+            border-radius: 24px;
+            padding: 64px;
+        }
+
+        .cta h2 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .cta p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 18px;
+            margin-bottom: 32px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            background: #080210;
+        }
+
+        .footer-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        footer p {
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+        }
+
+        footer a {
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s ease;
+        }
+
+        footer a:hover {
+            color: #fff;
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .container {
+                padding: 0 var(--padding-x-mobile);
+            }
+
+            .hero {
+                padding-top: 150px;
+            }
+
+            .phone-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .hero-wrapper {
+                height: auto;
+                min-height: 100svh;
+                min-height: 100dvh;
+                padding-bottom: 88px;
+            }
+
+            @supports not (height: 100svh) {
+                .hero-wrapper {
+                    min-height: calc(100vh - 60px);
+                }
+            }
+
+            .hero {
+                padding-top: 90px;
+                padding-bottom: 12px;
+            }
+
+            .hero h1 {
+                font-size: 32px;
+                max-width: 320px;
+            }
+
+            .hero p {
+                font-size: 16px;
+                padding: 0 24px;
+                max-width: 400px;
+            }
+
+            .phone-showcase {
+                z-index: 10;
+                margin-top: 10px;
+            }
+
+            .phone-container {
+                transform: translateY(5%);
+            }
+
+            .phone-main.mockup img {
+                max-height: 480px;
+            }
+
+            .phone-showcase {
+                overflow: visible;
+            }
+
+            .matrix-row {
+                font-size: 12px;
+                padding: 6px 0;
+            }
+
+            .currency-matrix {
+                z-index: 1;
+            }
+
+            .widget-card {
+                grid-template-columns: 1fr;
+                gap: 32px;
+                padding: 40px 24px;
+                text-align: left;
+                min-height: auto;
+            }
+
+            .widget-content {
+                order: 1;
+                gap: 24px;
+            }
+
+            .widget-content h2 {
+                font-size: 28px;
+                max-width: 100%;
+                margin-bottom: 20px;
+            }
+
+            .widget-content p {
+                font-size: 15px;
+                max-width: 100%;
+                margin-top: 0;
+            }
+
+            .widget-image {
+                order: 2;
+            }
+
+            .widget-image img {
+                max-height: 350px;
+            }
+
+            .feature-cards-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-card-small {
+                padding: 32px 24px;
+            }
+
+            /* Match feature card text to widget card styling */
+            .feature-card-small h3 {
+                font-size: 28px;
+                margin-bottom: 20px;
+            }
+
+            .feature-card-small p {
+                font-size: 15px;
+            }
+
+            .feature-card-small .card-text {
+                margin-bottom: 32px;
+            }
+
+            .chart-card .card-text {
+                margin-bottom: 56px;
+            }
+
+            .currencies-card .card-text {
+                margin-bottom: 88px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .cta-box {
+                padding: 48px 24px;
+            }
+
+            .footer-inner {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+
+            .matrix-row {
+                font-size: 14px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .header-btn span {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 36px;
+            }
+
+            .hero p {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-inner">
+                <div class="header-left">
+                    <img src="assets/logo.png" alt="Tilo" class="logo">
+                    <span class="logo-text">Tilo</span>
+                </div>
+                <a href="#" class="header-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                        <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                    </svg>
+                    <span>Get the app</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="hero-wrapper">
+            <!-- Currency Matrix - behind mockups in hero only -->
+            <div class="currency-matrix">
+                <div class="matrix-row">GBP 127.50 € EUR ¥ 4,990 JPY $ 89.99 USD THB ฿ 350 KRW ₩ 15,000 MXN $ 299 AUD $ 156 INR ₹ 8,500 CHF 45.90 GBP 127.50 € EUR ¥ 4,990 JPY $ 89.99 USD THB ฿ 350 KRW ₩ 15,000 MXN $ 299 AUD $ 156 INR ₹ 8,500 CHF 45.90</div>
+                <div class="matrix-row">TOKYO ¥ 2,800 PARIS € 35 LONDON £ 28 BANGKOK ฿ 450 SEOUL ₩ 12,000 NEW YORK $ 42 SYDNEY $ 55 TOKYO ¥ 2,800 PARIS € 35 LONDON £ 28 BANGKOK ฿ 450 SEOUL ₩ 12,000 NEW YORK $ 42 SYDNEY $ 55</div>
+                <div class="matrix-row">1.27 0.85 156.42 35.21 1,328.50 17.15 1.52 82.75 0.91 1.27 0.85 156.42 35.21 1,328.50 17.15 1.52 82.75 0.91 1.27 0.85 156.42 35.21 1,328.50 17.15 1.52 82.75 0.91</div>
+                <div class="matrix-row">€ 15.90 MILAN £ 45 BERLIN € 22 OSAKA ¥ 1,200 DUBAI 85 SINGAPORE $ 38 AMSTERDAM € 18 € 15.90 MILAN £ 45 BERLIN € 22 OSAKA ¥ 1,200 DUBAI 85 SINGAPORE $ 38 AMSTERDAM € 18</div>
+                <div class="matrix-row">VND 250,000 IDR Rp 150,000 PHP 2,500 TWD $ 890 HKD $ 312 NZD $ 68 SEK kr 425 NOK kr 380 VND 250,000 IDR Rp 150,000 PHP 2,500 TWD $ 890 HKD $ 312 NZD $ 68 SEK kr 425 NOK kr 380</div>
+                <div class="matrix-row">BARCELONA € 12 ROME € 8.50 VIENNA € 19 PRAGUE 350 BUDAPEST Ft 4,500 WARSAW 85 LISBON € 14 BARCELONA € 12 ROME € 8.50 VIENNA € 19 PRAGUE 350 BUDAPEST Ft 4,500 WARSAW 85 LISBON € 14</div>
+                <div class="matrix-row">USD EUR GBP JPY THB KRW AUD CAD CHF CNY HKD SGD MXN BRL INR RUB ZAR TRY USD EUR GBP JPY THB KRW AUD CAD CHF CNY HKD SGD MXN BRL INR RUB ZAR TRY USD EUR GBP JPY THB</div>
+                <div class="matrix-row">KYOTO ¥ 3,500 FLORENCE € 28 MUNICH € 32 COPENHAGEN kr 195 ZURICH CHF 48 HONG KONG $ 280 TAIPEI $ 650 KYOTO ¥ 3,500 FLORENCE € 28 MUNICH € 32 COPENHAGEN kr 195 ZURICH CHF 48 HONG KONG $ 280 TAIPEI $ 650</div>
+                <div class="matrix-row">£ 26.50 = ¥ 4,990 € 42 = $ 45.80 $ 100 = ฿ 3,520 £ 50 = € 58.50 $ 25 = ₩ 33,200 £ 26.50 = ¥ 4,990 € 42 = $ 45.80 $ 100 = ฿ 3,520 £ 50 = € 58.50 $ 25 = ₩ 33,200</div>
+                <div class="matrix-row">REYKJAVIK kr 2,800 ATHENS € 9 ISTANBUL 450 MARRAKECH 180 CAPE TOWN R 350 BUENOS AIRES $ 12,500 REYKJAVIK kr 2,800 ATHENS € 9 ISTANBUL 450 MARRAKECH 180 CAPE TOWN R 350 BUENOS AIRES $ 12,500</div>
+            </div>
+            
+            <section class="hero">
+                <div class="container">
+                    <h1>The Currency App <span class="line-break">for Travellers</span></h1>
+                    <p>Convert currencies instantly while you shop, dine, and explore abroad. Real-time exchange rates, built for travellers.</p>
+                    <a href="#" class="app-store-btn">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                        </svg>
+                        Download on App Store
+                    </a>
+                </div>
+            </section>
+
+            <section class="phone-showcase">
+                <div class="phone-container">
+                    <div class="phone-main mockup">
+                        <img src="assets/tilo_final.png" alt="Tilo Currency Converter">
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <section class="widget-showcase">
+            <div class="container">
+                <div class="widget-card">
+                    <div class="widget-content">
+                        <h2>Check prices without opening the app.</h2>
+                        <p>Add the widget to your home screen for instant conversions. Perfect for quick price checks while shopping, dining, or exploring abroad.</p>
+                    </div>
+                    <div class="widget-image">
+                        <img src="assets/widget1.png" alt="Tilo Widget on Home Screen">
+                    </div>
+                </div>
+
+                <div class="feature-cards-grid">
+                    <div class="feature-card-small chart-card">
+                        <div class="card-text">
+                            <h3>Track rate changes</h3>
+                            <p>See how exchange rates have moved recently. Know if you're getting a good deal before you spend.</p>
+                        </div>
+                        <div class="card-image chart-image">
+                            <img src="assets/chart.png" alt="Tilo Chart History">
+                        </div>
+                    </div>
+
+                    <div class="feature-card-small currencies-card">
+                        <div class="card-text">
+                            <h3>100+ Currencies</h3>
+                            <p>From Japanese Yen to Thai Baht, Euro to Mexican Peso. Every currency you need, wherever you travel.</p>
+                        </div>
+                        <div class="currencies-carousel">
+                            <div class="carousel-track">
+                                <span class="currency-chip"><span class="flag">🇬🇧</span> GBP</span>
+                                <span class="currency-chip"><span class="flag">🇯🇵</span> JPY</span>
+                                <span class="currency-chip"><span class="flag">🇦🇪</span> AED</span>
+                                <span class="currency-chip"><span class="flag">🇹🇭</span> THB</span>
+                                <span class="currency-chip"><span class="flag">🇺🇸</span> USD</span>
+                                <span class="currency-chip"><span class="flag">🇪🇺</span> EUR</span>
+                                <span class="currency-chip"><span class="flag">🇦🇺</span> AUD</span>
+                                <span class="currency-chip"><span class="flag">🇨🇦</span> CAD</span>
+                                <span class="currency-chip"><span class="flag">🇬🇧</span> GBP</span>
+                                <span class="currency-chip"><span class="flag">🇯🇵</span> JPY</span>
+                                <span class="currency-chip"><span class="flag">🇦🇪</span> AED</span>
+                                <span class="currency-chip"><span class="flag">🇹🇭</span> THB</span>
+                                <span class="currency-chip"><span class="flag">🇺🇸</span> USD</span>
+                                <span class="currency-chip"><span class="flag">🇪🇺</span> EUR</span>
+                                <span class="currency-chip"><span class="flag">🇦🇺</span> AUD</span>
+                                <span class="currency-chip"><span class="flag">🇨🇦</span> CAD</span>
+                            </div>
+                            <div class="carousel-track">
+                                <span class="currency-chip"><span class="flag">🇨🇭</span> CHF</span>
+                                <span class="currency-chip"><span class="flag">🇰🇷</span> KRW</span>
+                                <span class="currency-chip"><span class="flag">🇸🇬</span> SGD</span>
+                                <span class="currency-chip"><span class="flag">🇲🇽</span> MXN</span>
+                                <span class="currency-chip"><span class="flag">🇮🇳</span> INR</span>
+                                <span class="currency-chip"><span class="flag">🇧🇷</span> BRL</span>
+                                <span class="currency-chip"><span class="flag">🇳🇿</span> NZD</span>
+                                <span class="currency-chip"><span class="flag">🇭🇰</span> HKD</span>
+                                <span class="currency-chip"><span class="flag">🇨🇭</span> CHF</span>
+                                <span class="currency-chip"><span class="flag">🇰🇷</span> KRW</span>
+                                <span class="currency-chip"><span class="flag">🇸🇬</span> SGD</span>
+                                <span class="currency-chip"><span class="flag">🇲🇽</span> MXN</span>
+                                <span class="currency-chip"><span class="flag">🇮🇳</span> INR</span>
+                                <span class="currency-chip"><span class="flag">🇧🇷</span> BRL</span>
+                                <span class="currency-chip"><span class="flag">🇳🇿</span> NZD</span>
+                                <span class="currency-chip"><span class="flag">🇭🇰</span> HKD</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-inner">
+                <p>© 2025 Tilo. Made with ❤️ for travellers.</p>
+                <a href="privacy.html">Privacy Policy</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

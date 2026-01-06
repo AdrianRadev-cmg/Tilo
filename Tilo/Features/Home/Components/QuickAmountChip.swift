@@ -27,7 +27,7 @@ struct QuickAmountChip: View {
             generator.impactOccurred()
         }) {
             Text(symbol + formattedAmount)
-                .font(.system(size: 20, weight: .regular))
+                .font(.title3)
                 .foregroundColor(.white)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
@@ -35,6 +35,7 @@ struct QuickAmountChip: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(PlainButtonStyle())
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityLabel("Convert \(symbol)\(formattedAmount)")
         .accessibilityHint("Double tap to convert this amount")
         .accessibilityAddTraits(isSelected ? .isSelected : [])

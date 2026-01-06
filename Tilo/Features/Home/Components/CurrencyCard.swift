@@ -28,6 +28,7 @@ struct CurrencyCard: View {
     @FocusState private var amountFieldIsFocused: Bool
     @State private var isInputError: Bool = false // State for error tracking
     @State private var showCurrencySelector: Bool = false // Add state for currency selector
+    @State private var sheetDetent: PresentationDetent = .large // Default to expanded
     
     // Helper to format the input string
     private func formatAmount(_ string: String) -> String? {
@@ -44,46 +45,60 @@ struct CurrencyCard: View {
         return nil // Return nil if input is not a valid number
     }
     
+    // Locale-aware separators
+    private var decimalSeparator: String {
+        Locale.current.decimalSeparator ?? "."
+    }
+    
+    private var groupingSeparator: String {
+        Locale.current.groupingSeparator ?? ","
+    }
+    
     // Helper to handle amount input changes
     private func handleAmountInputChange(oldValue: String, newValue: String) {
-        // Remove any existing formatting (grouping separators)
-        let groupingSeparator = Locale.current.groupingSeparator ?? ","
+        // Remove any existing grouping separators (locale-aware)
         let cleanInput = newValue.replacingOccurrences(of: groupingSeparator, with: "")
         
-        // Only allow digits and one decimal point
-        let filtered = cleanInput.filter { $0.isNumber || $0 == "." }
+        // Get the decimal separator character
+        let decimalChar = Character(decimalSeparator)
         
-        // Prevent multiple decimal points
-        let decimalCount = filtered.filter { $0 == "." }.count
+        // Only allow digits and the locale's decimal separator
+        let filtered = cleanInput.filter { $0.isNumber || $0 == decimalChar }
+        
+        // Prevent multiple decimal separators
+        let decimalCount = filtered.filter { $0 == decimalChar }.count
         if decimalCount > 1 {
             amountInput = oldValue
             return
         }
         
-        // Apply smart formatting: add commas for numbers >= 1000
-        if let doubleValue = Double(filtered) {
+        // Convert to Double using locale-aware parsing
+        let normalizedForParsing = filtered.replacingOccurrences(of: decimalSeparator, with: ".")
+        
+        // Apply smart formatting: add grouping separators for numbers >= 1000
+        if let doubleValue = Double(normalizedForParsing) {
             // Split into integer and decimal parts
-            let parts = filtered.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false)
+            let parts = filtered.split(separator: decimalChar, maxSplits: 1, omittingEmptySubsequences: false)
             let integerPart = String(parts[0])
             let decimalPart = parts.count > 1 ? String(parts[1]) : nil
             
-            // Format integer part with commas if >= 1000
+            // Format integer part with locale grouping separator if >= 1000
             let formattedInteger: String
             if let intValue = Int(integerPart), intValue >= 1000 {
                 let formatter = NumberFormatter()
                 formatter.numberStyle = .decimal
-                formatter.groupingSeparator = Locale.current.groupingSeparator
                 formatter.usesGroupingSeparator = true
+                // Let formatter use locale's grouping separator automatically
                 formattedInteger = formatter.string(from: NSNumber(value: intValue)) ?? integerPart
             } else {
                 formattedInteger = integerPart
             }
             
-            // Reconstruct the number with decimal if present
+            // Reconstruct the number with decimal if present (using locale separator)
             if let decimal = decimalPart {
-                amountInput = formattedInteger + "." + decimal
-            } else if filtered.hasSuffix(".") {
-                amountInput = formattedInteger + "."
+                amountInput = formattedInteger + decimalSeparator + decimal
+            } else if filtered.hasSuffix(String(decimalChar)) {
+                amountInput = formattedInteger + decimalSeparator
             } else {
                 amountInput = formattedInteger
             }
@@ -105,26 +120,24 @@ struct CurrencyCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(currencyName)
-                .font(.system(size: 24, weight: .regular))
+                .font(.title2)
                 .foregroundColor(.white)
             
             // Unified HStack Structure
             HStack(spacing: 16) {
                 HStack(alignment: .center, spacing: 4) {
                     Text(currencySymbol)
-                        .font(.system(size: 16, weight: .medium))
+                        .font(.callout.weight(.medium))
                         .foregroundColor(.white)
 
                     if isAmountFocused && isEditable {
                         TextField("", text: $amountInput)
-                            .font(.system(size: 24, weight: .semibold))
+                            .font(.title2.weight(.semibold))
                             .foregroundColor(.white)
                             .keyboardType(.decimalPad)
                             .tint(.white)
                             .focused($amountFieldIsFocused)
                             .lineLimit(1)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(height: 24)
                             .toolbar {
                                 ToolbarItemGroup(placement: .keyboard) {
                                     Spacer()
@@ -133,27 +146,31 @@ struct CurrencyCard: View {
                                         amountFieldIsFocused = false
                                         onEditingChanged?(false)
                                     }
-                                    .font(.system(size: 18, weight: .semibold))
+                                    .font(.body.weight(.semibold))
                                 }
                             }
                             .onChange(of: amountInput) { oldValue, newValue in
                                 handleAmountInputChange(oldValue: oldValue, newValue: newValue)
                             }
+                            .onChange(of: amountFieldIsFocused) { _, newValue in
+                                // Sync state when keyboard is dismissed externally (e.g., by scrolling)
+                                if !newValue && isAmountFocused {
+                                    isAmountFocused = false
+                                    onEditingChanged?(false)
+                                }
+                            }
                     } else {
                         Text(amountInput.isEmpty ? amount : amountInput)
-                            .font(.system(size: 24, weight: .semibold))
+                            .font(.title2.weight(.semibold))
                             .foregroundColor(.white)
                             .lineLimit(1)
                             .truncationMode(.tail)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(height: 24)
                             .accessibilityHint("Tap to edit amount")
                     }
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
                 .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
-                .frame(height: 42)
                 .overlay {
                     // Show stroke only on error
                         if isInputError {
@@ -195,10 +212,11 @@ struct CurrencyCard: View {
             }
             
             Text(exchangeRateInfo)
-                .font(.system(size: 16, weight: .regular))
+                .font(.callout)
                 .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
                 .accessibilityLabel("Exchange rate: \(exchangeRateInfo)")
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge) // Cap scaling to prevent layout breaking
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(currencyName) currency card")
         .onChange(of: amount) { oldAmount, newAmount in
@@ -249,14 +267,17 @@ struct CurrencyCard: View {
                 .allowsHitTesting(false)
         )
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .sheet(isPresented: $showCurrencySelector) {
+        .sheet(isPresented: $showCurrencySelector, onDismiss: {
+            // Reset to large for next open
+            sheetDetent = .large
+        }) {
             CurrencySelector { selectedCurrency in
                 // Update the currency card with selected currency
                 currencyName = selectedCurrency.name
                 flagEmoji = selectedCurrency.flag
                 currencyCode = selectedCurrency.code
             }
-            .presentationDetents([.medium, .large])
+            .presentationDetents([.medium, .large], selection: $sheetDetent)
             .presentationDragIndicator(.visible)
         }
     }

@@ -3,6 +3,7 @@ import SwiftUI
 struct CurrencySelector: View {
     @State private var searchText = ""
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var isSearchFocused: Bool
     
     let onSelect: (Currency) -> Void
     
@@ -29,7 +30,7 @@ struct CurrencySelector: View {
                             dismiss()
                         } label: {
                             Image(systemName: "xmark")
-                                .font(.system(size: 18, weight: .semibold))
+                                .font(.body.weight(.semibold))
                                 .foregroundColor(.white)
                                 .frame(width: 40, height: 40)
                                 .background(Color("grey800"))
@@ -57,7 +58,7 @@ struct CurrencySelector: View {
                         .accessibilityAddTraits(.isHeader)
                     
                     // Search Bar
-                    SearchBar(text: $searchText, placeholder: "Search currency name or code")
+                    SearchBar(text: $searchText, placeholder: "Search currency name or code", isFocused: $isSearchFocused)
                         .padding(.horizontal)
                         .padding(.bottom, 24)
                 }
@@ -137,8 +138,7 @@ struct CurrencySelector: View {
 struct SearchBar: View {
     @Binding var text: String
     let placeholder: String
-    var isSearchFocused: FocusState<Bool>.Binding? = nil
-    @FocusState private var isFocused: Bool
+    var isFocused: FocusState<Bool>.Binding
     
     var body: some View {
         HStack {
@@ -153,16 +153,13 @@ struct SearchBar: View {
                 TextField("", text: $text)
                     .foregroundColor(Color("grey500"))
                     .tint(Color("grey500"))
-                    .focused($isFocused)
+                    .focused(isFocused)
                     .submitLabel(.search)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
                     .onAppear {
-                        // Immediate focus when search bar appears
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            isFocused = true
-                            isSearchFocused?.wrappedValue = true
-                        }
+                        // Focus immediately when TextField is rendered
+                        isFocused.wrappedValue = true
                     }
             }
             
@@ -180,7 +177,7 @@ struct SearchBar: View {
         .background(Color("grey700"))
         .cornerRadius(8)
         .onTapGesture {
-            isFocused = true
+            isFocused.wrappedValue = true
         }
     }
 }

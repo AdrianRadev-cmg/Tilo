@@ -10,6 +10,13 @@ import Charts
 import WidgetKit
 import StoreKit
 
+// Helper extension to dismiss keyboard
+extension View {
+    func hideKeyboard() {
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+    }
+}
+
 struct HomeView: View {
     @Environment(\.requestReview) var requestReview
     
@@ -35,7 +42,6 @@ struct HomeView: View {
     @State private var isSwapping: Bool = false
     @State private var showError: Bool = false
     @State private var errorMessage: String = ""
-    @State private var hasRequestedReview: Bool = UserDefaults.standard.bool(forKey: "hasRequestedReview")
     
     @StateObject private var exchangeService = ExchangeRateService.shared
     
@@ -63,6 +69,23 @@ struct HomeView: View {
         
         // Save to shared UserDefaults for widget
         updateWidgetData()
+    }
+    
+    /// Request App Store review after first manual conversion
+    /// Only triggers once - when user types their own amount (not quick chips)
+    private func requestReviewIfFirstConversion() {
+        let hasRequestedReview = UserDefaults.standard.bool(forKey: "hasRequestedReview")
+        
+        // Only request review once, after first manual conversion
+        guard !hasRequestedReview else { return }
+        
+        // Mark that we've requested a review
+        UserDefaults.standard.set(true, forKey: "hasRequestedReview")
+        
+        // Small delay to let the conversion complete and user see the result
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            requestReview()
+        }
     }
     
     // Update widget with current currency pair and rate
@@ -234,20 +257,6 @@ struct HomeView: View {
         return formatter.string(from: NSNumber(value: rate)) ?? String(format: "%.4f", rate)
     }
     
-    // Request App Store review after first manual conversion
-    private func triggerReviewIfNeeded() {
-        guard !hasRequestedReview else { return }
-        
-        // Mark as requested so we only ask once
-        hasRequestedReview = true
-        UserDefaults.standard.set(true, forKey: "hasRequestedReview")
-        
-        // Delay slightly so user sees their conversion result first
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            requestReview()
-        }
-    }
-    
     // Get appropriate chip amounts based on currency value category
     private func getChipAmounts(for currencyCode: String) -> [Double] {
         // Very high-value currencies - [10, 50, 100, 200, 500, 1000]
@@ -337,7 +346,7 @@ struct HomeView: View {
                                                 await updateConversion()
                                             }
                                             // Request review after first manual conversion
-                                            triggerReviewIfNeeded()
+                                            requestReviewIfFirstConversion()
                                         },
                                         onEditingChanged: { isEditing in
                                             isEditingTopCard = isEditing
@@ -381,7 +390,7 @@ struct HomeView: View {
                                                 await updateConversionReverse()
                                             }
                                             // Request review after first manual conversion
-                                            triggerReviewIfNeeded()
+                                            requestReviewIfFirstConversion()
                                         },
                                         onEditingChanged: { isEditing in
                                             isEditingBottomCard = isEditing
@@ -485,10 +494,13 @@ struct HomeView: View {
                         .padding(.bottom, min(40, geometry.size.height * 0.05))
                     }
                     }
-                    .scrollDismissesKeyboard(.immediately)
+                    .simultaneousGesture(
+                        DragGesture().onChanged { _ in
+                            hideKeyboard()
+                        }
+                    )
                 }
             }
-            .ignoresSafeArea(.keyboard)
             .tabItem {
                 Image(systemName: "arrow.left.arrow.right.circle.fill")
                 Text("Convert")
@@ -499,7 +511,7 @@ struct HomeView: View {
                 await updateConversion()
             }
             
-            // Price Guide Tab
+            // Price guide Tab
             TravelView(
                 fromCurrencyCode: $fromCurrencyCode,
                 fromCurrencyName: $fromCurrencyName,

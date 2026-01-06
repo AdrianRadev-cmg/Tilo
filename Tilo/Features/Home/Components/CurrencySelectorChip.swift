@@ -11,26 +11,26 @@ struct CurrencySelectorChip: View {
         Button(action: action) {
             HStack(spacing: 4) { // Main horizontal arrangement
                 Text(flagEmoji) // Use Text for emoji flag
-                    .font(.system(size: 22))
+                    .font(.title3)
                     .accessibilityHidden(true) // Hide flag from VoiceOver, code is sufficient
 
                 Text(currencyCode)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.title3.weight(.semibold))
                     .foregroundColor(.white)
                     .padding(.trailing, 2) // Add 2px after code
                 
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 16))
+                    .font(.callout)
                     .foregroundColor(.white)
                     .padding(.trailing, 2) // Add 2px after chevron
                     .accessibilityHidden(true)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 8)
-            .frame(height: 42)
             .glassEffect()
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityLabel("\(currencyCode) currency selector")
         .accessibilityHint("Double tap to choose a different currency")
     }

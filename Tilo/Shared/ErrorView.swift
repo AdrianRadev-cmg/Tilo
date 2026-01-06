@@ -20,18 +20,18 @@ struct ErrorView: View {
         VStack(spacing: 16) {
             // Error icon
             Image(systemName: "wifi.exclamationmark")
-                .font(.system(size: 40, weight: .light))
+                .font(.largeTitle.weight(.light))
                 .foregroundColor(Color("primary100").opacity(0.7))
             
             // Title
             Text(title)
-                .font(.system(size: 18, weight: .semibold))
+                .font(.body.weight(.semibold))
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
             
             // Message
             Text(message)
-                .font(.system(size: 14, weight: .regular))
+                .font(.subheadline)
                 .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.7))
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
@@ -45,9 +45,9 @@ struct ErrorView: View {
                 }) {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.subheadline.weight(.semibold))
                         Text("Try Again")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(.subheadline.weight(.semibold))
                     }
                     .foregroundColor(.white)
                     .padding(.horizontal, 24)
@@ -67,6 +67,7 @@ struct ErrorView: View {
             }
         }
         .padding(24)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .frame(maxWidth: .infinity)
         .background(
             ZStack {
@@ -105,11 +106,11 @@ struct ErrorBanner: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 16, weight: .medium))
+                .font(.callout.weight(.medium))
                 .foregroundColor(.orange)
             
             Text(message)
-                .font(.system(size: 14, weight: .medium))
+                .font(.subheadline.weight(.medium))
                 .foregroundColor(.white)
                 .lineLimit(2)
             
@@ -118,7 +119,7 @@ struct ErrorBanner: View {
             if let onDismiss = onDismiss {
                 Button(action: onDismiss) {
                     Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.caption.weight(.bold))
                         .foregroundColor(.white.opacity(0.7))
                         .frame(width: 24, height: 24)
                 }
@@ -127,6 +128,7 @@ struct ErrorBanner: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(red: 40/255, green: 20/255, blue: 60/255).opacity(0.95))
@@ -169,15 +171,16 @@ struct ToastView: View {
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: type.icon)
-                .font(.system(size: 18, weight: .medium))
+                .font(.body.weight(.medium))
                 .foregroundColor(type.color)
             
             Text(message)
-                .font(.system(size: 16, weight: .medium))
+                .font(.callout.weight(.medium))
                 .foregroundColor(.white)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .background(
             Capsule()
                 .fill(Color(red: 30/255, green: 20/255, blue: 60/255).opacity(0.95))

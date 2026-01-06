@@ -237,11 +237,11 @@ struct CurrencyChartView: View {
     private func errorView(_ error: Error) -> some View {
         VStack(spacing: 12) {
             Image(systemName: "wifi.exclamationmark")
-                .font(.system(size: 28, weight: .light))
+                .font(.title2.weight(.light))
                 .foregroundColor(Color("primary100").opacity(0.6))
             
             Text("Unable to load chart data")
-                .font(.system(size: 14, weight: .medium))
+                .font(.subheadline.weight(.medium))
                 .foregroundColor(.white)
             
             Button(action: {
@@ -249,9 +249,9 @@ struct CurrencyChartView: View {
             }) {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.caption2.weight(.semibold))
                     Text("Retry")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.caption.weight(.semibold))
                 }
                 .foregroundColor(.white)
                 .padding(.horizontal, 16)
@@ -274,11 +274,11 @@ struct CurrencyChartView: View {
             // Rate text with styled date
             HStack(spacing: 0) {
                 Text(rateMainText)
-                .font(.system(size: 18, weight: .semibold))
+                .font(.body.weight(.semibold))
                 .foregroundColor(Color("grey100"))
                 
                 Text(rateDateText)
-                    .font(.system(size: 18, weight: .semibold))
+                    .font(.body.weight(.semibold))
                     .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.7))
             }
             
@@ -287,17 +287,17 @@ struct CurrencyChartView: View {
                 HStack(spacing: 4) {
                     // SF Symbol arrow icon
                     Image(systemName: dailyChangeIcon)
-                        .font(.system(size: 12, weight: .medium))
+                        .font(.caption.weight(.medium))
                         .foregroundColor(dailyChangeColor)
                     
                     Text(changeText)
-                        .font(.system(size: 16, weight: .regular))
+                        .font(.callout)
                         .foregroundColor(dailyChangeColor)
                 }
             }
         }
         .padding(0)
-        .frame(width: 289, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
     
     private func formatRateDate(_ date: Date) -> String {
@@ -310,11 +310,11 @@ struct CurrencyChartView: View {
     private var rateInsightView: some View {
         HStack(spacing: 8) {
             Image(systemName: rateInsightIcon)
-                .font(.system(size: 14, weight: .medium))
+                .font(.subheadline.weight(.medium))
                 .foregroundColor(rateInsightColor)
             
             Text(rateInsightText)
-                .font(.system(size: 14, weight: .regular))
+                .font(.subheadline)
                 .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
                 .multilineTextAlignment(.leading)
         }
@@ -674,7 +674,7 @@ struct CurrencyLineChart: View {
                         if let rate = value.as(Double.self) {
                                 Text(String(format: "%.4f", rate))
                                     .foregroundStyle(Color("grey100"))
-                                    .font(.system(size: 12))
+                                    .font(.caption)
                         }
                     }
                 }
@@ -691,17 +691,24 @@ struct CurrencyLineChart: View {
                         .fill(Color.clear)
                         .contentShape(Rectangle())
                         .gesture(
-                            DragGesture(minimumDistance: 0)
+                            LongPressGesture(minimumDuration: 0.1)
+                                .sequenced(before: DragGesture(minimumDistance: 0))
                                 .onChanged { value in
-                                    guard let plotFrame = proxy.plotFrame else { return }
-                                    let x = value.location.x - geometry[plotFrame].origin.x
-                                    guard x >= 0, x <= geometry[plotFrame].width else { return }
-                                    // Convert x to date
-                                    if let date = proxy.value(atX: x, as: Date.self) {
-                                        // Find the closest rate
-                                        if let closest = rates.min(by: { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) }) {
-                                            selectedRate = closest
+                                    switch value {
+                                    case .second(true, let drag):
+                                        guard let drag = drag else { return }
+                                        guard let plotFrame = proxy.plotFrame else { return }
+                                        let x = drag.location.x - geometry[plotFrame].origin.x
+                                        guard x >= 0, x <= geometry[plotFrame].width else { return }
+                                        // Convert x to date
+                                        if let date = proxy.value(atX: x, as: Date.self) {
+                                            // Find the closest rate
+                                            if let closest = rates.min(by: { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) }) {
+                                                selectedRate = closest
+                                            }
                                         }
+                                    default:
+                                        break
                                     }
                                 }
                                 .onEnded { _ in
@@ -721,12 +728,13 @@ struct CurrencyLineChart: View {
             // Date label below chart
             HStack {
                 Text("A month ago")
-                    .font(.system(size: 12, weight: .regular))
+                    .font(.caption)
                     .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
                 
                 Spacer()
             }
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Exchange rate chart showing historical rates. High: \(String(format: "%.4f", highRate)), Median: \(String(format: "%.4f", medianRate)), Low: \(String(format: "%.4f", lowRate))")
         .accessibilityHint("Drag horizontally to explore rates on different dates")

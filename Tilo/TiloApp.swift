@@ -13,71 +13,14 @@ struct TiloApp: App {
             UITabBar.appearance().scrollEdgeAppearance = appearance
         }
         
-        // Mark early adopters for future grandfathering (v1.0 users get premium free)
-        if !UserDefaults.standard.bool(forKey: "hasLaunchedBefore") {
+        // Set up default currencies based on locale (only on first launch)
+        setupDefaultCurrenciesIfNeeded()
+        
+        // Early adopter flag for future grandfathering
+        if !UserDefaults.standard.bool(forKey: "isEarlyAdopter") {
             UserDefaults.standard.set(true, forKey: "isEarlyAdopter")
-            UserDefaults.standard.set(Date(), forKey: "firstLaunchDate")
-            UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
-            
-            // Set locale-based default currencies for first-time users
-            setLocaleBasedDefaults()
-        }
-    }
-    
-    private func setLocaleBasedDefaults() {
-        let locale = Locale.current
-        let regionCode = locale.region?.identifier ?? "US"
-        
-        // Map region to local currency and popular travel destination
-        let (localCurrency, travelCurrency) = getDefaultCurrencies(for: regionCode)
-        
-        // Set "from" currency (user's local currency)
-        UserDefaults.standard.set(localCurrency.name, forKey: "fromCurrencyName")
-        UserDefaults.standard.set(localCurrency.flag, forKey: "fromFlagEmoji")
-        UserDefaults.standard.set(localCurrency.code, forKey: "fromCurrencyCode")
-        
-        // Set "to" currency (popular travel destination)
-        UserDefaults.standard.set(travelCurrency.name, forKey: "toCurrencyName")
-        UserDefaults.standard.set(travelCurrency.flag, forKey: "toFlagEmoji")
-        UserDefaults.standard.set(travelCurrency.code, forKey: "toCurrencyCode")
-    }
-    
-    private func getDefaultCurrencies(for regionCode: String) -> (local: (code: String, name: String, flag: String), travel: (code: String, name: String, flag: String)) {
-        // Define currency data
-        let usd = (code: "USD", name: "US Dollar", flag: "🇺🇸")
-        let eur = (code: "EUR", name: "Euro", flag: "🇪🇺")
-        let gbp = (code: "GBP", name: "British Pound", flag: "🇬🇧")
-        let jpy = (code: "JPY", name: "Japanese Yen", flag: "🇯🇵")
-        let cny = (code: "CNY", name: "Chinese Yuan", flag: "🇨🇳")
-        let aud = (code: "AUD", name: "Australian Dollar", flag: "🇦🇺")
-        let cad = (code: "CAD", name: "Canadian Dollar", flag: "🇨🇦")
-        let chf = (code: "CHF", name: "Swiss Franc", flag: "🇨🇭")
-        let inr = (code: "INR", name: "Indian Rupee", flag: "🇮🇳")
-        let mxn = (code: "MXN", name: "Mexican Peso", flag: "🇲🇽")
-        let thb = (code: "THB", name: "Thai Baht", flag: "🇹🇭")
-        let sgd = (code: "SGD", name: "Singapore Dollar", flag: "🇸🇬")
-        
-        switch regionCode {
-        // North America
-        case "US": return (usd, eur)
-        case "CA": return (cad, usd)
-        case "MX": return (mxn, usd)
-            
-        // Europe
-        case "GB": return (gbp, eur)
-        case "DE", "FR", "IT", "ES", "NL", "BE", "AT", "PT", "IE", "FI", "GR": return (eur, gbp)
-        case "CH": return (chf, eur)
-            
-        // Asia Pacific
-        case "JP": return (jpy, usd)
-        case "CN", "HK": return (cny, jpy)
-        case "AU": return (aud, usd)
-        case "SG": return (sgd, mxn)
-        case "IN": return (inr, thb)
-        case "TH": return (thb, jpy)
-            
-        // Default: USD -> EUR (most common pair globally)
-        default: return (usd, eur)
+            UserDefaults.standard.set(Date(), forKey: "earlyAdopterInstallDate")
+            UserDefaults.standard.set(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0", forKey: "earlyAdopterVersion")
         }
     }
     
@@ -85,6 +28,127 @@ struct TiloApp: App {
         WindowGroup {
             AppContentView()
         }
+    }
+    
+    /// Sets up default currencies based on user's locale and popular travel destinations
+    private func setupDefaultCurrenciesIfNeeded() {
+        // Only set defaults if this is the first launch (no saved currency)
+        guard UserDefaults.standard.string(forKey: "fromCurrencyCode") == nil else { return }
+        
+        let localeCurrency = getLocaleCurrency()
+        let travelDestination = getPopularTravelDestination(for: localeCurrency.code)
+        
+        // Set "from" currency (user's local currency)
+        UserDefaults.standard.set(localeCurrency.name, forKey: "fromCurrencyName")
+        UserDefaults.standard.set(localeCurrency.flag, forKey: "fromFlagEmoji")
+        UserDefaults.standard.set(localeCurrency.code, forKey: "fromCurrencyCode")
+        
+        // Set "to" currency (popular travel destination)
+        UserDefaults.standard.set(travelDestination.name, forKey: "toCurrencyName")
+        UserDefaults.standard.set(travelDestination.flag, forKey: "toFlagEmoji")
+        UserDefaults.standard.set(travelDestination.code, forKey: "toCurrencyCode")
+    }
+    
+    /// Detects the user's local currency from device locale
+    private func getLocaleCurrency() -> (code: String, name: String, flag: String) {
+        let locale = Locale.current
+        let currencyCode = locale.currency?.identifier ?? "USD"
+        
+        // Map currency codes to names and flags
+        let currencyInfo: [String: (name: String, flag: String)] = [
+            "USD": ("US Dollar", "🇺🇸"),
+            "GBP": ("British Pound", "🇬🇧"),
+            "EUR": ("Euro", "🇪🇺"),
+            "CAD": ("Canadian Dollar", "🇨🇦"),
+            "AUD": ("Australian Dollar", "🇦🇺"),
+            "JPY": ("Japanese Yen", "🇯🇵"),
+            "CNY": ("Chinese Yuan", "🇨🇳"),
+            "INR": ("Indian Rupee", "🇮🇳"),
+            "KRW": ("South Korean Won", "🇰🇷"),
+            "MXN": ("Mexican Peso", "🇲🇽"),
+            "BRL": ("Brazilian Real", "🇧🇷"),
+            "CHF": ("Swiss Franc", "🇨🇭"),
+            "SEK": ("Swedish Krona", "🇸🇪"),
+            "NOK": ("Norwegian Krone", "🇳🇴"),
+            "DKK": ("Danish Krone", "🇩🇰"),
+            "NZD": ("New Zealand Dollar", "🇳🇿"),
+            "SGD": ("Singapore Dollar", "🇸🇬"),
+            "HKD": ("Hong Kong Dollar", "🇭🇰"),
+            "ZAR": ("South African Rand", "🇿🇦"),
+            "AED": ("UAE Dirham", "🇦🇪"),
+            "SAR": ("Saudi Riyal", "🇸🇦"),
+            "PLN": ("Polish Zloty", "🇵🇱"),
+            "THB": ("Thai Baht", "🇹🇭"),
+            "IDR": ("Indonesian Rupiah", "🇮🇩"),
+            "MYR": ("Malaysian Ringgit", "🇲🇾"),
+            "PHP": ("Philippine Peso", "🇵🇭"),
+            "TRY": ("Turkish Lira", "🇹🇷"),
+            "RUB": ("Russian Ruble", "🇷🇺"),
+            "ILS": ("Israeli Shekel", "🇮🇱"),
+            "CZK": ("Czech Koruna", "🇨🇿"),
+            "HUF": ("Hungarian Forint", "🇭🇺")
+        ]
+        
+        if let info = currencyInfo[currencyCode] {
+            return (currencyCode, info.name, info.flag)
+        }
+        
+        // Default to USD if currency not found
+        return ("USD", "US Dollar", "🇺🇸")
+    }
+    
+    /// Returns the most popular travel destination currency for a given home currency
+    private func getPopularTravelDestination(for homeCurrency: String) -> (code: String, name: String, flag: String) {
+        // Based on most popular international travel destinations by country
+        let popularDestinations: [String: (code: String, name: String, flag: String)] = [
+            // North America
+            "USD": ("MXN", "Mexican Peso", "🇲🇽"),        // US → Mexico (#1 destination)
+            "CAD": ("USD", "US Dollar", "🇺🇸"),          // Canada → USA
+            "MXN": ("USD", "US Dollar", "🇺🇸"),          // Mexico → USA
+            
+            // Europe
+            "GBP": ("EUR", "Euro", "🇪🇺"),               // UK → Spain/France/Italy
+            "EUR": ("GBP", "British Pound", "🇬🇧"),      // Eurozone → UK
+            "CHF": ("EUR", "Euro", "🇪🇺"),               // Switzerland → EU countries
+            "SEK": ("EUR", "Euro", "🇪🇺"),               // Sweden → Spain/Greece
+            "NOK": ("EUR", "Euro", "🇪🇺"),               // Norway → Spain/Greece
+            "DKK": ("EUR", "Euro", "🇪🇺"),               // Denmark → Spain
+            "PLN": ("EUR", "Euro", "🇪🇺"),               // Poland → Spain/Italy
+            "CZK": ("EUR", "Euro", "🇪🇺"),               // Czech → Croatia/Spain
+            "HUF": ("EUR", "Euro", "🇪🇺"),               // Hungary → Croatia/Italy
+            "RUB": ("TRY", "Turkish Lira", "🇹🇷"),       // Russia → Turkey
+            
+            // Asia Pacific
+            "JPY": ("USD", "US Dollar", "🇺🇸"),          // Japan → USA/Hawaii
+            "CNY": ("THB", "Thai Baht", "🇹🇭"),          // China → Thailand
+            "KRW": ("JPY", "Japanese Yen", "🇯🇵"),       // Korea → Japan
+            "AUD": ("IDR", "Indonesian Rupiah", "🇮🇩"),  // Australia → Bali
+            "NZD": ("AUD", "Australian Dollar", "🇦🇺"),  // NZ → Australia
+            "SGD": ("MYR", "Malaysian Ringgit", "🇲🇾"),  // Singapore → Malaysia
+            "HKD": ("JPY", "Japanese Yen", "🇯🇵"),       // Hong Kong → Japan
+            "INR": ("THB", "Thai Baht", "🇹🇭"),          // India → Thailand
+            "THB": ("JPY", "Japanese Yen", "🇯🇵"),       // Thailand → Japan
+            "IDR": ("SGD", "Singapore Dollar", "🇸🇬"),   // Indonesia → Singapore
+            "MYR": ("THB", "Thai Baht", "🇹🇭"),          // Malaysia → Thailand
+            "PHP": ("JPY", "Japanese Yen", "🇯🇵"),       // Philippines → Japan
+            
+            // Middle East
+            "AED": ("GBP", "British Pound", "🇬🇧"),      // UAE → UK
+            "SAR": ("EUR", "Euro", "🇪🇺"),               // Saudi → Europe
+            "ILS": ("EUR", "Euro", "🇪🇺"),               // Israel → Europe
+            "TRY": ("EUR", "Euro", "🇪🇺"),               // Turkey → Europe
+            
+            // Africa & South America
+            "ZAR": ("EUR", "Euro", "🇪🇺"),               // South Africa → Europe
+            "BRL": ("USD", "US Dollar", "🇺🇸")           // Brazil → USA
+        ]
+        
+        if let destination = popularDestinations[homeCurrency] {
+            return destination
+        }
+        
+        // Default: EUR as it's widely used for travel
+        return ("EUR", "Euro", "🇪🇺")
     }
 }
 

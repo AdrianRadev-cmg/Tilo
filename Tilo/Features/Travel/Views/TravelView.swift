@@ -57,12 +57,12 @@ struct TravelView: View {
                         // Title and subtitle
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Price Guide")
-                                .font(.system(size: 34, weight: .bold))
+                                .font(.largeTitle.bold())
                                 .foregroundColor(.white)
                                 .accessibilityAddTraits(.isHeader)
                             
                             Text("Popular conversions ready at a glance, perfect for quick decisions when shopping, dining, or exploring abroad.")
-                                .font(.system(size: 16, weight: .regular))
+                                .font(.callout)
                                 .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -101,22 +101,23 @@ struct ConversionTable: View {
     @State private var conversions: [(amount: Double, converted: Double)] = []
     @State private var exchangeRate: Double?
     @State private var isLoading = false
-    @State private var slideOffset: CGFloat = 0
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var currentLevel: Int = 0 // 0 = base level, 1 = higher values
-    @State private var showValueHighlight: Bool = false // For flash effect after flip
+    @State private var slideOffset: CGFloat = 0 // For horizontal slide animation
     @State private var showWidgetGuide: Bool = false
     @StateObject private var exchangeService = ExchangeRateService.shared
+    
+    private let totalLevels = 2 // Number of pages (common, higher)
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             tableContentView
-            flipHintView
+            pageIndicatorView
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Currency conversion table from \(fromCurrencyCode) to \(toCurrencyCode)")
-        .accessibilityHint("Tap right side for higher values, left side for lower values")
+        .accessibilityHint("Swipe left or right to see different amount ranges")
         .background(
             ZStack {
                 // Glass effect as base layer
@@ -159,66 +160,52 @@ struct ConversionTable: View {
         }
         .sheet(isPresented: $showWidgetGuide) {
             WidgetGuideView()
-                .presentationDetents([.medium])
+                .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
     }
     
-    // MARK: - Swipe Handling
+    // MARK: - Swipe Navigation
     
-    private func handleSwipe(translation: CGFloat) {
-        if translation < -50 && currentLevel < 1 {
-            // Swipe left - go to higher values
-            switchLevel(to: currentLevel + 1)
-        } else if translation > 50 && currentLevel > 0 {
-            // Swipe right - go to lower values
-            switchLevel(to: currentLevel - 1)
+    private func navigateToLevel(_ newLevel: Int) {
+        guard newLevel >= 0 && newLevel < totalLevels && newLevel != currentLevel else {
+            // Bounce back if at edge
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                slideOffset = 0
+            }
+            return
         }
-    }
-    
-    // MARK: - Swipe Animation
-    
-    private func switchLevel(to newLevel: Int) {
-        guard newLevel != currentLevel && newLevel >= 0 && newLevel <= 1 else { return }
         
         // Haptic feedback
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
         
         // Determine slide direction
-        let slideDirection: CGFloat = newLevel > currentLevel ? -1 : 1
+        let isMovingForward = newLevel > currentLevel
+        let screenWidth = UIScreen.main.bounds.width
         
-        // Animate out
-        withAnimation(.easeInOut(duration: 0.08)) {
-            slideOffset = slideDirection * 50
+        // Slide out
+        withAnimation(.easeIn(duration: 0.08)) {
+            slideOffset = isMovingForward ? -screenWidth : screenWidth
         }
         
-        // Change level and animate back
+        // Change level and slide in from opposite side
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
             currentLevel = newLevel
             
-            // Recalculate conversions
+            // Update conversions
             Task {
                 await updateConversionsForCurrentLevel()
             }
             
-            // Reset from opposite side
-            slideOffset = -slideDirection * 50
+            // Position on opposite side (no animation)
+            slideOffset = isMovingForward ? screenWidth : -screenWidth
             
-            withAnimation(.easeInOut(duration: 0.08)) {
+            // Slide in
+            withAnimation(.easeOut(duration: 0.08)) {
                 slideOffset = 0
-            }
-            
-            // Trigger highlight effect
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-                withAnimation(.easeIn(duration: 0.1)) {
-                    showValueHighlight = true
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    withAnimation(.easeOut(duration: 0.3)) {
-                        showValueHighlight = false
-                    }
-                }
             }
         }
     }
@@ -361,7 +348,8 @@ struct ConversionTable: View {
         formatter.numberStyle = .decimal
         formatter.maximumFractionDigits = 2
         formatter.minimumFractionDigits = 0
-        formatter.groupingSeparator = Locale.current.groupingSeparator
+        // Let formatter use locale's grouping separator automatically
+        formatter.usesGroupingSeparator = true
         
         // For very large amounts or whole numbers, don't show decimals
         if amount >= 1000 || amount == floor(amount) {
@@ -388,76 +376,108 @@ struct ConversionTable: View {
     }
     
     private var conversionRowsView: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(conversions.enumerated()), id: \.offset) { index, conversion in
-                ConversionRowView(
-                    fromAmount: formatAmount(conversion.amount, for: fromCurrencyCode),
-                    toAmount: formatAmount(conversion.converted, for: toCurrencyCode),
-                    fromCode: fromCurrencyCode,
-                    toCode: toCurrencyCode,
-                    fromSymbol: getCurrencySymbol(for: fromCurrencyCode),
-                    toSymbol: getCurrencySymbol(for: toCurrencyCode),
-                    isAlternate: index % 2 != 0,
-                    isHighlighted: showValueHighlight
-                )
-            }
+        let fromSymbol = getCurrencySymbol(for: fromCurrencyCode)
+        let toSymbol = getCurrencySymbol(for: toCurrencyCode)
+        
+        return ForEach(Array(conversions.enumerated()), id: \.offset) { index, conversion in
+            ConversionRowView(
+                fromText: formatWithSymbol(symbol: fromSymbol, amount: formatAmount(conversion.amount, for: fromCurrencyCode)),
+                toText: formatWithSymbol(symbol: toSymbol, amount: formatAmount(conversion.converted, for: toCurrencyCode)),
+                isAlternate: index % 2 != 0
+            )
         }
         .offset(x: slideOffset)
         .contentShape(Rectangle())
         .gesture(
             DragGesture(minimumDistance: 20)
                 .onEnded { value in
-                    handleSwipe(translation: value.translation.width)
+                    let horizontalAmount = value.translation.width
+                    let threshold: CGFloat = 50
+                    
+                    if horizontalAmount < -threshold {
+                        // Swiped left - go to higher values
+                        navigateToLevel(currentLevel + 1)
+                    } else if horizontalAmount > threshold {
+                        // Swiped right - go to lower values
+                        navigateToLevel(currentLevel - 1)
+                    } else {
+                        // Not enough swipe - bounce back
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                            slideOffset = 0
+                        }
+                    }
                 }
         )
     }
     
-    // Get currency symbol for display
     private func getCurrencySymbol(for code: String) -> String {
         switch code {
-        case "USD", "CAD", "AUD", "NZD", "SGD", "HKD": return "$"
+        case "USD", "CAD", "AUD", "NZD", "SGD", "HKD", "MXN", "ARS", "CLP", "COP": return "$"
         case "EUR": return "€"
         case "GBP": return "£"
         case "JPY", "CNY": return "¥"
-        case "CHF": return "Fr"
-        case "SEK", "NOK", "DKK", "ISK": return "Kr"
         case "KRW": return "₩"
         case "INR": return "₹"
         case "RUB": return "₽"
         case "THB": return "฿"
+        case "CHF": return "Fr"
+        case "SEK", "NOK", "DKK", "ISK": return "kr"
         case "PLN": return "zł"
-        case "BRL": return "R$"
-        case "MXN": return "$"
-        case "ZAR": return "R"
+        case "CZK": return "Kč"
+        case "HUF": return "Ft"
         case "TRY": return "₺"
+        case "ZAR": return "R"
+        case "BRL": return "R$"
         case "ILS": return "₪"
+        case "AED", "SAR", "QAR": return "﷼"
         case "PHP": return "₱"
         case "MYR": return "RM"
         case "IDR": return "Rp"
         case "VND": return "₫"
+        case "EGP": return "E£"
+        case "NGN": return "₦"
+        case "KES", "UGX", "TZS": return "Sh"
+        case "PKR", "LKR", "NPR": return "Rs"
         default: return code
         }
     }
     
-    private var flipHintView: some View {
+    // Helper to determine if symbol needs a space (letter-based symbols)
+    private func needsSpaceAfterSymbol(_ symbol: String) -> Bool {
+        // Single currency symbols don't need space
+        let noSpaceSymbols: Set<String> = ["$", "€", "£", "¥", "₩", "₹", "₽", "฿", "₺", "₪", "﷼", "₱", "₫", "₦"]
+        return !noSpaceSymbols.contains(symbol)
+    }
+    
+    private func formatWithSymbol(symbol: String, amount: String) -> String {
+        if needsSpaceAfterSymbol(symbol) {
+            return "\(symbol) \(amount)"
+        }
+        return "\(symbol)\(amount)"
+    }
+    
+    private var pageIndicatorView: some View {
         VStack(spacing: 8) {
-            // Page indicator dots
+            // Page dots
             HStack(spacing: 8) {
-                ForEach(0..<2, id: \.self) { index in
+                ForEach(0..<totalLevels, id: \.self) { index in
                     Circle()
-                        .fill(currentLevel == index ? Color.white : Color.white.opacity(0.3))
+                        .fill(index == currentLevel ? Color.white : Color.white.opacity(0.3))
                         .frame(width: 8, height: 8)
+                        .scaleEffect(index == currentLevel ? 1.0 : 0.8)
+                        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: currentLevel)
                 }
             }
             
-            // Label
+            // Label showing current page
             Text(currentLevel == 0 ? "Common amounts" : "Higher amounts")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundColor(.white.opacity(0.7))
+                .font(.caption.weight(.medium))
+                .foregroundColor(.white.opacity(0.6))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
-        .accessibilityHidden(true)
+        .accessibilityLabel("Page \(currentLevel + 1) of \(totalLevels): \(currentLevel == 0 ? "Common amounts" : "Higher amounts")")
+        .accessibilityHint("Swipe left or right to change amount ranges")
     }
     
     // MARK: - Loading & Error States
@@ -472,11 +492,11 @@ struct ConversionTable: View {
     private var errorStateView: some View {
         VStack(spacing: 12) {
             Image(systemName: "wifi.exclamationmark")
-                .font(.system(size: 32, weight: .light))
+                .font(.title.weight(.light))
                 .foregroundColor(Color("primary100").opacity(0.6))
             
             Text("Unable to load rates")
-                .font(.system(size: 16, weight: .medium))
+                .font(.callout.weight(.medium))
                 .foregroundColor(.white)
             
             Button(action: {
@@ -484,9 +504,9 @@ struct ConversionTable: View {
             }) {
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(.caption.weight(.semibold))
                     Text("Retry")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.subheadline.weight(.semibold))
                 }
                 .foregroundColor(.white)
                 .padding(.horizontal, 20)
@@ -522,7 +542,7 @@ struct ConversionTable: View {
         ZStack(alignment: .center) {
             // From flag (top-left, front)
             Text(fromFlagEmoji)
-                .font(.system(size: 24))
+                .font(.title2)
                 .frame(width: 36, height: 36)
                 .glassEffect()
                 .overlay(
@@ -535,7 +555,7 @@ struct ConversionTable: View {
             
             // To flag (bottom-right, behind)
             Text(toFlagEmoji)
-                .font(.system(size: 24))
+                .font(.title2)
                 .frame(width: 36, height: 36)
                 .glassEffect()
                 .overlay(
@@ -553,22 +573,22 @@ struct ConversionTable: View {
             // Currency codes with arrow
             HStack(spacing: 8) {
                 Text(fromCurrencyCode)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.title3.weight(.semibold))
                     .foregroundColor(Color("grey100"))
                 
                 Text("→")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.callout.weight(.medium))
                     .foregroundColor(Color("grey100"))
                 
                 Text(toCurrencyCode)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.title3.weight(.semibold))
                     .foregroundColor(Color("grey100"))
             }
             
             // Rate info
             if let rate = exchangeRate {
                 Text("1 \(fromCurrencyCode) = \(String(format: "%.4f", rate)) \(toCurrencyCode)")
-                    .font(.system(size: 14, weight: .regular))
+                    .font(.subheadline)
                     .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.7))
             }
         }
@@ -577,7 +597,7 @@ struct ConversionTable: View {
     private var addWidgetButtonView: some View {
         Button(action: { showWidgetGuide = true }) {
             Image(systemName: "plus.rectangle.on.rectangle")
-                .font(.system(size: 20, weight: .regular))
+                .font(.title3)
                 .foregroundStyle(Color("grey100"))
                 .frame(width: 44, height: 44)
                 .glassEffect()
@@ -600,29 +620,29 @@ struct ConversionTable: View {
             // Flag-based gradient background
             flagGradientBackground
             
-            VStack(alignment: .leading, spacing: 0) {
-                // Header with currency codes (no flags)
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Text(fromCurrencyCode)
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(.white)
+                VStack(alignment: .leading, spacing: 0) {
+                    // Header with currency codes (no flags)
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 8) {
+                            Text(fromCurrencyCode)
+                                .font(.title3.weight(.semibold))
+                                .foregroundColor(.white)
+                            
+                            Text("→")
+                                .font(.callout.weight(.medium))
+                                .foregroundColor(.white)
+                            
+                            Text(toCurrencyCode)
+                                .font(.title3.weight(.semibold))
+                                .foregroundColor(.white)
+                        }
                         
-                        Text("→")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.white)
-                        
-                        Text(toCurrencyCode)
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundColor(.white)
+                        if let rate = exchangeRate {
+                            Text("1 \(fromCurrencyCode) = \(String(format: "%.4f", rate)) \(toCurrencyCode)")
+                                .font(.subheadline)
+                                .foregroundColor(.white.opacity(0.7))
+                        }
                     }
-                    
-                    if let rate = exchangeRate {
-                        Text("1 \(fromCurrencyCode) = \(String(format: "%.4f", rate)) \(toCurrencyCode)")
-                            .font(.system(size: 14, weight: .regular))
-                            .foregroundColor(.white.opacity(0.7))
-                    }
-                }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 14)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -632,7 +652,7 @@ struct ConversionTable: View {
                 ForEach(Array(conversions.enumerated()), id: \.offset) { index, conversion in
                     HStack(spacing: 0) {
                         Text(formatAmount(conversion.amount, for: fromCurrencyCode))
-                            .font(.system(size: 24, weight: .regular))
+                            .font(.title2)
                             .foregroundColor(.white)
                         
                         // Dotted leader line
@@ -651,7 +671,7 @@ struct ConversionTable: View {
                         .frame(height: 24)
                         
                         Text(formatAmount(conversion.converted, for: toCurrencyCode))
-                            .font(.system(size: 24, weight: .semibold))
+                            .font(.title2.weight(.semibold))
                             .foregroundColor(Color("primary100"))
                     }
                     .padding(.horizontal, 16)
@@ -665,7 +685,7 @@ struct ConversionTable: View {
                 HStack {
                     Spacer()
                     Text("Made with Tilo")
-                        .font(.system(size: 11, weight: .medium))
+                        .font(.caption2.weight(.medium))
                         .foregroundColor(.white.opacity(0.35))
                     Spacer()
                 }
@@ -845,33 +865,16 @@ struct ConversionTable: View {
 // MARK: - Conversion Row View
 
 private struct ConversionRowView: View {
-    let fromAmount: String
-    let toAmount: String
-    let fromCode: String
-    let toCode: String
-    let fromSymbol: String
-    let toSymbol: String
+    let fromText: String
+    let toText: String
     let isAlternate: Bool
-    let isHighlighted: Bool
-    
-    // Highlight color for the flash effect
-    private var highlightColor: Color {
-        Color(white: 0.55) // Subtle grey flash
-    }
-    
-    // Check if symbol is letter-based (needs space)
-    private func needsSpace(_ symbol: String) -> Bool {
-        // Letter-based symbols that need a space
-        let letterSymbols = ["Fr", "Kr", "zł", "R$", "R", "RM", "Rp"]
-        return letterSymbols.contains(symbol) || symbol.count > 1
-    }
     
     var body: some View {
         HStack(spacing: 0) {
             // From amount with symbol
-            Text(needsSpace(fromSymbol) ? "\(fromSymbol) \(fromAmount)" : "\(fromSymbol)\(fromAmount)")
-                .font(.system(size: 24, weight: .regular))
-                .foregroundColor(isHighlighted ? highlightColor : .white)
+            Text(fromText)
+                .font(.title2)
+                .foregroundColor(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
             
@@ -880,17 +883,18 @@ private struct ConversionRowView: View {
                 .accessibilityHidden(true)
             
             // To amount with symbol
-            Text(needsSpace(toSymbol) ? "\(toSymbol) \(toAmount)" : "\(toSymbol)\(toAmount)")
-                .font(.system(size: 24, weight: .semibold))
-                .foregroundColor(isHighlighted ? highlightColor : Color("primary100"))
+            Text(toText)
+                .font(.title2.weight(.semibold))
+                .foregroundColor(Color("primary100"))
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(isAlternate ? Color.white.opacity(0.03) : Color.clear)
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(fromSymbol)\(fromAmount) \(fromCode) equals \(toSymbol)\(toAmount) \(toCode)")
+        .accessibilityLabel("\(fromText) equals \(toText)")
     }
 }
 
@@ -916,94 +920,145 @@ private struct DottedLineView: View {
 struct WidgetGuideView: View {
     @Environment(\.dismiss) private var dismiss
     
+    private let steps: [(icon: String, title: String, description: String)] = [
+        ("hand.tap", "Long press on Home Screen", "Touch and hold an empty area until your apps start to jiggle"),
+        ("plus.circle", "Tap + and search \"Tilo\"", "Find Tilo in the widget gallery and choose your preferred size"),
+        ("checkmark.circle", "Tap \"Add Widget\"", "Position it where you like, then tap Done to finish")
+    ]
+    
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            VStack(spacing: 0) {
-                // Widget screenshot image
-                Image("widget_grab_1")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: 280)
-                    .clipShape(RoundedRectangle(cornerRadius: 20))
-                    .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 6)
-                    .padding(.top, 64)
-                
-                // Title
-                Text("Add Tilo Widget")
-                    .font(.system(size: 24, weight: .bold))
-                    .foregroundColor(Color("grey100"))
-                    .padding(.top, 32)
-                
-                // Step-by-step instructions
-                VStack(alignment: .leading, spacing: 20) {
-                    StepRow(number: 1, text: "Long-press on your home screen")
-                    StepRow(number: 2, text: "Tap the + button in the top corner")
-                    StepRow(number: 3, text: "Search for \"Tilo\" and add the widget")
-                }
-                .padding(.top, 24)
-                .padding(.horizontal, 8)
-                
+        VStack(spacing: 0) {
+            // Close button at top
+            HStack {
                 Spacer()
-                
-                // Got it button (pinned to bottom)
-                Button(action: { dismiss() }) {
-                    Text("Got it")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(Color("grey100"))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 12)
-                                .fill(.ultraThinMaterial)
-                        )
+                Button {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.body.weight(.semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 40, height: 40)
+                        .background(Color("grey800"))
+                        .background(.ultraThickMaterial)
+                        .glassEffect()
                         .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
+                            Circle()
+                                .stroke(.white.opacity(0.2), lineWidth: 0.8)
                         )
+                        .clipShape(Circle())
                 }
-                .buttonStyle(.plain)
-                .padding(.top, 32)
             }
-            .padding(24)
-            
-            // Close button
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(width: 32, height: 32)
-                    .background(Color("grey700"))
-                    .clipShape(Circle())
-            }
+            .padding(.horizontal, 24)
             .padding(.top, 16)
-            .padding(.trailing, 16)
+            
+            // Scrollable content
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Widget preview image
+                    Image("widget_grab_1")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxWidth: 360)
+                        .clipShape(RoundedRectangle(cornerRadius: 24))
+                        .shadow(color: .black.opacity(0.4), radius: 20, x: 0, y: 10)
+                        .padding(.top, 24)
+                    
+                    // Header
+                    VStack(spacing: 8) {
+                        Text("Add Tilo Widget")
+                            .font(.title2.bold())
+                            .foregroundColor(Color("grey100"))
+                        
+                        Text("Get quick currency conversions right on your Home Screen")
+                            .font(.subheadline)
+                            .foregroundColor(Color("grey400"))
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, 48)
+                    
+                    // Steps
+                    VStack(spacing: 28) {
+                        ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
+                            WidgetGuideStepRow(
+                                stepNumber: index + 1,
+                                icon: step.icon,
+                                title: step.title,
+                                description: step.description
+                            )
+                        }
+                    }
+                    .padding(.top, 32)
+                }
+                .padding(.horizontal, 24)
+            }
+            
+            Spacer()
+            
+            // Got it button pinned to bottom
+            Button(action: { dismiss() }) {
+                Text("Got it")
+                    .font(.body.weight(.semibold))
+                    .foregroundColor(Color("grey100"))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(.ultraThinMaterial)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.white.opacity(0.15), lineWidth: 0.5)
+                    )
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 24)
         }
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .background(Color("background"))
     }
 }
 
-// MARK: - Step Row
+// MARK: - Widget Guide Step Row
 
-private struct StepRow: View {
-    let number: Int
-    let text: String
+private struct WidgetGuideStepRow: View {
+    let stepNumber: Int
+    let icon: String
+    let title: String
+    let description: String
     
     var body: some View {
-        HStack(spacing: 16) {
-            Text("\(number)")
-                .font(.system(size: 14, weight: .bold))
-                .foregroundColor(Color("primary100"))
-                .frame(width: 28, height: 28)
-                .background(
-                    Circle()
-                        .fill(Color("primary500").opacity(0.3))
-                )
+        HStack(alignment: .top, spacing: 16) {
+            // Step number with glass effect
+            ZStack {
+                Circle()
+                    .glassEffect()
+                    .frame(width: 36, height: 36)
+                
+                Text("\(stepNumber)")
+                    .font(.callout.bold())
+                    .foregroundColor(Color("primary100"))
+            }
             
-            Text(text)
-                .font(.system(size: 16, weight: .regular))
-                .foregroundColor(Color("grey200"))
+            // Content
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Image(systemName: icon)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(Color("primary100"))
+                    
+                    Text(title)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(Color("grey100"))
+                }
+                
+                Text(description)
+                    .font(.subheadline)
+                    .foregroundColor(Color("grey400"))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            
+            Spacer(minLength: 0)
         }
     }
 }

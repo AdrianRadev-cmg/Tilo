@@ -7,7 +7,7 @@ struct SwapButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: "arrow.up.arrow.down.circle") 
-                .font(.system(size: 18, weight: .regular))
+                .font(.body)
                 .foregroundStyle(Color("grey100"))
                 .frame(width: 44, height: 44) // Larger hit area
                 .glassEffect()

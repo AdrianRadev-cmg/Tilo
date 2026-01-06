@@ -122,6 +122,7 @@ struct CurrencyCard: View {
             Text(currencyName)
                 .font(.title2)
                 .foregroundColor(.white)
+                .fixedSize(horizontal: false, vertical: true) // Allow vertical growth for Dynamic Type
             
             // Unified HStack Structure
             HStack(spacing: 16) {
@@ -130,52 +131,61 @@ struct CurrencyCard: View {
                         .font(.callout.weight(.medium))
                         .foregroundColor(.white)
 
-                    if isAmountFocused && isEditable {
-                        TextField("", text: $amountInput)
+                    // Use ZStack to keep TextField and Text same size - prevents height jumping
+                    ZStack(alignment: .leading) {
+                        // Invisible text to maintain consistent height (matches the visible text)
+                        Text("0,000,000")
                             .font(.title2.weight(.semibold))
-                            .foregroundColor(.white)
-                            .keyboardType(.decimalPad)
-                            .tint(.white)
-                            .focused($amountFieldIsFocused)
-                            .lineLimit(1)
-                            .toolbar {
-                                ToolbarItemGroup(placement: .keyboard) {
-                                    Spacer()
-                                    Button("Done") {
+                            .foregroundColor(.clear)
+                            .accessibilityHidden(true)
+                        
+                        if isAmountFocused && isEditable {
+                            TextField("", text: $amountInput)
+                                .font(.title2.weight(.semibold))
+                                .foregroundColor(.white)
+                                .keyboardType(.decimalPad)
+                                .tint(.white)
+                                .focused($amountFieldIsFocused)
+                                .lineLimit(1)
+                                .toolbar {
+                                    ToolbarItemGroup(placement: .keyboard) {
+                                        Spacer()
+                                        Button("Done") {
+                                            isAmountFocused = false
+                                            amountFieldIsFocused = false
+                                            onEditingChanged?(false)
+                                        }
+                                        .font(.body.weight(.semibold))
+                                    }
+                                }
+                                .onChange(of: amountInput) { oldValue, newValue in
+                                    handleAmountInputChange(oldValue: oldValue, newValue: newValue)
+                                }
+                                .onChange(of: amountFieldIsFocused) { _, newValue in
+                                    // Sync state when keyboard is dismissed externally (e.g., by scrolling)
+                                    if !newValue && isAmountFocused {
                                         isAmountFocused = false
-                                        amountFieldIsFocused = false
                                         onEditingChanged?(false)
                                     }
-                                    .font(.body.weight(.semibold))
                                 }
-                            }
-                            .onChange(of: amountInput) { oldValue, newValue in
-                                handleAmountInputChange(oldValue: oldValue, newValue: newValue)
-                            }
-                            .onChange(of: amountFieldIsFocused) { _, newValue in
-                                // Sync state when keyboard is dismissed externally (e.g., by scrolling)
-                                if !newValue && isAmountFocused {
-                                    isAmountFocused = false
-                                    onEditingChanged?(false)
-                                }
-                            }
-                    } else {
-                        Text(amountInput.isEmpty ? amount : amountInput)
-                            .font(.title2.weight(.semibold))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .accessibilityHint("Tap to edit amount")
+                        } else {
+                            Text(amountInput.isEmpty ? amount : amountInput)
+                                .font(.title2.weight(.semibold))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .accessibilityHint("Tap to edit amount")
+                        }
                     }
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
                 .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
                 .overlay {
-                    // Show stroke only on error
-                        if isInputError {
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color(red: 0.8, green: 0.2, blue: 0.2), lineWidth: 1)
+                    // Show stroke only on error - using overlay doesn't affect layout
+                    if isInputError {
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color(red: 0.8, green: 0.2, blue: 0.2), lineWidth: 1)
                     }
                 }
                 .glassEffect()
@@ -204,17 +214,22 @@ struct CurrencyCard: View {
                 )
             }
             
-            if isInputError {
-                Text("Invalid amount")
-                    .font(.footnote)
-                    .foregroundColor(Color(red: 0.8, green: 0.2, blue: 0.2))
-                    .padding(.leading, 8)
+            // Error/exchange rate row - use ZStack so both options occupy same space
+            ZStack(alignment: .leading) {
+                // Exchange rate info - always rendered to maintain consistent height
+                Text(exchangeRateInfo)
+                    .font(.callout)
+                    .foregroundColor(isInputError ? .clear : Color(red: 0.85, green: 0.85, blue: 0.85))
+                    .accessibilityLabel("Exchange rate: \(exchangeRateInfo)")
+                
+                // Error text - shown on top when error, same font for same height
+                if isInputError {
+                    Text("Invalid amount")
+                        .font(.callout)
+                        .foregroundColor(Color(red: 0.8, green: 0.2, blue: 0.2))
+                }
             }
-            
-            Text(exchangeRateInfo)
-                .font(.callout)
-                .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
-                .accessibilityLabel("Exchange rate: \(exchangeRateInfo)")
+            .fixedSize(horizontal: false, vertical: true) // Allow vertical growth for Dynamic Type
         }
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge) // Cap scaling to prevent layout breaking
         .accessibilityElement(children: .contain)

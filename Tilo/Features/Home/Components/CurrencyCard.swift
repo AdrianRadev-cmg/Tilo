@@ -130,47 +130,55 @@ struct CurrencyCard: View {
                         .font(.callout.weight(.medium))
                         .foregroundColor(.white)
 
-                    if isAmountFocused && isEditable {
-                        TextField("", text: $amountInput)
+                    // Use ZStack to prevent layout jumping when switching between TextField and Text
+                    ZStack(alignment: .leading) {
+                        // Hidden text to maintain consistent height
+                        Text("0")
                             .font(.title2.weight(.semibold))
-                            .foregroundColor(.white)
-                            .keyboardType(.decimalPad)
-                            .tint(.white)
-                            .focused($amountFieldIsFocused)
-                            .lineLimit(1)
-                            .toolbar {
-                                ToolbarItemGroup(placement: .keyboard) {
-                                    Spacer()
-                                    Button("Done") {
+                            .foregroundColor(.clear)
+                        
+                        if isAmountFocused && isEditable {
+                            TextField("", text: $amountInput)
+                                .font(.title2.weight(.semibold))
+                                .foregroundColor(.white)
+                                .keyboardType(.decimalPad)
+                                .tint(.white)
+                                .focused($amountFieldIsFocused)
+                                .lineLimit(1)
+                                .toolbar {
+                                    ToolbarItemGroup(placement: .keyboard) {
+                                        Spacer()
+                                        Button("Done") {
+                                            isAmountFocused = false
+                                            amountFieldIsFocused = false
+                                            onEditingChanged?(false)
+                                        }
+                                        .font(.body.weight(.semibold))
+                                    }
+                                }
+                                .onChange(of: amountInput) { oldValue, newValue in
+                                    handleAmountInputChange(oldValue: oldValue, newValue: newValue)
+                                }
+                                .onChange(of: amountFieldIsFocused) { _, newValue in
+                                    // Sync state when keyboard is dismissed externally (e.g., by scrolling)
+                                    if !newValue && isAmountFocused {
                                         isAmountFocused = false
-                                        amountFieldIsFocused = false
                                         onEditingChanged?(false)
                                     }
-                                    .font(.body.weight(.semibold))
                                 }
-                            }
-                            .onChange(of: amountInput) { oldValue, newValue in
-                                handleAmountInputChange(oldValue: oldValue, newValue: newValue)
-                            }
-                            .onChange(of: amountFieldIsFocused) { _, newValue in
-                                // Sync state when keyboard is dismissed externally (e.g., by scrolling)
-                                if !newValue && isAmountFocused {
-                                    isAmountFocused = false
-                                    onEditingChanged?(false)
-                                }
-                            }
-                    } else {
-                        Text(amountInput.isEmpty ? amount : amountInput)
-                            .font(.title2.weight(.semibold))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .accessibilityHint("Tap to edit amount")
+                        } else {
+                            Text(amountInput.isEmpty ? amount : amountInput)
+                                .font(.title2.weight(.semibold))
+                                .foregroundColor(.white)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .accessibilityHint("Tap to edit amount")
+                        }
                     }
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
-                .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 44, alignment: .leading) // Fixed minimum height
                 .overlay {
                     // Show stroke only on error
                         if isInputError {
@@ -183,7 +191,8 @@ struct CurrencyCard: View {
                 .accessibilityLabel("Amount to convert: \(currencyName)")
                 .contentShape(Rectangle())
                 .onTapGesture {
-                    if isEditable && !isAmountFocused && isCurrentlyActive {
+                    // Allow tapping to switch focus between cards
+                    if isEditable && !isAmountFocused {
                         // Clear the input when user taps to edit
                         amountInput = ""
                         isInputError = false
@@ -191,7 +200,7 @@ struct CurrencyCard: View {
                         onEditingChanged?(true)
                         
                         // Focus the text field to show keyboard
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                             amountFieldIsFocused = true
                         }
                     }

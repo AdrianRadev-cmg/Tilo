@@ -1,9 +1,5 @@
 import SwiftUI
 
-// MARK: - Fixed Card Height Constant
-// This MUST match the height used in HomeView for swap button positioning
-let kCurrencyCardHeight: CGFloat = 156
-
 struct CurrencyCard: View {
     // Properties
     @Binding var currencyName: String
@@ -30,9 +26,24 @@ struct CurrencyCard: View {
     @State private var isAmountFocused: Bool = false
     @State private var amountInput: String = ""
     @FocusState private var amountFieldIsFocused: Bool
-    @State private var isInputError: Bool = false
-    @State private var showCurrencySelector: Bool = false
-    @State private var sheetDetent: PresentationDetent = .large
+    @State private var isInputError: Bool = false // State for error tracking
+    @State private var showCurrencySelector: Bool = false // Add state for currency selector
+    @State private var sheetDetent: PresentationDetent = .large // Default to expanded
+    
+    // Helper to format the input string
+    private func formatAmount(_ string: String) -> String? {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal // Use decimal style
+        formatter.usesGroupingSeparator = true // Add commas
+        formatter.minimumFractionDigits = 2 // Ensure 2 decimal places
+        formatter.maximumFractionDigits = 2
+        
+        // Try converting string to Decimal (better for currency) then format
+        if let number = Decimal(string: string.replacingOccurrences(of: formatter.groupingSeparator, with: "")) { // Remove existing commas before conversion
+            return formatter.string(from: number as NSDecimalNumber)
+        }
+        return nil // Return nil if input is not a valid number
+    }
     
     // Locale-aware separators
     private var decimalSeparator: String {
@@ -44,24 +55,34 @@ struct CurrencyCard: View {
     }
     
     // Helper to handle amount input changes
+    // Formats with locale-appropriate grouping separators (commas/dots)
     private func handleAmountInputChange(oldValue: String, newValue: String) {
+        // Remove any existing grouping separators (locale-aware)
         let cleanInput = newValue.replacingOccurrences(of: groupingSeparator, with: "")
+        
+        // Get the decimal separator character
         let decimalChar = Character(decimalSeparator)
+        
+        // Only allow digits and the locale's decimal separator
         let filtered = cleanInput.filter { $0.isNumber || $0 == decimalChar }
         
+        // Prevent multiple decimal separators
         let decimalCount = filtered.filter { $0 == decimalChar }.count
         if decimalCount > 1 {
             amountInput = oldValue
             return
         }
         
+        // Convert to Double using locale-aware parsing
         let normalizedForParsing = filtered.replacingOccurrences(of: decimalSeparator, with: ".")
         
         if let doubleValue = Double(normalizedForParsing) {
+            // Split into integer and decimal parts
             let parts = filtered.split(separator: decimalChar, maxSplits: 1, omittingEmptySubsequences: false)
             let integerPart = String(parts[0])
             let decimalPart = parts.count > 1 ? String(parts[1]) : nil
             
+            // Format integer part with grouping separator if >= 1000
             let formattedInteger: String
             if let intValue = Int(integerPart), intValue >= 1000 {
                 let formatter = NumberFormatter()
@@ -72,6 +93,7 @@ struct CurrencyCard: View {
                 formattedInteger = integerPart
             }
             
+            // Reconstruct with decimal if present
             if let decimal = decimalPart {
                 amountInput = formattedInteger + decimalSeparator + decimal
             } else if filtered.hasSuffix(String(decimalChar)) {
@@ -80,9 +102,10 @@ struct CurrencyCard: View {
                 amountInput = formattedInteger
             }
             
+            // Trigger conversion
             if doubleValue > 0 {
                 onAmountChange?(doubleValue)
-            } else if filtered.isEmpty {
+            } else {
                 onAmountChange?(0)
             }
         } else if filtered.isEmpty {
@@ -93,91 +116,101 @@ struct CurrencyCard: View {
         }
     }
     
-    var body: some View {
-        // FIXED HEIGHT CONTAINER - This never changes
-        VStack(alignment: .leading, spacing: 0) {
-            // Row 1: Currency name - FIXED 28pt height
-            Text(currencyName)
-                .font(.system(size: 22, weight: .regular))
+    // MARK: - Extracted Views (helps compiler with type-checking)
+    
+    @ViewBuilder
+    private var amountInputField: some View {
+        if isAmountFocused && isEditable {
+            TextField("", text: $amountInput)
+                .font(.system(size: 22, weight: .semibold))
+                .foregroundColor(.white)
+                .keyboardType(.decimalPad)
+                .tint(.white)
+                .focused($amountFieldIsFocused)
+                .lineLimit(1)
+                .frame(height: 28) // Fixed height prevents vertical jump when comma added
+                .toolbar {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Done") {
+                            amountInput = "" // Clear so it shows formatted amount
+                            isAmountFocused = false
+                            amountFieldIsFocused = false
+                            onEditingChanged?(false)
+                        }
+                        .font(.system(size: 17, weight: .semibold))
+                    }
+                }
+                .onChange(of: amountInput) { oldValue, newValue in
+                    handleAmountInputChange(oldValue: oldValue, newValue: newValue)
+                }
+                .onChange(of: amountFieldIsFocused) { _, newValue in
+                    // Sync state when keyboard is dismissed externally (e.g., by scrolling)
+                    if !newValue && isAmountFocused {
+                        amountInput = "" // Clear so it shows formatted amount
+                        isAmountFocused = false
+                        onEditingChanged?(false)
+                    }
+                }
+        } else {
+            Text(amount) // Always show the formatted amount prop when not editing
+                .font(.system(size: 22, weight: .semibold))
                 .foregroundColor(.white)
                 .lineLimit(1)
-                .frame(height: 28, alignment: .leading)
+                .frame(height: 28) // Fixed height matches TextField
+                .truncationMode(.tail)
+                .accessibilityHint("Tap to edit amount")
+        }
+    }
+    
+    @ViewBuilder
+    private var amountContainer: some View {
+        HStack(alignment: .center, spacing: 4) {
+            Text(currencySymbol)
+                .font(.system(size: 22, weight: .medium))
+                .foregroundColor(.white)
+                .frame(height: 28) // Fixed height matches amount
             
-            Spacer().frame(height: 16)
+            amountInputField
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: 44)
+        .overlay {
+            if isInputError {
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color(red: 0.8, green: 0.2, blue: 0.2), lineWidth: 1)
+            }
+        }
+        .glassEffect()
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .accessibilityLabel("Amount to convert: \(currencyName)")
+        .contentShape(Rectangle())
+        .onTapGesture {
+            // Allow tap even if another card is active - this enables switching between cards
+            if isEditable && !isAmountFocused {
+                amountInput = ""
+                isInputError = false
+                isAmountFocused = true
+                onEditingChanged?(true) // This will deactivate the other card via parent
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    amountFieldIsFocused = true
+                }
+            }
+        }
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(currencyName)
+                .font(.system(size: 22))
+                .foregroundColor(.white)
             
-            // Row 2: Amount input - FIXED 52pt height
+            // Unified HStack Structure
             HStack(spacing: 16) {
-                // Amount field container
-                HStack(alignment: .center, spacing: 4) {
-                    Text(currencySymbol)
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white)
-
-                    // Always render BOTH but only one visible - no layout changes
-                    ZStack(alignment: .leading) {
-                        // TextField - always in DOM
-                        TextField("", text: $amountInput)
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundColor(.white)
-                            .keyboardType(.decimalPad)
-                            .tint(.white)
-                            .focused($amountFieldIsFocused)
-                            .opacity(isAmountFocused && isEditable ? 1 : 0)
-                            .allowsHitTesting(isAmountFocused && isEditable)
-                            .toolbar {
-                                ToolbarItemGroup(placement: .keyboard) {
-                                    Spacer()
-                                    Button("Done") {
-                                        isAmountFocused = false
-                                        amountFieldIsFocused = false
-                                        onEditingChanged?(false)
-                                    }
-                                    .font(.system(size: 17, weight: .semibold))
-                                }
-                            }
-                            .onChange(of: amountInput) { oldValue, newValue in
-                                handleAmountInputChange(oldValue: oldValue, newValue: newValue)
-                            }
-                            .onChange(of: amountFieldIsFocused) { _, newValue in
-                                if !newValue && isAmountFocused {
-                                    isAmountFocused = false
-                                    onEditingChanged?(false)
-                                }
-                            }
-                        
-                        // Display text - always in DOM
-                        Text(amountInput.isEmpty ? amount : amountInput)
-                            .font(.system(size: 22, weight: .semibold))
-                            .foregroundColor(.white)
-                            .lineLimit(1)
-                            .opacity(isAmountFocused && isEditable ? 0 : 1)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .frame(height: 52)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .overlay {
-                    if isInputError {
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color(red: 0.8, green: 0.2, blue: 0.2), lineWidth: 1)
-                    }
-                }
-                .glassEffect()
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    if isEditable && !isAmountFocused && isCurrentlyActive {
-                        amountInput = ""
-                        isInputError = false
-                        isAmountFocused = true
-                        onEditingChanged?(true)
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            amountFieldIsFocused = true
-                        }
-                    }
-                }
+                amountContainer
                 
                 CurrencySelectorChip(
                     flagEmoji: flagEmoji, 
@@ -185,55 +218,56 @@ struct CurrencyCard: View {
                     action: { showCurrencySelector = true }
                 )
             }
-            .frame(height: 52)
             
-            Spacer().frame(height: 12)
-            
-            // Row 3: Exchange rate / Error - FIXED 20pt height
-            // Always render both, use opacity to switch
-            ZStack(alignment: .leading) {
-                Text(exchangeRateInfo)
-                    .font(.system(size: 16, weight: .regular))
-                    .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
-                    .opacity(isInputError ? 0 : 1)
-                
+            if isInputError {
                 Text("Invalid amount")
-                    .font(.system(size: 16, weight: .regular))
+                    .font(.system(size: 13))
                     .foregroundColor(Color(red: 0.8, green: 0.2, blue: 0.2))
-                    .opacity(isInputError ? 1 : 0)
+                    .padding(.leading, 8)
             }
-            .frame(height: 20, alignment: .leading)
+            
+            Text(exchangeRateInfo)
+                .font(.system(size: 16))
+                .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
+                .accessibilityLabel("Exchange rate: \(exchangeRateInfo)")
         }
-        .frame(height: kCurrencyCardHeight - 48) // Content height (total - padding)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 24)
-        .frame(height: kCurrencyCardHeight) // ABSOLUTE FIXED HEIGHT
+        // No dynamic type - all fonts are fixed system sizes
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("\(currencyName) currency card")
         .onChange(of: amount) { oldAmount, newAmount in
+            // Only update amountInput if not currently editing
             if !isAmountFocused {
-                amountInput = newAmount
-                isInputError = false
+            amountInput = newAmount
+            isInputError = false
             }
         }
         .contentShape(Rectangle())
         .onTapGesture {
-            if isAmountFocused {
-                isAmountFocused = false
-                amountFieldIsFocused = false 
-                onEditingChanged?(false)
-            }
-        }
+             if isAmountFocused {
+                 // Dismiss keyboard and show formatted amount
+                 amountInput = "" // Clear so it shows formatted amount
+                 isAmountFocused = false
+                 amountFieldIsFocused = false 
+                 onEditingChanged?(false)
+             }
+         }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 24)
         .background(
             ZStack {
+                // Glass effect as base layer
                 RoundedRectangle(cornerRadius: 16)
                     .glassEffect(in: .rect(cornerRadius: 16))
                 
-                RoundedRectangle(cornerRadius: 16)
+                // Dark purple overlay to reduce grey appearance
+            RoundedRectangle(cornerRadius: 16)
                     .fill(Color(red: 20/255, green: 8/255, blue: 58/255).opacity(0.75))
             }
             .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
         )
         .overlay(
+            // Subtle highlight for glassy elevation effect
             RoundedRectangle(cornerRadius: 16)
                 .fill(
                     LinearGradient(
@@ -250,9 +284,11 @@ struct CurrencyCard: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .sheet(isPresented: $showCurrencySelector, onDismiss: {
+            // Reset to large for next open
             sheetDetent = .large
         }) {
             CurrencySelector { selectedCurrency in
+                // Update the currency card with selected currency
                 currencyName = selectedCurrency.name
                 flagEmoji = selectedCurrency.flag
                 currencyCode = selectedCurrency.code
@@ -281,27 +317,27 @@ struct CurrencyCardPreviewWrapper: View {
     ]
     
     var body: some View {
-        CurrencyCard(
-            currencyName: $currencyName,
-            flagEmoji: $flagEmoji,
-            currencyCode: $currencyCode,
-            amount: "50.00",
+    CurrencyCard(
+        currencyName: $currencyName,
+        flagEmoji: $flagEmoji,
+        currencyCode: $currencyCode,
+        amount: "50.00",
             exchangeRateInfo: "1 GBP = 1.1700 EUR",
             currencySymbol: "£",
             isEditable: true,
             isCurrentlyActive: true
-        )
-        .padding()
-        .background(
-            ZStack {
-                LinearGradient(
-                    gradient: Gradient(stops: gradientStops),
-                    startPoint: .topTrailing,
-                    endPoint: .bottomLeading
-                )
-                Color.black.opacity(0.20)
-            }
-            .ignoresSafeArea()
-        )
+    )
+    .padding()
+    .background(
+        ZStack {
+            LinearGradient(
+                gradient: Gradient(stops: gradientStops),
+                startPoint: .topTrailing,
+                endPoint: .bottomLeading
+            )
+            Color.black.opacity(0.20)
+        }
+        .ignoresSafeArea()
+    )
     }
-}
+} 

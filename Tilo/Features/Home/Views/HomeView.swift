@@ -17,19 +17,136 @@ extension View {
     }
 }
 
-struct HomeView: View {
-    @Environment(\.requestReview) var requestReview
+// MARK: - Locale-based Currency Defaults
+struct LocaleCurrencyDefaults {
+    /// Returns the default "from" currency based on user's region
+    static func getHomeCurrency() -> (code: String, name: String, flag: String) {
+        let regionCode = Locale.current.region?.identifier ?? "US"
+        
+        switch regionCode {
+        // Americas
+        case "US": return ("USD", "US Dollar", "🇺🇸")
+        case "CA": return ("CAD", "Canadian Dollar", "🇨🇦")
+        case "MX": return ("MXN", "Mexican Peso", "🇲🇽")
+        case "BR": return ("BRL", "Brazilian Real", "🇧🇷")
+        case "AR": return ("ARS", "Argentine Peso", "🇦🇷")
+        case "CO": return ("COP", "Colombian Peso", "🇨🇴")
+        case "CL": return ("CLP", "Chilean Peso", "🇨🇱")
+        case "PE": return ("PEN", "Peruvian Sol", "🇵🇪")
+            
+        // Europe
+        case "GB": return ("GBP", "British Pound", "🇬🇧")
+        case "DE", "FR", "IT", "ES", "NL", "BE", "AT", "IE", "PT", "FI", "GR": return ("EUR", "Euro", "🇪🇺")
+        case "CH": return ("CHF", "Swiss Franc", "🇨🇭")
+        case "SE": return ("SEK", "Swedish Krona", "🇸🇪")
+        case "NO": return ("NOK", "Norwegian Krone", "🇳🇴")
+        case "DK": return ("DKK", "Danish Krone", "🇩🇰")
+        case "PL": return ("PLN", "Polish Zloty", "🇵🇱")
+        case "CZ": return ("CZK", "Czech Koruna", "🇨🇿")
+        case "HU": return ("HUF", "Hungarian Forint", "🇭🇺")
+        case "RO": return ("RON", "Romanian Leu", "🇷🇴")
+        case "RU": return ("RUB", "Russian Ruble", "🇷🇺")
+        case "UA": return ("UAH", "Ukrainian Hryvnia", "🇺🇦")
+        case "TR": return ("TRY", "Turkish Lira", "🇹🇷")
+            
+        // Asia Pacific
+        case "AU": return ("AUD", "Australian Dollar", "🇦🇺")
+        case "NZ": return ("NZD", "New Zealand Dollar", "🇳🇿")
+        case "JP": return ("JPY", "Japanese Yen", "🇯🇵")
+        case "KR": return ("KRW", "South Korean Won", "🇰🇷")
+        case "CN": return ("CNY", "Chinese Yuan", "🇨🇳")
+        case "HK": return ("HKD", "Hong Kong Dollar", "🇭🇰")
+        case "TW": return ("TWD", "Taiwan Dollar", "🇹🇼")
+        case "SG": return ("SGD", "Singapore Dollar", "🇸🇬")
+        case "MY": return ("MYR", "Malaysian Ringgit", "🇲🇾")
+        case "TH": return ("THB", "Thai Baht", "🇹🇭")
+        case "ID": return ("IDR", "Indonesian Rupiah", "🇮🇩")
+        case "PH": return ("PHP", "Philippine Peso", "🇵🇭")
+        case "VN": return ("VND", "Vietnamese Dong", "🇻🇳")
+        case "IN": return ("INR", "Indian Rupee", "🇮🇳")
+        case "PK": return ("PKR", "Pakistani Rupee", "🇵🇰")
+            
+        // Middle East
+        case "AE": return ("AED", "UAE Dirham", "🇦🇪")
+        case "SA": return ("SAR", "Saudi Riyal", "🇸🇦")
+        case "IL": return ("ILS", "Israeli Shekel", "🇮🇱")
+        case "EG": return ("EGP", "Egyptian Pound", "🇪🇬")
+            
+        // Africa
+        case "ZA": return ("ZAR", "South African Rand", "🇿🇦")
+        case "NG": return ("NGN", "Nigerian Naira", "🇳🇬")
+        case "KE": return ("KES", "Kenyan Shilling", "🇰🇪")
+            
+        default: return ("USD", "US Dollar", "🇺🇸")
+        }
+    }
     
+    /// Returns popular travel destination currency based on user's region
+    static func getTravelDestinationCurrency() -> (code: String, name: String, flag: String) {
+        let regionCode = Locale.current.region?.identifier ?? "US"
+        
+        // Based on most popular international travel destinations for each country
+        switch regionCode {
+        // Americas
+        case "US": return ("MXN", "Mexican Peso", "🇲🇽")           // Mexico is #1 destination for Americans
+        case "CA": return ("USD", "US Dollar", "🇺🇸")              // US is #1 for Canadians
+        case "MX": return ("USD", "US Dollar", "🇺🇸")              // US is #1 for Mexicans
+        case "BR": return ("USD", "US Dollar", "🇺🇸")              // US popular for Brazilians
+        case "AR": return ("BRL", "Brazilian Real", "🇧🇷")         // Brazil popular for Argentinians
+        case "CO": return ("USD", "US Dollar", "🇺🇸")              // US popular for Colombians
+            
+        // UK & Europe
+        case "GB": return ("EUR", "Euro", "🇪🇺")                   // Europe is #1 for Brits
+        case "DE": return ("EUR", "Euro", "🇪🇺")                   // Spain/Italy for Germans (still EUR)
+        case "FR": return ("EUR", "Euro", "🇪🇺")                   // Spain/Italy for French
+        case "IT": return ("EUR", "Euro", "🇪🇺")                   // Spain/France for Italians
+        case "ES": return ("EUR", "Euro", "🇪🇺")                   // France/Portugal for Spanish
+        case "NL": return ("EUR", "Euro", "🇪🇺")                   // Germany/Spain for Dutch
+        case "CH": return ("EUR", "Euro", "🇪🇺")                   // Europe for Swiss
+        case "SE", "NO", "DK": return ("EUR", "Euro", "🇪🇺")       // Southern Europe for Nordics
+        case "PL": return ("EUR", "Euro", "🇪🇺")                   // Western Europe for Poles
+        case "RU": return ("TRY", "Turkish Lira", "🇹🇷")           // Turkey popular for Russians
+        case "TR": return ("EUR", "Euro", "🇪🇺")                   // Europe for Turks
+            
+        // Asia Pacific
+        case "AU": return ("IDR", "Indonesian Rupiah", "🇮🇩")      // Bali is #1 for Australians
+        case "NZ": return ("AUD", "Australian Dollar", "🇦🇺")      // Australia is #1 for Kiwis
+        case "JP": return ("USD", "US Dollar", "🇺🇸")              // Hawaii/US popular for Japanese
+        case "KR": return ("JPY", "Japanese Yen", "🇯🇵")           // Japan is #1 for Koreans
+        case "CN": return ("THB", "Thai Baht", "🇹🇭")              // Thailand popular for Chinese
+        case "HK": return ("JPY", "Japanese Yen", "🇯🇵")           // Japan popular for Hong Kongers
+        case "TW": return ("JPY", "Japanese Yen", "🇯🇵")           // Japan popular for Taiwanese
+        case "SG": return ("MYR", "Malaysian Ringgit", "🇲🇾")      // Malaysia popular for Singaporeans
+        case "MY": return ("THB", "Thai Baht", "🇹🇭")              // Thailand popular for Malaysians
+        case "TH": return ("JPY", "Japanese Yen", "🇯🇵")           // Japan popular for Thais
+        case "ID": return ("SGD", "Singapore Dollar", "🇸🇬")       // Singapore popular for Indonesians
+        case "IN": return ("AED", "UAE Dirham", "🇦🇪")             // Dubai popular for Indians
+            
+        // Middle East
+        case "AE", "SA": return ("GBP", "British Pound", "🇬🇧")    // UK popular for Gulf residents
+        case "IL": return ("EUR", "Euro", "🇪🇺")                   // Europe popular for Israelis
+            
+        // Africa
+        case "ZA": return ("EUR", "Euro", "🇪🇺")                   // Europe popular for South Africans
+        case "NG": return ("GBP", "British Pound", "🇬🇧")          // UK popular for Nigerians
+            
+        default: return ("EUR", "Euro", "🇪🇺")
+        }
+    }
+}
+
+struct HomeView: View {
     @State private var selectedTab = 0
     
-    @State private var fromCurrencyName = UserDefaults.standard.string(forKey: "fromCurrencyName") ?? "US Dollar"
-    @State private var fromFlagEmoji = UserDefaults.standard.string(forKey: "fromFlagEmoji") ?? "🇺🇸"
-    @State private var fromCurrencyCode = UserDefaults.standard.string(forKey: "fromCurrencyCode") ?? "USD"
+    // Use locale-based defaults for first-time users
+    @State private var fromCurrencyName = UserDefaults.standard.string(forKey: "fromCurrencyName") ?? LocaleCurrencyDefaults.getHomeCurrency().name
+    @State private var fromFlagEmoji = UserDefaults.standard.string(forKey: "fromFlagEmoji") ?? LocaleCurrencyDefaults.getHomeCurrency().flag
+    @State private var fromCurrencyCode = UserDefaults.standard.string(forKey: "fromCurrencyCode") ?? LocaleCurrencyDefaults.getHomeCurrency().code
     @State private var fromAmount: Double = UserDefaults.standard.double(forKey: "fromAmount") != 0 ? UserDefaults.standard.double(forKey: "fromAmount") : 100.00
     
-    @State private var toCurrencyName = UserDefaults.standard.string(forKey: "toCurrencyName") ?? "Euro"
-    @State private var toFlagEmoji = UserDefaults.standard.string(forKey: "toFlagEmoji") ?? "🇪🇺"
-    @State private var toCurrencyCode = UserDefaults.standard.string(forKey: "toCurrencyCode") ?? "EUR"
+    @State private var toCurrencyName = UserDefaults.standard.string(forKey: "toCurrencyName") ?? LocaleCurrencyDefaults.getTravelDestinationCurrency().name
+    @State private var toFlagEmoji = UserDefaults.standard.string(forKey: "toFlagEmoji") ?? LocaleCurrencyDefaults.getTravelDestinationCurrency().flag
+    @State private var toCurrencyCode = UserDefaults.standard.string(forKey: "toCurrencyCode") ?? LocaleCurrencyDefaults.getTravelDestinationCurrency().code
     @State private var toAmount: Double = UserDefaults.standard.double(forKey: "toAmount") != 0 ? UserDefaults.standard.double(forKey: "toAmount") : 100.00
     
     @State private var exchangeRate: Double = 0.0
@@ -44,6 +161,7 @@ struct HomeView: View {
     @State private var errorMessage: String = ""
     
     @StateObject private var exchangeService = ExchangeRateService.shared
+    @Environment(\.requestReview) private var requestReview
     
     // Preview-only debug controls
     var tintOpacity: Double = 0.6
@@ -71,23 +189,6 @@ struct HomeView: View {
         updateWidgetData()
     }
     
-    /// Request App Store review after first manual conversion
-    /// Only triggers once - when user types their own amount (not quick chips)
-    private func requestReviewIfFirstConversion() {
-        let hasRequestedReview = UserDefaults.standard.bool(forKey: "hasRequestedReview")
-        
-        // Only request review once, after first manual conversion
-        guard !hasRequestedReview else { return }
-        
-        // Mark that we've requested a review
-        UserDefaults.standard.set(true, forKey: "hasRequestedReview")
-        
-        // Small delay to let the conversion complete and user see the result
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            requestReview()
-        }
-    }
-    
     // Update widget with current currency pair and rate
     private func updateWidgetData() {
         let currencyPair = CurrencyPair(
@@ -105,6 +206,23 @@ struct HomeView: View {
         
         // Reload widget timeline
         WidgetCenter.shared.reloadTimelines(ofKind: "TiloWidget")
+    }
+    
+    // MARK: - App Store Review Prompt
+    /// Triggers review prompt after first manual conversion (not from quick chips)
+    private func triggerReviewIfFirstManualConversion() {
+        let hasPromptedReview = UserDefaults.standard.bool(forKey: "hasPromptedForReview")
+        
+        // Only prompt once, after first manual conversion
+        guard !hasPromptedReview else { return }
+        
+        // Mark that we've prompted
+        UserDefaults.standard.set(true, forKey: "hasPromptedForReview")
+        
+        // Delay slightly so user sees their conversion result first
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            requestReview()
+        }
     }
     
     private func swapCurrencies() {
@@ -234,17 +352,32 @@ struct HomeView: View {
     
     private func getCurrencySymbol(for code: String) -> String {
         switch code {
-        case "USD": return "$"
+        case "USD", "CAD", "AUD", "NZD", "SGD", "HKD", "MXN", "ARS", "CLP", "COP": return "$"
         case "EUR": return "€"
         case "GBP": return "£"
-        case "JPY": return "¥"
-        case "CAD": return "$"
-        case "AUD": return "$"
-        case "SGD": return "$"
-        case "CHF": return "CHF"
-        case "CNY": return "¥"
-        case "SEK": return "kr"
-        case "NOK": return "kr"
+        case "JPY", "CNY": return "¥"
+        case "KRW": return "₩"
+        case "INR": return "₹"
+        case "RUB": return "₽"
+        case "THB": return "฿"
+        case "CHF": return "Fr"
+        case "SEK", "NOK", "DKK", "ISK": return "kr"
+        case "PLN": return "zł"
+        case "CZK": return "Kč"
+        case "HUF": return "Ft"
+        case "TRY": return "₺"
+        case "ZAR": return "R"
+        case "BRL": return "R$"
+        case "ILS": return "₪"
+        case "AED", "SAR", "QAR": return "﷼"
+        case "PHP": return "₱"
+        case "MYR": return "RM"
+        case "IDR": return "Rp"
+        case "VND": return "₫"
+        case "EGP": return "E£"
+        case "NGN": return "₦"
+        case "KES", "UGX", "TZS": return "Sh"
+        case "PKR", "LKR", "NPR": return "Rs"
         default: return code
         }
     }
@@ -329,117 +462,102 @@ struct HomeView: View {
                 GeometryReader { geometry in
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
-                        // Purple section with currency cards - FIXED LAYOUT
-                        // Card spacing is 12pt, each card is kCurrencyCardHeight (156pt)
-                        // Swap button positioned at: topPadding + cardHeight + (spacing/2) - (buttonHeight/2)
-                        let topPadding = min(40, geometry.size.height * 0.05)
-                        let cardSpacing: CGFloat = 12
-                        let swapButtonSize: CGFloat = 44
-                        // Exact Y position for swap button center: after first card + half spacing
-                        let swapButtonY = topPadding + kCurrencyCardHeight + (cardSpacing / 2)
-                        
-                        ZStack(alignment: .topLeading) {
-                            // Cards container with fixed spacing
-                            VStack(alignment: .leading, spacing: cardSpacing) {
+                        // Purple section with currency cards
+                        ZStack {
+                            VStack(alignment: .leading, spacing: 12) {
                                 CurrencyCard(
                                     currencyName: $fromCurrencyName,
                                     flagEmoji: $fromFlagEmoji,
                                     currencyCode: $fromCurrencyCode,
-                                    amount: formatAmount(fromAmount),
-                                    exchangeRateInfo: exchangeRate > 0 ? "1 \(fromCurrencyCode) = \(formatExchangeRate(exchangeRate)) \(toCurrencyCode)" : "Loading rate...",
-                                    currencySymbol: getCurrencySymbol(for: fromCurrencyCode),
-                                    onAmountChange: { newAmount in
-                                        fromAmount = newAmount
+                                        amount: formatAmount(fromAmount),
+                                        exchangeRateInfo: exchangeRate > 0 ? "1 \(fromCurrencyCode) = \(formatExchangeRate(exchangeRate)) \(toCurrencyCode)" : "Loading rate...",
+                                        currencySymbol: getCurrencySymbol(for: fromCurrencyCode),
+                                        onAmountChange: { newAmount in
+                                            fromAmount = newAmount
+                                            saveCurrencyState()
+                                            Task {
+                                                await updateConversion()
+                                            }
+                                        },
+                                        onEditingChanged: { isEditing in
+                                            isEditingTopCard = isEditing
+                                            if isEditing {
+                                                activeEditingCard = "top"
+                                                isEditingBottomCard = false
+                                            } else {
+                                                activeEditingCard = nil
+                                                // Trigger review prompt after first manual conversion
+                                                triggerReviewIfFirstManualConversion()
+                                            }
+                                        },
+                                        isEditable: true,
+                                        isCurrentlyActive: activeEditingCard == "top" || activeEditingCard == nil,
+                                        tintOpacity: tintOpacity,
+                                        tintBlendMode: tintBlendMode,
+                                        gradientColor1: gradientColor1,
+                                        gradientColor2: gradientColor2,
+                                        gradientColor3: gradientColor3,
+                                        gradientColor4: gradientColor4,
+                                        gradientColor5: gradientColor5
+                                    )
+                                    .padding(.horizontal, max(16, geometry.size.width * 0.04))
+                                    .offset(y: swapOffset) // Animate down during swap
+                                    .onChange(of: fromCurrencyCode) { oldValue, newValue in
                                         saveCurrencyState()
                                         Task {
                                             await updateConversion()
                                         }
-                                        requestReviewIfFirstConversion()
-                                    },
-                                    onEditingChanged: { isEditing in
-                                        isEditingTopCard = isEditing
-                                        if isEditing {
-                                            activeEditingCard = "top"
-                                            isEditingBottomCard = false
-                                        } else {
-                                            activeEditingCard = nil
-                                        }
-                                    },
-                                    isEditable: true,
-                                    isCurrentlyActive: activeEditingCard == "top" || activeEditingCard == nil,
-                                    tintOpacity: tintOpacity,
-                                    tintBlendMode: tintBlendMode,
-                                    gradientColor1: gradientColor1,
-                                    gradientColor2: gradientColor2,
-                                    gradientColor3: gradientColor3,
-                                    gradientColor4: gradientColor4,
-                                    gradientColor5: gradientColor5
-                                )
-                                .frame(height: kCurrencyCardHeight)
-                                .padding(.horizontal, max(16, geometry.size.width * 0.04))
-                                .offset(y: swapOffset)
-                                .onChange(of: fromCurrencyCode) { oldValue, newValue in
-                                    saveCurrencyState()
-                                    Task {
-                                        await updateConversion()
                                     }
-                                }
                                 
                                 CurrencyCard(
                                     currencyName: $toCurrencyName,
                                     flagEmoji: $toFlagEmoji,
                                     currencyCode: $toCurrencyCode,
-                                    amount: formatAmount(toAmount),
-                                    exchangeRateInfo: exchangeRate > 0 ? "1 \(toCurrencyCode) = \(formatExchangeRate(1.0 / exchangeRate)) \(fromCurrencyCode)" : "Loading rate...",
-                                    currencySymbol: getCurrencySymbol(for: toCurrencyCode),
-                                    onAmountChange: { newAmount in
-                                        toAmount = newAmount
+                                        amount: formatAmount(toAmount),
+                                        exchangeRateInfo: exchangeRate > 0 ? "1 \(toCurrencyCode) = \(formatExchangeRate(1.0 / exchangeRate)) \(fromCurrencyCode)" : "Loading rate...",
+                                        currencySymbol: getCurrencySymbol(for: toCurrencyCode),
+                                        onAmountChange: { newAmount in
+                                            toAmount = newAmount
+                                            saveCurrencyState()
+                                            Task {
+                                                await updateConversionReverse()
+                                            }
+                                        },
+                                        onEditingChanged: { isEditing in
+                                            isEditingBottomCard = isEditing
+                                            if isEditing {
+                                                activeEditingCard = "bottom"
+                                                isEditingTopCard = false
+                                            } else {
+                                                activeEditingCard = nil
+                                                // Trigger review prompt after first manual conversion
+                                                triggerReviewIfFirstManualConversion()
+                                            }
+                                        },
+                                        isEditable: true,
+                                        isCurrentlyActive: activeEditingCard == "bottom" || activeEditingCard == nil,
+                                        tintOpacity: tintOpacity,
+                                        tintBlendMode: tintBlendMode,
+                                        gradientColor1: gradientColor1,
+                                        gradientColor2: gradientColor2,
+                                        gradientColor3: gradientColor3,
+                                        gradientColor4: gradientColor4,
+                                        gradientColor5: gradientColor5
+                                    )
+                                    .padding(.horizontal, max(16, geometry.size.width * 0.04))
+                                    .offset(y: -swapOffset) // Animate up during swap
+                                    .onChange(of: toCurrencyCode) { oldValue, newValue in
                                         saveCurrencyState()
                                         Task {
-                                            await updateConversionReverse()
+                                            await updateConversion()
                                         }
-                                        requestReviewIfFirstConversion()
-                                    },
-                                    onEditingChanged: { isEditing in
-                                        isEditingBottomCard = isEditing
-                                        if isEditing {
-                                            activeEditingCard = "bottom"
-                                            isEditingTopCard = false
-                                        } else {
-                                            activeEditingCard = nil
-                                        }
-                                    },
-                                    isEditable: true,
-                                    isCurrentlyActive: activeEditingCard == "bottom" || activeEditingCard == nil,
-                                    tintOpacity: tintOpacity,
-                                    tintBlendMode: tintBlendMode,
-                                    gradientColor1: gradientColor1,
-                                    gradientColor2: gradientColor2,
-                                    gradientColor3: gradientColor3,
-                                    gradientColor4: gradientColor4,
-                                    gradientColor5: gradientColor5
-                                )
-                                .frame(height: kCurrencyCardHeight)
-                                .padding(.horizontal, max(16, geometry.size.width * 0.04))
-                                .offset(y: -swapOffset)
-                                .onChange(of: toCurrencyCode) { oldValue, newValue in
-                                    saveCurrencyState()
-                                    Task {
-                                        await updateConversion()
                                     }
-                                }
                             }
-                            .padding(.top, topPadding)
                             
-                            // Swap button - FIXED position, centered horizontally, exact Y from top
+                            // SwapButton centered and always on top
                             SwapButton(action: swapCurrencies)
-                                .frame(width: swapButtonSize, height: swapButtonSize)
-                                .position(
-                                    x: geometry.size.width / 2,
-                                    y: swapButtonY
-                                )
                         }
-                        .frame(height: topPadding + (kCurrencyCardHeight * 2) + cardSpacing)
+                        .padding(.top, min(40, geometry.size.height * 0.05))
                         
                         // Error banner (if any)
                         if showError {
@@ -461,6 +579,7 @@ struct HomeView: View {
                             Text("Quick conversions")
                                 .font(.title2)
                                 .foregroundColor(.white)
+                                .dynamicTypeSize(.large) // Fixed size for layout stability
                                 .padding(.horizontal, max(16, geometry.size.width * 0.04))
                             
                             ScrollView(.horizontal, showsIndicators: false) {
@@ -493,6 +612,7 @@ struct HomeView: View {
                             Text("Rate history")
                                 .font(.title2)
                                 .foregroundColor(.white)
+                                .dynamicTypeSize(.large) // Fixed size for layout stability
                             
                         CurrencyChartView(fromCurrency: fromCurrencyCode, toCurrency: toCurrencyCode)
                                 .id("\(fromCurrencyCode)-\(toCurrencyCode)")
@@ -508,7 +628,9 @@ struct HomeView: View {
                             hideKeyboard()
                         }
                     )
+                    .scrollDismissesKeyboard(.interactively)
                 }
+                .ignoresSafeArea(.keyboard) // Prevent layout jump when keyboard opens/closes
             }
             .tabItem {
                 Image(systemName: "arrow.left.arrow.right.circle.fill")
@@ -600,8 +722,7 @@ struct DebugHomeViewWrapper: View {
                             }
                         }
                         
-                        #if DEBUG
-                        // API Mode Toggle (DEBUG only)
+                        // API Mode Toggle
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Text("API Mode:")
@@ -620,7 +741,6 @@ struct DebugHomeViewWrapper: View {
                                 }
                             }
                         }
-                        #endif
                         
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Tint Opacity: \(String(format: "%.2f", tintOpacity))")

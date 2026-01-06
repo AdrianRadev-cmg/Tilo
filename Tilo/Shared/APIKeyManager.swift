@@ -8,6 +8,7 @@ enum APIKeyManager {
     // MARK: - Obfuscated Key Storage
     
     /// The key is stored as individual character codes to avoid plain text in binary
+    /// Original: "cur_live_ekGkTC1IKGFiCe85LkBEwkjMNnZRA05iaVDqYq6G"
     private static let obfuscatedKey: [UInt8] = [
         99, 117, 114, 95, 108, 105, 118, 101, 95,  // cur_live_
         101, 107, 71, 107, 84, 67, 49, 73, 75, 71, // ekGkTC1IKG

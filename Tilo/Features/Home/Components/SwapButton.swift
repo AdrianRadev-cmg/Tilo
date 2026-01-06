@@ -7,7 +7,7 @@ struct SwapButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: "arrow.up.arrow.down.circle") 
-                .font(.body)
+                .font(.system(size: 17)) // Fixed size icon - not affected by Dynamic Type
                 .foregroundStyle(Color("grey100"))
                 .frame(width: 44, height: 44) // Larger hit area
                 .glassEffect()
@@ -20,6 +20,7 @@ struct SwapButton: View {
         }
         .buttonStyle(.plain) // Remove default button style
         .shadow(color: .black.opacity(0.20), radius: 10, x: 0, y: 3)
+        .dynamicTypeSize(.large) // Fixed size for layout stability
         .accessibilityLabel("Swap currencies")
         .accessibilityHint("Double tap to swap the source and destination currencies")
     }

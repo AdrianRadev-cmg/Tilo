@@ -56,14 +56,16 @@ struct FlowLayout: Layout {
                 
                 // Handle edge case where a single item is wider than the proposed width
                 if currentRowIndex >= maxHeightPerRow.count {
-                    // Fallback: clamp to last valid index
+                    // This shouldn't happen if sizeThatFits is correct, but as a fallback:
+                    print("Warning: FlowLayout - Row index out of bounds during placement.")
                     currentRowIndex = maxHeightPerRow.count - 1 
-                    if currentRowIndex < 0 { currentRowIndex = 0 }
+                    if currentRowIndex < 0 { currentRowIndex = 0 } // Ensure non-negative
                  }
             }
             
             // Ensure we don't exceed bounds, especially vertically
              guard currentRowIndex < maxHeightPerRow.count else {
+                 print("Error: FlowLayout - Attempting to place subview outside calculated bounds.")
                  continue // Skip placing this subview if bounds calculation seems off
              }
 

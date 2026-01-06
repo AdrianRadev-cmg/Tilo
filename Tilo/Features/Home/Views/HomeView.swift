@@ -330,7 +330,7 @@ struct HomeView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
                         // Purple section with currency cards
-                        ZStack {
+                        ZStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 12) {
                                 CurrencyCard(
                                     currencyName: $fromCurrencyName,
@@ -422,14 +422,11 @@ struct HomeView: View {
                                 }
                                 .padding(.top, min(40, geometry.size.height * 0.05))
                             
-                            // SwapButton positioned exactly in the middle of the two cards
-                            VStack {
-                                Spacer()
-                                SwapButton(action: swapCurrencies)
-                                    .offset(y: 20) // Move down to center between cards
-                                Spacer()
-                            }
-                            .zIndex(999)
+                            // SwapButton - fixed position based on card height (120) + padding (20*2) + spacing (12/2)
+                            // First card total height: 120 + 40 = 160, plus top padding ~40 = 200
+                            SwapButton(action: swapCurrencies)
+                                .offset(y: min(40, geometry.size.height * 0.05) + 160 - 22) // Position at junction of two cards
+                                .zIndex(999)
                         }
                         
                         // Error banner (if any)

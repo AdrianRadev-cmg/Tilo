@@ -117,11 +117,15 @@ struct CurrencyCard: View {
         }
     }
     
+    // Fixed card height to prevent layout jumping
+    private let cardContentHeight: CGFloat = 120
+    
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             Text(currencyName)
                 .font(.title2)
                 .foregroundColor(.white)
+                .lineLimit(1)
             
             // Unified HStack Structure
             HStack(spacing: 16) {
@@ -178,7 +182,7 @@ struct CurrencyCard: View {
                 }
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
-                .frame(minWidth: 0, maxWidth: .infinity, minHeight: 44, alignment: .leading) // Fixed minimum height
+                .frame(minWidth: 0, maxWidth: .infinity, height: 44, alignment: .leading) // Fixed height
                 .overlay {
                     // Show stroke only on error
                         if isInputError {
@@ -213,18 +217,14 @@ struct CurrencyCard: View {
                 )
             }
             
-            if isInputError {
-                Text("Invalid amount")
-                    .font(.footnote)
-                    .foregroundColor(Color(red: 0.8, green: 0.2, blue: 0.2))
-                    .padding(.leading, 8)
-            }
-            
+            // Exchange rate info - fixed height area to prevent jumping
             Text(exchangeRateInfo)
                 .font(.callout)
                 .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
+                .lineLimit(1)
                 .accessibilityLabel("Exchange rate: \(exchangeRateInfo)")
         }
+        .frame(height: cardContentHeight) // Fixed content height
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge) // Cap scaling to prevent layout breaking
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(currencyName) currency card")
@@ -246,7 +246,7 @@ struct CurrencyCard: View {
          }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 16)
-        .padding(.vertical, 24)
+        .padding(.vertical, 20)
         .background(
             ZStack {
                 // Glass effect as base layer

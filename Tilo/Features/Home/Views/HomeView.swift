@@ -591,7 +591,8 @@ struct DebugHomeViewWrapper: View {
                             }
                         }
                         
-                        // API Mode Toggle
+                        #if DEBUG
+                        // API Mode Toggle (DEBUG only)
                         VStack(alignment: .leading, spacing: 8) {
                             HStack {
                                 Text("API Mode:")
@@ -610,6 +611,7 @@ struct DebugHomeViewWrapper: View {
                                 }
                             }
                         }
+                        #endif
                         
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Tint Opacity: \(String(format: "%.2f", tintOpacity))")

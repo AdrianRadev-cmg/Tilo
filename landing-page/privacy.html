@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Tilo</title>
+    <meta name="description" content="Tilo Privacy Policy - Learn how we handle your data.">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --max-width: 800px;
+            --padding-x: 48px;
+            --padding-x-mobile: 24px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(180deg, #1a0a2e 0%, #0d0518 50%, #080210 100%);
+            min-height: 100vh;
+            color: #ffffff;
+        }
+
+        .container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 0 var(--padding-x);
+        }
+
+        /* Header */
+        header {
+            padding: 20px 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: linear-gradient(180deg, #1a0a2e 0%, rgba(26, 10, 46, 0.95) 100%);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .header-inner {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 0 var(--padding-x);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        /* Main Content */
+        main {
+            padding-top: 120px;
+            padding-bottom: 80px;
+        }
+
+        .privacy-header {
+            margin-bottom: 48px;
+        }
+
+        .privacy-header h1 {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+
+        .privacy-header .last-updated {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 14px;
+        }
+
+        .privacy-content {
+            background: linear-gradient(145deg, rgba(20, 10, 35, 0.6) 0%, rgba(10, 5, 20, 0.8) 100%);
+            border: 1px solid rgba(168, 85, 247, 0.15);
+            border-radius: 24px;
+            padding: 48px;
+        }
+
+        .privacy-content h2 {
+            font-size: 22px;
+            font-weight: 600;
+            margin-top: 36px;
+            margin-bottom: 16px;
+            color: #fff;
+        }
+
+        .privacy-content h2:first-child {
+            margin-top: 0;
+        }
+
+        .privacy-content p {
+            font-size: 16px;
+            line-height: 1.7;
+            color: rgba(255, 255, 255, 0.75);
+            margin-bottom: 16px;
+        }
+
+        .privacy-content ul {
+            margin-bottom: 16px;
+            padding-left: 24px;
+        }
+
+        .privacy-content li {
+            font-size: 16px;
+            line-height: 1.7;
+            color: rgba(255, 255, 255, 0.75);
+            margin-bottom: 8px;
+        }
+
+        .privacy-content strong {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .privacy-content a {
+            color: #a855f7;
+            text-decoration: none;
+        }
+
+        .privacy-content a:hover {
+            text-decoration: underline;
+        }
+
+        .highlight-box {
+            background: rgba(168, 85, 247, 0.1);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin: 24px 0;
+        }
+
+        .highlight-box p {
+            margin-bottom: 0;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            background: #080210;
+        }
+
+        .footer-inner {
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 0 var(--padding-x);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        footer p {
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        footer a {
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s ease;
+        }
+
+        footer a:hover {
+            color: #fff;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 var(--padding-x-mobile);
+            }
+
+            .header-inner,
+            .footer-inner {
+                padding: 0 var(--padding-x-mobile);
+            }
+
+            .privacy-header h1 {
+                font-size: 32px;
+            }
+
+            .privacy-content {
+                padding: 32px 24px;
+            }
+
+            .privacy-content h2 {
+                font-size: 20px;
+            }
+
+            .privacy-content p,
+            .privacy-content li {
+                font-size: 15px;
+            }
+
+            .footer-inner {
+                flex-direction: column;
+                gap: 16px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-inner">
+            <a href="index.html" class="header-left">
+                <img src="assets/logo.png" alt="Tilo" class="logo">
+                <span class="logo-text">Tilo</span>
+            </a>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="privacy-header">
+                <h1>Privacy Policy</h1>
+                <p class="last-updated">Last updated: January 2, 2026</p>
+            </div>
+
+            <div class="privacy-content">
+                <h2>Overview</h2>
+                <p>Tilo is a currency conversion app designed for travellers. We are committed to protecting your privacy and being transparent about how our app works. This policy explains what data we collect, how we use it, and your rights.</p>
+
+                <div class="highlight-box">
+                    <p><strong>The short version:</strong> Tilo does not collect personal data, does not require an account, and does not track you. Your currency preferences are stored locally on your device only.</p>
+                </div>
+
+                <h2>Data We Collect</h2>
+                <p>Tilo collects and stores the following data <strong>locally on your device only</strong>:</p>
+                <ul>
+                    <li><strong>Currency preferences:</strong> Your selected currency pairs for conversion</li>
+                    <li><strong>Cached exchange rates:</strong> Recent exchange rates stored temporarily for offline access and faster loading</li>
+                    <li><strong>App settings:</strong> Your display preferences and last-used currencies</li>
+                </ul>
+                <p>This data never leaves your device and is not transmitted to us or any third party.</p>
+
+                <h2>Data We Do Not Collect</h2>
+                <p>Tilo does <strong>not</strong> collect:</p>
+                <ul>
+                    <li>Personal information (name, email, phone number)</li>
+                    <li>Location data</li>
+                    <li>Device identifiers or advertising IDs</li>
+                    <li>Usage analytics or behavioural data</li>
+                    <li>Financial information or transaction history</li>
+                </ul>
+
+                <h2>Third-Party Services</h2>
+                <p>Tilo uses <strong>CurrencyAPI</strong> to fetch real-time exchange rates. When you use the app:</p>
+                <ul>
+                    <li>Your device makes requests to CurrencyAPI's servers to retrieve current exchange rates</li>
+                    <li>These requests contain only the currency codes being converted (e.g., "GBP to JPY")</li>
+                    <li>No personal data is transmitted with these requests</li>
+                    <li>CurrencyAPI may log standard server information (IP addresses, request timestamps) according to their own privacy policy</li>
+                </ul>
+                <p>For more information about CurrencyAPI's data practices, please review their <a href="https://currencyapi.com/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</p>
+
+                <h2>Data Storage & Security</h2>
+                <p>All user preferences and cached data are stored locally using iOS's secure UserDefaults storage. This data:</p>
+                <ul>
+                    <li>Remains on your device</li>
+                    <li>Is protected by your device's security features</li>
+                    <li>Is deleted when you uninstall the app</li>
+                    <li>Can be cleared by resetting the app in iOS Settings</li>
+                </ul>
+
+                <h2>Widgets</h2>
+                <p>Tilo offers home screen widgets that display currency conversions. Widget data is stored using iOS App Groups to enable sharing between the main app and widget extension. This data remains local to your device.</p>
+
+                <h2>Children's Privacy</h2>
+                <p>Tilo does not knowingly collect any data from children. The app does not require any personal information and is suitable for users of all ages.</p>
+
+                <h2>Changes to This Policy</h2>
+                <p>We may update this Privacy Policy from time to time. Any changes will be reflected on this page with an updated "Last updated" date. We encourage you to review this policy periodically.</p>
+
+                <h2>Your Rights</h2>
+                <p>Since Tilo does not collect personal data, there is no personal data to access, correct, or delete. If you wish to clear your local app data, you can:</p>
+                <ul>
+                    <li>Uninstall and reinstall the app</li>
+                    <li>Reset app data through iOS Settings</li>
+                </ul>
+
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-inner">
+            <a href="index.html">← Back to Home</a>
+            <p>© 2026 Tilo</p>
+        </div>
+    </footer>
+</body>
+</html>
+

@@ -56,7 +56,7 @@ struct TravelView: View {
                     VStack(spacing: 24) {
                         // Title and subtitle
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Cheat Sheet")
+                            Text("Price Guide")
                                 .font(.system(size: 34, weight: .bold))
                                 .foregroundColor(.white)
                                 .accessibilityAddTraits(.isHeader)
@@ -101,8 +101,7 @@ struct ConversionTable: View {
     @State private var conversions: [(amount: Double, converted: Double)] = []
     @State private var exchangeRate: Double?
     @State private var isLoading = false
-    @State private var isFlipped = false
-    @State private var flipDegrees: Double = 0
+    @State private var slideOffset: CGFloat = 0
     @State private var showError = false
     @State private var errorMessage = ""
     @State private var currentLevel: Int = 0 // 0 = base level, 1 = higher values
@@ -147,13 +146,6 @@ struct ConversionTable: View {
                 .allowsHitTesting(false)
         )
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        // 3D flip effect
-        .rotation3DEffect(
-            .degrees(flipDegrees),
-            axis: (x: 0, y: 1, z: 0),
-            perspective: 0.5
-        )
-        // Note: Flip gesture is applied to conversion rows only, not header
         .task {
             await fetchConversions()
         }
@@ -172,81 +164,58 @@ struct ConversionTable: View {
         }
     }
     
-    // MARK: - Tap Handling
+    // MARK: - Swipe Handling
     
-    private func handleTap(at xPosition: CGFloat) {
-        // Get the width of the view to determine left/right
-        // We'll use UIScreen as a fallback - the gesture provides relative position
-        let screenWidth = UIScreen.main.bounds.width - 32 // Account for padding
-        let midPoint = screenWidth / 2
-        
-        if xPosition > midPoint {
-            // Tapped right side - increase level
-            if currentLevel < 1 {
-                flipCard(increasing: true)
-            } else {
-                // Already at max level - haptic feedback only
-                let generator = UIImpactFeedbackGenerator(style: .light)
-                generator.impactOccurred()
-            }
-        } else {
-            // Tapped left side - decrease level
-            if currentLevel > 0 {
-                flipCard(increasing: false)
-            } else {
-                // Already at min level - haptic feedback only
-                let generator = UIImpactFeedbackGenerator(style: .light)
-                generator.impactOccurred()
-            }
+    private func handleSwipe(translation: CGFloat) {
+        if translation < -50 && currentLevel < 1 {
+            // Swipe left - go to higher values
+            switchLevel(to: currentLevel + 1)
+        } else if translation > 50 && currentLevel > 0 {
+            // Swipe right - go to lower values
+            switchLevel(to: currentLevel - 1)
         }
     }
     
-    // MARK: - Flip Animation
+    // MARK: - Swipe Animation
     
-    private func flipCard(increasing: Bool) {
+    private func switchLevel(to newLevel: Int) {
+        guard newLevel != currentLevel && newLevel >= 0 && newLevel <= 1 else { return }
+        
         // Haptic feedback
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
         
-        // Flip direction: right tap = flip right (positive), left tap = flip left (negative)
-        let firstHalfTarget: Double = increasing ? 90 : -90
-        let secondHalfStart: Double = increasing ? -90 : 90
+        // Determine slide direction
+        let slideDirection: CGFloat = newLevel > currentLevel ? -1 : 1
         
-        // Animate first half of flip
-        withAnimation(.easeIn(duration: 0.15)) {
-            flipDegrees = firstHalfTarget
+        // Animate out
+        withAnimation(.easeInOut(duration: 0.08)) {
+            slideOffset = slideDirection * 50
         }
         
-        // At 90 degrees (edge-on), change the level and recalculate
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-            // Change level while card is edge-on (invisible)
-            if increasing {
-                currentLevel = min(1, currentLevel + 1)
-            } else {
-                currentLevel = max(0, currentLevel - 1)
-            }
+        // Change level and animate back
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            currentLevel = newLevel
             
-            // Recalculate conversions with new level
+            // Recalculate conversions
             Task {
                 await updateConversionsForCurrentLevel()
             }
             
-            // Set to opposite side so we animate back to 0 (completing the illusion)
-            flipDegrees = secondHalfStart
+            // Reset from opposite side
+            slideOffset = -slideDirection * 50
             
-            // Animate second half of flip back to 0
-            withAnimation(.easeOut(duration: 0.15)) {
-                flipDegrees = 0
+            withAnimation(.easeInOut(duration: 0.08)) {
+                slideOffset = 0
             }
             
-            // Trigger highlight effect after flip completes
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            // Trigger highlight effect
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
                 withAnimation(.easeIn(duration: 0.1)) {
                     showValueHighlight = true
                 }
-                // Fade out the highlight after 0.4s
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                    withAnimation(.easeOut(duration: 0.4)) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    withAnimation(.easeOut(duration: 0.3)) {
                         showValueHighlight = false
                     }
                 }
@@ -392,7 +361,7 @@ struct ConversionTable: View {
         formatter.numberStyle = .decimal
         formatter.maximumFractionDigits = 2
         formatter.minimumFractionDigits = 0
-        formatter.groupingSeparator = ","
+        formatter.groupingSeparator = Locale.current.groupingSeparator
         
         // For very large amounts or whole numbers, don't show decimals
         if amount >= 1000 || amount == floor(amount) {
@@ -419,38 +388,73 @@ struct ConversionTable: View {
     }
     
     private var conversionRowsView: some View {
-        ForEach(Array(conversions.enumerated()), id: \.offset) { index, conversion in
-            ConversionRowView(
-                fromAmount: formatAmount(conversion.amount, for: fromCurrencyCode),
-                toAmount: formatAmount(conversion.converted, for: toCurrencyCode),
-                fromCode: fromCurrencyCode,
-                toCode: toCurrencyCode,
-                isAlternate: index % 2 != 0,
-                isHighlighted: showValueHighlight
-            )
+        VStack(spacing: 0) {
+            ForEach(Array(conversions.enumerated()), id: \.offset) { index, conversion in
+                ConversionRowView(
+                    fromAmount: formatAmount(conversion.amount, for: fromCurrencyCode),
+                    toAmount: formatAmount(conversion.converted, for: toCurrencyCode),
+                    fromCode: fromCurrencyCode,
+                    toCode: toCurrencyCode,
+                    fromSymbol: getCurrencySymbol(for: fromCurrencyCode),
+                    toSymbol: getCurrencySymbol(for: toCurrencyCode),
+                    isAlternate: index % 2 != 0,
+                    isHighlighted: showValueHighlight
+                )
+            }
         }
+        .offset(x: slideOffset)
         .contentShape(Rectangle())
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
+        .gesture(
+            DragGesture(minimumDistance: 20)
                 .onEnded { value in
-                    // Detect which side was tapped
-                    handleTap(at: value.startLocation.x)
+                    handleSwipe(translation: value.translation.width)
                 }
         )
     }
     
-    private var flipHintView: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "chevron.left")
-                .font(.system(size: 10, weight: .medium))
-                .opacity(currentLevel > 0 ? 1.0 : 0.3)
-            Text(currentLevel == 0 ? "Tap right for higher values" : "Tap left for lower values")
-                .font(.system(size: 12, weight: .medium))
-            Image(systemName: "chevron.right")
-                .font(.system(size: 10, weight: .medium))
-                .opacity(currentLevel < 1 ? 1.0 : 0.3)
+    // Get currency symbol for display
+    private func getCurrencySymbol(for code: String) -> String {
+        switch code {
+        case "USD", "CAD", "AUD", "NZD", "SGD", "HKD": return "$"
+        case "EUR": return "€"
+        case "GBP": return "£"
+        case "JPY", "CNY": return "¥"
+        case "CHF": return "Fr"
+        case "SEK", "NOK", "DKK", "ISK": return "Kr"
+        case "KRW": return "₩"
+        case "INR": return "₹"
+        case "RUB": return "₽"
+        case "THB": return "฿"
+        case "PLN": return "zł"
+        case "BRL": return "R$"
+        case "MXN": return "$"
+        case "ZAR": return "R"
+        case "TRY": return "₺"
+        case "ILS": return "₪"
+        case "PHP": return "₱"
+        case "MYR": return "RM"
+        case "IDR": return "Rp"
+        case "VND": return "₫"
+        default: return code
         }
-        .foregroundColor(.white)
+    }
+    
+    private var flipHintView: some View {
+        VStack(spacing: 8) {
+            // Page indicator dots
+            HStack(spacing: 8) {
+                ForEach(0..<2, id: \.self) { index in
+                    Circle()
+                        .fill(currentLevel == index ? Color.white : Color.white.opacity(0.3))
+                        .frame(width: 8, height: 8)
+                }
+            }
+            
+            // Label
+            Text(currentLevel == 0 ? "Common amounts" : "Higher amounts")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(.white.opacity(0.7))
+        }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
         .accessibilityHidden(true)
@@ -845,6 +849,8 @@ private struct ConversionRowView: View {
     let toAmount: String
     let fromCode: String
     let toCode: String
+    let fromSymbol: String
+    let toSymbol: String
     let isAlternate: Bool
     let isHighlighted: Bool
     
@@ -853,9 +859,17 @@ private struct ConversionRowView: View {
         Color(white: 0.55) // Subtle grey flash
     }
     
+    // Check if symbol is letter-based (needs space)
+    private func needsSpace(_ symbol: String) -> Bool {
+        // Letter-based symbols that need a space
+        let letterSymbols = ["Fr", "Kr", "zł", "R$", "R", "RM", "Rp"]
+        return letterSymbols.contains(symbol) || symbol.count > 1
+    }
+    
     var body: some View {
         HStack(spacing: 0) {
-            Text(fromAmount)
+            // From amount with symbol
+            Text(needsSpace(fromSymbol) ? "\(fromSymbol) \(fromAmount)" : "\(fromSymbol)\(fromAmount)")
                 .font(.system(size: 24, weight: .regular))
                 .foregroundColor(isHighlighted ? highlightColor : .white)
                 .lineLimit(1)
@@ -865,7 +879,8 @@ private struct ConversionRowView: View {
                 .frame(height: 24)
                 .accessibilityHidden(true)
             
-            Text(toAmount)
+            // To amount with symbol
+            Text(needsSpace(toSymbol) ? "\(toSymbol) \(toAmount)" : "\(toSymbol)\(toAmount)")
                 .font(.system(size: 24, weight: .semibold))
                 .foregroundColor(isHighlighted ? highlightColor : Color("primary100"))
                 .lineLimit(1)
@@ -875,7 +890,7 @@ private struct ConversionRowView: View {
         .padding(.vertical, 12)
         .background(isAlternate ? Color.white.opacity(0.03) : Color.clear)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(fromAmount) \(fromCode) equals \(toAmount) \(toCode)")
+        .accessibilityLabel("\(fromSymbol)\(fromAmount) \(fromCode) equals \(toSymbol)\(toAmount) \(toCode)")
     }
 }
 
@@ -902,53 +917,94 @@ struct WidgetGuideView: View {
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Widget preview image
-            Image("WidgetPreview")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(maxWidth: 340)
-                .clipShape(RoundedRectangle(cornerRadius: 20))
-                .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 6)
-                .padding(.top, 16)
-            
-            // Text content
-            VStack(spacing: 8) {
+        ZStack(alignment: .topTrailing) {
+            VStack(spacing: 0) {
+                // Widget screenshot image
+                Image("widget_grab_1")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: 280)
+                    .clipShape(RoundedRectangle(cornerRadius: 20))
+                    .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 6)
+                    .padding(.top, 64)
+                
+                // Title
                 Text("Add Tilo Widget")
                     .font(.system(size: 24, weight: .bold))
                     .foregroundColor(Color("grey100"))
+                    .padding(.top, 32)
                 
-                Text("Tilo's widget shows real-time prices on your home screen, perfect for quick checks in shops, cafés, and markets when travelling abroad.")
-                    .font(.system(size: 15))
-                    .foregroundColor(Color("grey300"))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(nil)
-                    .fixedSize(horizontal: false, vertical: true)
+                // Step-by-step instructions
+                VStack(alignment: .leading, spacing: 20) {
+                    StepRow(number: 1, text: "Long-press on your home screen")
+                    StepRow(number: 2, text: "Tap the + button in the top corner")
+                    StepRow(number: 3, text: "Search for \"Tilo\" and add the widget")
+                }
+                .padding(.top, 24)
+                .padding(.horizontal, 8)
+                
+                Spacer()
+                
+                // Got it button (pinned to bottom)
+                Button(action: { dismiss() }) {
+                    Text("Got it")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(Color("grey100"))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(.ultraThinMaterial)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
+                        )
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 32)
             }
-            .padding(.top, 24)
+            .padding(24)
             
-            Spacer()
-            
-            // Got it button with glass effect (pinned to bottom)
-            Button(action: { dismiss() }) {
-                Text("Got it")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundColor(Color("grey100"))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(.ultraThinMaterial)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.white.opacity(0.2), lineWidth: 0.5)
-                    )
+            // Close button
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 32, height: 32)
+                    .background(Color("grey700"))
+                    .clipShape(Circle())
             }
-            .buttonStyle(.plain)
+            .padding(.top, 16)
+            .padding(.trailing, 16)
         }
-        .padding(24)
         .background(Color("background"))
+    }
+}
+
+// MARK: - Step Row
+
+private struct StepRow: View {
+    let number: Int
+    let text: String
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            Text("\(number)")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(Color("primary100"))
+                .frame(width: 28, height: 28)
+                .background(
+                    Circle()
+                        .fill(Color("primary500").opacity(0.3))
+                )
+            
+            Text(text)
+                .font(.system(size: 16, weight: .regular))
+                .foregroundColor(Color("grey200"))
+        }
     }
 }
 

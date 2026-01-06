@@ -124,6 +124,7 @@ struct CurrencySelector: View {
                     }
                     .padding(.top, 16)
                 }
+                .scrollDismissesKeyboard(.immediately)
             }
             .background(Color("grey800"))
             .navigationBarHidden(true)
@@ -136,6 +137,7 @@ struct CurrencySelector: View {
 struct SearchBar: View {
     @Binding var text: String
     let placeholder: String
+    var isSearchFocused: FocusState<Bool>.Binding? = nil
     @FocusState private var isFocused: Bool
     
     var body: some View {
@@ -155,6 +157,13 @@ struct SearchBar: View {
                     .submitLabel(.search)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
+                    .onAppear {
+                        // Immediate focus when search bar appears
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            isFocused = true
+                            isSearchFocused?.wrappedValue = true
+                        }
+                    }
             }
             
             if !text.isEmpty {

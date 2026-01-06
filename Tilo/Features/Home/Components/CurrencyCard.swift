@@ -46,8 +46,9 @@ struct CurrencyCard: View {
     
     // Helper to handle amount input changes
     private func handleAmountInputChange(oldValue: String, newValue: String) {
-        // Remove any existing formatting (commas)
-        let cleanInput = newValue.replacingOccurrences(of: ",", with: "")
+        // Remove any existing formatting (grouping separators)
+        let groupingSeparator = Locale.current.groupingSeparator ?? ","
+        let cleanInput = newValue.replacingOccurrences(of: groupingSeparator, with: "")
         
         // Only allow digits and one decimal point
         let filtered = cleanInput.filter { $0.isNumber || $0 == "." }
@@ -71,7 +72,7 @@ struct CurrencyCard: View {
             if let intValue = Int(integerPart), intValue >= 1000 {
                 let formatter = NumberFormatter()
                 formatter.numberStyle = .decimal
-                formatter.groupingSeparator = ","
+                formatter.groupingSeparator = Locale.current.groupingSeparator
                 formatter.usesGroupingSeparator = true
                 formattedInteger = formatter.string(from: NSNumber(value: intValue)) ?? integerPart
             } else {
@@ -118,7 +119,7 @@ struct CurrencyCard: View {
                         TextField("", text: $amountInput)
                             .font(.system(size: 24, weight: .semibold))
                             .foregroundColor(.white)
-                            .keyboardType(.numberPad)
+                            .keyboardType(.decimalPad)
                             .tint(.white)
                             .focused($amountFieldIsFocused)
                             .lineLimit(1)

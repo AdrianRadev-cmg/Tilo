@@ -209,15 +209,19 @@ struct MediumWidgetView: View {
             VStack(spacing: 2) {
                 ForEach(Array(entry.conversions.prefix(5).enumerated()), id: \.offset) { index, conversion in
                     HStack {
-                        Text(formatAmount(conversion.from))
+                        Text(formatWithSymbol(conversion.from, code: entry.currencyPair.fromCode))
                             .font(.system(size: 16, weight: .regular))
                             .foregroundColor(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                         
                         Spacer()
                         
-                        Text(formatAmount(conversion.to))
+                        Text(formatWithSymbol(conversion.to, code: entry.currencyPair.toCode))
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                     }
                     .padding(.vertical, 3)
                     .padding(.horizontal, 6)
@@ -287,15 +291,19 @@ struct LargeWidgetView: View {
             VStack(spacing: 2) {
                 ForEach(Array(entry.conversions.prefix(7).enumerated()), id: \.offset) { index, conversion in
                     HStack {
-                        Text(formatAmount(conversion.from))
+                        Text(formatWithSymbol(conversion.from, code: entry.currencyPair.fromCode))
                             .font(.system(size: 20, weight: .regular))
                             .foregroundColor(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                         
                         Spacer()
                         
-                        Text(formatAmount(conversion.to))
+                        Text(formatWithSymbol(conversion.to, code: entry.currencyPair.toCode))
                             .font(.system(size: 20, weight: .bold))
                             .foregroundColor(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                     }
                     .padding(.vertical, 6)
                     .padding(.horizontal, 8)
@@ -319,8 +327,45 @@ private func formatAmount(_ amount: Double) -> String {
     formatter.numberStyle = .decimal
     formatter.maximumFractionDigits = amount >= 1000 || amount == floor(amount) ? 0 : 2
     formatter.minimumFractionDigits = 0
-    formatter.groupingSeparator = ","
+    formatter.groupingSeparator = Locale.current.groupingSeparator
     return formatter.string(from: NSNumber(value: amount)) ?? "\(Int(amount))"
+}
+
+private func getCurrencySymbol(for code: String) -> String {
+    switch code {
+    case "USD", "CAD", "AUD", "NZD", "SGD", "HKD": return "$"
+    case "EUR": return "€"
+    case "GBP": return "£"
+    case "JPY", "CNY": return "¥"
+    case "CHF": return "Fr"
+    case "SEK", "NOK", "DKK", "ISK": return "Kr"
+    case "KRW": return "₩"
+    case "INR": return "₹"
+    case "RUB": return "₽"
+    case "THB": return "฿"
+    case "PLN": return "zł"
+    case "BRL": return "R$"
+    case "MXN": return "$"
+    case "ZAR": return "R"
+    case "TRY": return "₺"
+    case "ILS": return "₪"
+    case "PHP": return "₱"
+    case "MYR": return "RM"
+    case "IDR": return "Rp"
+    case "VND": return "₫"
+    default: return code
+    }
+}
+
+private func needsSpace(_ symbol: String) -> Bool {
+    let letterSymbols = ["Fr", "Kr", "zł", "R$", "R", "RM", "Rp"]
+    return letterSymbols.contains(symbol) || symbol.count > 1
+}
+
+private func formatWithSymbol(_ amount: Double, code: String) -> String {
+    let symbol = getCurrencySymbol(for: code)
+    let formatted = formatAmount(amount)
+    return needsSpace(symbol) ? "\(symbol) \(formatted)" : "\(symbol)\(formatted)"
 }
 
 // MARK: - Widget Gradient Background

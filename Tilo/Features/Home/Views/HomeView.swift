@@ -329,13 +329,22 @@ struct HomeView: View {
                 GeometryReader { geometry in
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
-                        // Purple section with currency cards
-                        // Using overlay to position swap button exactly at the junction
-                        VStack(alignment: .leading, spacing: 12) {
-                            CurrencyCard(
-                                currencyName: $fromCurrencyName,
-                                flagEmoji: $fromFlagEmoji,
-                                currencyCode: $fromCurrencyCode,
+                        // Purple section with currency cards - FIXED LAYOUT
+                        // Card spacing is 12pt, each card is kCurrencyCardHeight (156pt)
+                        // Swap button positioned at: topPadding + cardHeight + (spacing/2) - (buttonHeight/2)
+                        let topPadding = min(40, geometry.size.height * 0.05)
+                        let cardSpacing: CGFloat = 12
+                        let swapButtonSize: CGFloat = 44
+                        // Exact Y position for swap button center: after first card + half spacing
+                        let swapButtonY = topPadding + kCurrencyCardHeight + (cardSpacing / 2)
+                        
+                        ZStack(alignment: .topLeading) {
+                            // Cards container with fixed spacing
+                            VStack(alignment: .leading, spacing: cardSpacing) {
+                                CurrencyCard(
+                                    currencyName: $fromCurrencyName,
+                                    flagEmoji: $fromFlagEmoji,
+                                    currencyCode: $fromCurrencyCode,
                                     amount: formatAmount(fromAmount),
                                     exchangeRateInfo: exchangeRate > 0 ? "1 \(fromCurrencyCode) = \(formatExchangeRate(exchangeRate)) \(toCurrencyCode)" : "Loading rate...",
                                     currencySymbol: getCurrencySymbol(for: fromCurrencyCode),
@@ -345,7 +354,6 @@ struct HomeView: View {
                                         Task {
                                             await updateConversion()
                                         }
-                                        // Request review after first manual conversion
                                         requestReviewIfFirstConversion()
                                     },
                                     onEditingChanged: { isEditing in
@@ -367,19 +375,20 @@ struct HomeView: View {
                                     gradientColor4: gradientColor4,
                                     gradientColor5: gradientColor5
                                 )
+                                .frame(height: kCurrencyCardHeight)
                                 .padding(.horizontal, max(16, geometry.size.width * 0.04))
-                                .offset(y: swapOffset) // Animate down during swap
+                                .offset(y: swapOffset)
                                 .onChange(of: fromCurrencyCode) { oldValue, newValue in
                                     saveCurrencyState()
                                     Task {
                                         await updateConversion()
                                     }
                                 }
-                            
-                            CurrencyCard(
-                                currencyName: $toCurrencyName,
-                                flagEmoji: $toFlagEmoji,
-                                currencyCode: $toCurrencyCode,
+                                
+                                CurrencyCard(
+                                    currencyName: $toCurrencyName,
+                                    flagEmoji: $toFlagEmoji,
+                                    currencyCode: $toCurrencyCode,
                                     amount: formatAmount(toAmount),
                                     exchangeRateInfo: exchangeRate > 0 ? "1 \(toCurrencyCode) = \(formatExchangeRate(1.0 / exchangeRate)) \(fromCurrencyCode)" : "Loading rate...",
                                     currencySymbol: getCurrencySymbol(for: toCurrencyCode),
@@ -389,7 +398,6 @@ struct HomeView: View {
                                         Task {
                                             await updateConversionReverse()
                                         }
-                                        // Request review after first manual conversion
                                         requestReviewIfFirstConversion()
                                     },
                                     onEditingChanged: { isEditing in
@@ -411,22 +419,27 @@ struct HomeView: View {
                                     gradientColor4: gradientColor4,
                                     gradientColor5: gradientColor5
                                 )
+                                .frame(height: kCurrencyCardHeight)
                                 .padding(.horizontal, max(16, geometry.size.width * 0.04))
-                                .offset(y: -swapOffset) // Animate up during swap
+                                .offset(y: -swapOffset)
                                 .onChange(of: toCurrencyCode) { oldValue, newValue in
                                     saveCurrencyState()
                                     Task {
                                         await updateConversion()
                                     }
                                 }
-                        }
-                        .padding(.top, min(40, geometry.size.height * 0.05))
-                        // SwapButton as overlay - center alignment places it exactly at the junction
-                        // because both cards have equal height, center of VStack = junction point
-                        .overlay(alignment: .center) {
+                            }
+                            .padding(.top, topPadding)
+                            
+                            // Swap button - FIXED position, centered horizontally, exact Y from top
                             SwapButton(action: swapCurrencies)
+                                .frame(width: swapButtonSize, height: swapButtonSize)
+                                .position(
+                                    x: geometry.size.width / 2,
+                                    y: swapButtonY
+                                )
                         }
-                        .zIndex(999)
+                        .frame(height: topPadding + (kCurrencyCardHeight * 2) + cardSpacing)
                         
                         // Error banner (if any)
                         if showError {

@@ -19,47 +19,43 @@ final class CurrencyChartViewModel: ObservableObject {
     private var toCurrency: String
     private let exchangeService = ExchangeRateService.shared
     
-    // Track if we've successfully fetched data for the current currency pair
-    private var hasFetchedForCurrentPair: Bool = false
-    private var lastFetchedPair: String = ""
-    
     init(fromCurrency: String, toCurrency: String) {
         self.fromCurrency = fromCurrency
         self.toCurrency = toCurrency
     }
     
-    func fetchRates(for range: TimeRange = .oneWeek, forceRefresh: Bool = false) async {
-        let currentPair = "\(fromCurrency)_\(toCurrency)"
-        
-        // Skip fetch if we already have data for this pair (prevents re-fetch on tab switch)
-        if !forceRefresh && hasFetchedForCurrentPair && lastFetchedPair == currentPair && !rates.isEmpty {
-            return
-        }
-        
+    func fetchRates(for range: TimeRange = .oneWeek) async {
         isLoading = true
         error = nil
         
-        // Fetch historical data from ExchangeRateService (14 days)
-        if let historicalData = await exchangeService.fetchHistoricalRates(from: fromCurrency, to: toCurrency, days: 14), !historicalData.isEmpty {
+        print("📊 ViewModel fetchRates: \(fromCurrency) → \(toCurrency)")
+        
+        // Fetch historical data from ExchangeRateService (30 days)
+        if let historicalData = await exchangeService.fetchHistoricalRates(from: fromCurrency, to: toCurrency, days: 30) {
+            print("📊 Received \(historicalData.count) historical data points")
             // Convert to ExchangeRate format
-            // Note: Historical data already excludes today (starts from yesterday)
-            let ratesArray = historicalData.map { histRate in
+            var ratesArray = historicalData.map { histRate in
                 ExchangeRate(date: histRate.date, rate: histRate.rate)
             }
             
-            rates = ratesArray
-            hasFetchedForCurrentPair = true
-            lastFetchedPair = currentPair
-            error = nil
-        } else {
-            // Only set error if we don't already have data (preserve existing cache for offline)
-            if rates.isEmpty || lastFetchedPair != currentPair {
-                error = NSError(domain: "CurrencyChart", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to fetch historical data"])
+            // Remove the last day (today) from the chart
+            // Today's rate is often incomplete/intraday and creates an artificial "drop"
+            // This is standard practice in financial charting
+            if ratesArray.count > 1 {
+                ratesArray.removeLast()
+                print("📊 Removed today's incomplete rate, now showing \(ratesArray.count) complete days")
             }
-            // Don't clear rates - keep existing data for offline support
+            
+            rates = ratesArray
+            print("📊 Chart rates updated: \(rates.count) points")
+        } else {
+            print("❌ No historical data received!")
+            error = NSError(domain: "CurrencyChart", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to fetch historical data"])
+            rates = []
         }
         
         isLoading = false
+        print("📊 fetchRates completed, isLoading: \(isLoading), rates count: \(rates.count)")
     }
     
     var currentRate: Double {
@@ -100,8 +96,6 @@ final class CurrencyChartViewModel: ObservableObject {
     func updateCurrencies(from: String, to: String) {
         self.fromCurrency = from
         self.toCurrency = to
-        // Reset fetch flag when currencies change so we fetch new data
-        self.hasFetchedForCurrentPair = false
     }
 }
 
@@ -121,6 +115,7 @@ struct CurrencyChartView: View {
     @GestureState private var isSwapPressed: Bool = false
     
     init(fromCurrency: String, toCurrency: String) {
+        print("🔄 CurrencyChartView init: \(fromCurrency) → \(toCurrency)")
         self._fromCurrencyCode = State(initialValue: fromCurrency)
         self._toCurrencyCode = State(initialValue: toCurrency)
         self._viewModel = StateObject(wrappedValue: CurrencyChartViewModel(
@@ -172,15 +167,18 @@ struct CurrencyChartView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .task {
+            print("📊 .task triggered for chart")
             await viewModel.fetchRates(for: selectedRange)
         }
         .onChange(of: fromCurrencyCode) { oldValue, newValue in
+            print("📊 fromCurrencyCode changed: \(oldValue) → \(newValue)")
             viewModel.updateCurrencies(from: newValue, to: toCurrencyCode)
             Task {
                 await viewModel.fetchRates(for: selectedRange)
             }
         }
         .onChange(of: toCurrencyCode) { oldValue, newValue in
+            print("📊 toCurrencyCode changed: \(oldValue) → \(newValue)")
             viewModel.updateCurrencies(from: fromCurrencyCode, to: newValue)
             Task {
                 await viewModel.fetchRates(for: selectedRange)
@@ -283,7 +281,6 @@ struct CurrencyChartView: View {
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(Color(red: 0.7, green: 0.7, blue: 0.7))
             }
-            .id(selectedRate?.id) // Force re-render when selection changes
             
             // Daily change indicator
             if let changeText = dailyChangeText {
@@ -357,15 +354,15 @@ struct CurrencyChartView: View {
     // Split rate text for styling
     private var rateMainText: String {
         if let selected = selectedRate {
-            return "1 \(fromCurrencyCode) = \(String(format: "%.3f", selected.rate)) \(toCurrencyCode) · "
+            return "1 \(fromCurrencyCode) = \(String(format: "%.4f", selected.rate)) \(toCurrencyCode) · "
         } else {
-            return "1 \(fromCurrencyCode) = \(String(format: "%.3f", viewModel.currentRate)) \(toCurrencyCode) · "
+            return "1 \(fromCurrencyCode) = \(String(format: "%.4f", viewModel.currentRate)) \(toCurrencyCode) · "
         }
     }
     
     private var rateDateText: String {
         let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "EEE MMM d" // e.g., "Sun Dec 20"
+        dateFormatter.dateFormat = "MMM d"
         
         if let selected = selectedRate {
             return dateFormatter.string(from: selected.date)
@@ -389,9 +386,6 @@ struct CurrencyChartView: View {
         return "🏳️" // Default flag if not found
     }
     
-    // Threshold for considering change as "essentially zero" (0.01% = negligible)
-    private let negligibleChangeThreshold: Double = 0.01
-    
     // Dynamic daily change calculation based on selected or current rate
     private var dailyChangeText: String? {
         guard viewModel.rates.count >= 2 else { return nil }
@@ -403,58 +397,39 @@ struct CurrencyChartView: View {
         let change = currentRate - previousRate
         let percentageChange = (change / previousRate) * 100
         
-        // Check if change is negligible (essentially zero)
-        if abs(percentageChange) < negligibleChangeThreshold {
-            return "0.00% Past day"
-        }
+        let sign = change >= 0 ? "+" : ""
         
-        let sign = change > 0 ? "+" : ""
-        
-        return "\(sign)\(String(format: "%.2f", percentageChange))% Past day"
+        return "\(sign)\(String(format: "%.2f", abs(percentageChange)))% Past day"
     }
     
     // Get the appropriate SF Symbol arrow
     private var dailyChangeIcon: String {
-        guard viewModel.rates.count >= 2 else { return "equal" }
+        guard viewModel.rates.count >= 2 else { return "minus" }
         
         let (currentRate, previousRate) = getDailyChangeRates()
-        
-        guard currentRate > 0 && previousRate > 0 else { return "equal" }
-        
         let change = currentRate - previousRate
-        let percentageChange = (change / previousRate) * 100
-        
-        // Check if change is negligible (essentially zero)
-        if abs(percentageChange) < negligibleChangeThreshold {
-            return "equal" // Neutral equal sign for no change
-        }
         
         if change > 0 {
             return "arrow.up.right" // Angled up arrow
-        } else {
+        } else if change < 0 {
             return "arrow.down.right" // Angled down arrow
+        } else {
+            return "minus" // Flat line for no change
         }
     }
     
     private var dailyChangeColor: Color {
-        guard viewModel.rates.count >= 2 else { return Color(red: 0.6, green: 0.6, blue: 0.7) }
+        guard viewModel.rates.count >= 2 else { return Color("grey100") }
         
         let (currentRate, previousRate) = getDailyChangeRates()
-        
-        guard currentRate > 0 && previousRate > 0 else { return Color(red: 0.6, green: 0.6, blue: 0.7) }
-        
         let change = currentRate - previousRate
-        let percentageChange = (change / previousRate) * 100
-        
-        // Check if change is negligible (essentially zero)
-        if abs(percentageChange) < negligibleChangeThreshold {
-            return Color(red: 0.6, green: 0.6, blue: 0.7) // Accessible neutral blue-grey
-        }
         
         if change > 0 {
             return Color(red: 0.2, green: 0.8, blue: 0.4) // Accessible green
-        } else {
+        } else if change < 0 {
             return Color(red: 0.9, green: 0.3, blue: 0.3) // Accessible red
+        } else {
+            return Color("grey100") // Neutral for no change
         }
     }
     
@@ -697,7 +672,7 @@ struct CurrencyLineChart: View {
                         .foregroundStyle(Color("grey600").opacity(0.3))
                     AxisValueLabel() {
                         if let rate = value.as(Double.self) {
-                                Text(String(format: "%.3f", rate))
+                                Text(String(format: "%.4f", rate))
                                     .foregroundStyle(Color("grey100"))
                                     .font(.system(size: 12))
                         }
@@ -745,7 +720,7 @@ struct CurrencyLineChart: View {
             
             // Date label below chart
             HStack {
-                Text("14 days ago")
+                Text("A month ago")
                     .font(.system(size: 12, weight: .regular))
                     .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
                 
@@ -753,7 +728,7 @@ struct CurrencyLineChart: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Exchange rate chart showing historical rates. High: \(String(format: "%.3f", highRate)), Median: \(String(format: "%.3f", medianRate)), Low: \(String(format: "%.3f", lowRate))")
+        .accessibilityLabel("Exchange rate chart showing historical rates. High: \(String(format: "%.4f", highRate)), Median: \(String(format: "%.4f", medianRate)), Low: \(String(format: "%.4f", lowRate))")
         .accessibilityHint("Drag horizontally to explore rates on different dates")
     }
     

@@ -8,7 +8,6 @@
 import SwiftUI
 import Charts
 import WidgetKit
-import StoreKit
 
 struct HomeView: View {
     @State private var selectedTab = 0
@@ -35,7 +34,6 @@ struct HomeView: View {
     @State private var errorMessage: String = ""
     
     @StateObject private var exchangeService = ExchangeRateService.shared
-    @Environment(\.requestReview) private var requestReview
     
     // Preview-only debug controls
     var tintOpacity: Double = 0.6
@@ -153,9 +151,6 @@ struct HomeView: View {
             
             // Update widget with new rate
             updateWidgetData()
-            
-            // Check if we should request a review
-            checkAndRequestReview()
         } else {
             // Show error if rate couldn't be fetched
             if let serviceError = exchangeService.errorMessage {
@@ -188,9 +183,6 @@ struct HomeView: View {
             
             // Update widget with new rate
             updateWidgetData()
-            
-            // Check if we should request a review
-            checkAndRequestReview()
         } else {
             // Show error if rate couldn't be fetched
             if let serviceError = exchangeService.errorMessage {
@@ -202,32 +194,6 @@ struct HomeView: View {
         }
         
         isLoadingRate = false
-    }
-    
-    // MARK: - App Store Review Request
-    
-    private func checkAndRequestReview() {
-        let conversionCountKey = "totalConversionCount"
-        let hasRequestedReviewKey = "hasRequestedReviewThisVersion"
-        
-        // Get current count and increment
-        var conversionCount = UserDefaults.standard.integer(forKey: conversionCountKey)
-        conversionCount += 1
-        UserDefaults.standard.set(conversionCount, forKey: conversionCountKey)
-        
-        // Check if we've already requested review for this app version
-        let currentVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
-        let lastReviewedVersion = UserDefaults.standard.string(forKey: hasRequestedReviewKey)
-        
-        // Request review on 1st conversion, but only once per app version
-        if conversionCount == 1 && lastReviewedVersion != currentVersion {
-            UserDefaults.standard.set(currentVersion, forKey: hasRequestedReviewKey)
-            
-            // Small delay to let the conversion complete visually
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                requestReview()
-            }
-        }
     }
     
     private func formatAmount(_ amount: Double) -> String {
@@ -259,9 +225,9 @@ struct HomeView: View {
     private func formatExchangeRate(_ rate: Double) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
-        formatter.minimumFractionDigits = 3
-        formatter.maximumFractionDigits = 3
-        return formatter.string(from: NSNumber(value: rate)) ?? String(format: "%.3f", rate)
+        formatter.minimumFractionDigits = 4
+        formatter.maximumFractionDigits = 4
+        return formatter.string(from: NSNumber(value: rate)) ?? String(format: "%.4f", rate)
     }
     
     // Get appropriate chip amounts based on currency value category
@@ -362,11 +328,6 @@ struct HomeView: View {
                                                 activeEditingCard = nil
                                             }
                                         },
-                                        onActivationRequest: {
-                                            // User tapped this card while other card was editing
-                                            isEditingBottomCard = false
-                                            activeEditingCard = "top"
-                                        },
                                         isEditable: true,
                                         isCurrentlyActive: activeEditingCard == "top" || activeEditingCard == nil,
                                         tintOpacity: tintOpacity,
@@ -408,11 +369,6 @@ struct HomeView: View {
                                             } else {
                                                 activeEditingCard = nil
                                             }
-                                        },
-                                        onActivationRequest: {
-                                            // User tapped this card while other card was editing
-                                            isEditingTopCard = false
-                                            activeEditingCard = "bottom"
                                         },
                                         isEditable: true,
                                         isCurrentlyActive: activeEditingCard == "bottom" || activeEditingCard == nil,
@@ -490,11 +446,11 @@ struct HomeView: View {
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .padding(.top, 40) // 8px more spacing
+                        .padding(.top, 32)
                         
-                        // Last 14 days section
+                        // Rate history section
                         VStack(alignment: .leading, spacing: 20) {
-                            Text("Last 14 days")
+                            Text("Rate history")
                                 .font(.title2)
                                 .foregroundColor(.white)
                             
@@ -502,7 +458,7 @@ struct HomeView: View {
                                 .id("\(fromCurrencyCode)-\(toCurrencyCode)")
                         }
                         .frame(maxWidth: .infinity, alignment: .topLeading)
-                        .padding(.top, 40) // 8px more spacing
+                        .padding(.top, 32)
                         .padding(.horizontal, max(16, geometry.size.width * 0.04))
                         .padding(.bottom, min(40, geometry.size.height * 0.05))
                     }
@@ -521,7 +477,7 @@ struct HomeView: View {
                 await updateConversion()
             }
             
-            // Cheat sheet Tab
+            // Travel view Tab
             TravelView(
                 fromCurrencyCode: $fromCurrencyCode,
                 fromCurrencyName: $fromCurrencyName,
@@ -532,7 +488,7 @@ struct HomeView: View {
             )
                 .tabItem {
                 Image(systemName: "tablecells.fill")
-                Text("Cheat sheet")
+                Text("Travel view")
                 }
                 .tag(1)
         }
@@ -598,6 +554,26 @@ struct DebugHomeViewWrapper: View {
                             Button(action: { showControls.toggle() }) {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundColor(.white.opacity(0.7))
+                            }
+                        }
+                        
+                        // API Mode Toggle
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("API Mode:")
+                                    .font(.subheadline)
+                                    .foregroundColor(.white.opacity(0.8))
+                                Spacer()
+                                Button(action: {
+                                    exchangeService.toggleMockMode()
+                                }) {
+                                    Text(exchangeService.isMockMode ? "🧪 Mock" : "🌐 Live")
+                                        .font(.caption)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(exchangeService.isMockMode ? Color.orange.opacity(0.8) : Color.green.opacity(0.8))
+                                        .cornerRadius(6)
+                                }
                             }
                         }
                         

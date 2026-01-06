@@ -377,7 +377,7 @@
 				CODE_SIGN_ENTITLEMENTS = Tilo/Tilo.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 29965WCW8W;
 				ENABLE_APP_SANDBOX = YES;
@@ -385,6 +385,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Tilo needs access to save your cheat sheet to Photos";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -416,7 +417,7 @@
 				CODE_SIGN_ENTITLEMENTS = Tilo/Tilo.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 29965WCW8W;
 				ENABLE_APP_SANDBOX = YES;
@@ -424,6 +425,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Tilo needs access to save your cheat sheet to Photos";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -456,7 +458,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = KKP2GR69QP;
+				DEVELOPMENT_TEAM = 29965WCW8W;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TiloWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = TiloWidget;
@@ -490,6 +492,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 29965WCW8W;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TiloWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = TiloWidget;

@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - App Group Identifier
 // This must match the App Group configured in both the main app and widget entitlements
-let appGroupIdentifier = "group.com.adriyanradev.tilo.shared"
+let appGroupIdentifier = "group.com.adriyanradev.Tilo"
 
 // MARK: - Shared UserDefaults
 extension UserDefaults {

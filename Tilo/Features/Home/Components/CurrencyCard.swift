@@ -117,117 +117,105 @@ struct CurrencyCard: View {
         }
     }
     
-    // MARK: - Subviews (extracted to help compiler)
-    
-    private var currencyNameView: some View {
-        Text(currencyName)
-            .font(.title2)
-            .foregroundColor(.white)
-            .lineLimit(1)
-    }
-    
-    private var exchangeRateView: some View {
-        Text(exchangeRateInfo)
-            .font(.callout)
-            .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
-            .lineLimit(1)
-            .accessibilityLabel("Exchange rate: \(exchangeRateInfo)")
-    }
-    
-    private var amountInputRow: some View {
-        HStack(spacing: 16) {
-            amountInputField
-            CurrencySelectorChip(
-                flagEmoji: flagEmoji,
-                currencyCode: currencyCode,
-                action: { showCurrencySelector = true }
-            )
-        }
-    }
-    
-    private var amountInputField: some View {
-        HStack(alignment: .center, spacing: 4) {
-            Text(currencySymbol)
-                .font(.callout.weight(.medium))
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(currencyName)
+                .font(.title2)
                 .foregroundColor(.white)
             
-            amountTextOrField
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
-        .frame(minWidth: 0, maxWidth: .infinity, height: 44, alignment: .leading)
-        .overlay {
-            if isInputError {
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color(red: 0.8, green: 0.2, blue: 0.2), lineWidth: 1)
-            }
-        }
-        .glassEffect()
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .accessibilityLabel("Amount to convert: \(currencyName)")
-        .contentShape(Rectangle())
-        .onTapGesture {
-            if isEditable && !isAmountFocused {
-                amountInput = ""
-                isInputError = false
-                isAmountFocused = true
-                onEditingChanged?(true)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    amountFieldIsFocused = true
+            // Unified HStack Structure
+            HStack(spacing: 16) {
+                HStack(alignment: .center, spacing: 4) {
+                    Text(currencySymbol)
+                        .font(.callout.weight(.medium))
+                        .foregroundColor(.white)
+
+                    if isAmountFocused && isEditable {
+                        TextField("", text: $amountInput)
+                            .font(.title2.weight(.semibold))
+                            .foregroundColor(.white)
+                            .keyboardType(.decimalPad)
+                            .tint(.white)
+                            .focused($amountFieldIsFocused)
+                            .lineLimit(1)
+                            .toolbar {
+                                ToolbarItemGroup(placement: .keyboard) {
+                                    Spacer()
+                                    Button("Done") {
+                                        isAmountFocused = false
+                                        amountFieldIsFocused = false
+                                        onEditingChanged?(false)
+                                    }
+                                    .font(.body.weight(.semibold))
+                                }
+                            }
+                            .onChange(of: amountInput) { oldValue, newValue in
+                                handleAmountInputChange(oldValue: oldValue, newValue: newValue)
+                            }
+                            .onChange(of: amountFieldIsFocused) { _, newValue in
+                                // Sync state when keyboard is dismissed externally (e.g., by scrolling)
+                                if !newValue && isAmountFocused {
+                                    isAmountFocused = false
+                                    onEditingChanged?(false)
+                                }
+                            }
+                    } else {
+                        Text(amountInput.isEmpty ? amount : amountInput)
+                            .font(.title2.weight(.semibold))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .accessibilityHint("Tap to edit amount")
+                    }
                 }
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private var amountTextOrField: some View {
-        if isAmountFocused && isEditable {
-            TextField("", text: $amountInput)
-                .font(.title2.weight(.semibold))
-                .foregroundColor(.white)
-                .keyboardType(.decimalPad)
-                .tint(.white)
-                .focused($amountFieldIsFocused)
-                .lineLimit(1)
-                .toolbar {
-                    ToolbarItemGroup(placement: .keyboard) {
-                        Spacer()
-                        Button("Done") {
-                            isAmountFocused = false
-                            amountFieldIsFocused = false
-                            onEditingChanged?(false)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                .overlay {
+                    // Show stroke only on error
+                        if isInputError {
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color(red: 0.8, green: 0.2, blue: 0.2), lineWidth: 1)
+                    }
+                }
+                .glassEffect()
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .accessibilityLabel("Amount to convert: \(currencyName)")
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if isEditable && !isAmountFocused && isCurrentlyActive {
+                        // Clear the input when user taps to edit
+                        amountInput = ""
+                        isInputError = false
+                        isAmountFocused = true
+                        onEditingChanged?(true)
+                        
+                        // Focus the text field to show keyboard
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            amountFieldIsFocused = true
                         }
-                        .font(.body.weight(.semibold))
                     }
                 }
-                .onChange(of: amountInput) { oldValue, newValue in
-                    handleAmountInputChange(oldValue: oldValue, newValue: newValue)
-                }
-                .onChange(of: amountFieldIsFocused) { _, newValue in
-                    if !newValue && isAmountFocused {
-                        isAmountFocused = false
-                        onEditingChanged?(false)
-                    }
-                }
-        } else {
-            Text(amountInput.isEmpty ? amount : amountInput)
-                .font(.title2.weight(.semibold))
-                .foregroundColor(.white)
-                .lineLimit(1)
-                .truncationMode(.tail)
-                .accessibilityHint("Tap to edit amount")
+                
+                CurrencySelectorChip(
+                    flagEmoji: flagEmoji, 
+                    currencyCode: currencyCode,
+                    action: { showCurrencySelector = true }
+                )
+            }
+            
+            if isInputError {
+                Text("Invalid amount")
+                    .font(.footnote)
+                    .foregroundColor(Color(red: 0.8, green: 0.2, blue: 0.2))
+                    .padding(.leading, 8)
+            }
+            
+            Text(exchangeRateInfo)
+                .font(.callout)
+                .foregroundColor(Color(red: 0.85, green: 0.85, blue: 0.85))
+                .accessibilityLabel("Exchange rate: \(exchangeRateInfo)")
         }
-    }
-    
-    // MARK: - Body
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            currencyNameView
-            amountInputRow
-            exchangeRateView
-        }
-        .frame(height: 120) // Fixed content height to prevent jumping
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge) // Cap scaling to prevent layout breaking
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(currencyName) currency card")
@@ -249,7 +237,7 @@ struct CurrencyCard: View {
          }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 16)
-        .padding(.vertical, 20)
+        .padding(.vertical, 24)
         .background(
             ZStack {
                 // Glass effect as base layer

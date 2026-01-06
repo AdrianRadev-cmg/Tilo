@@ -186,13 +186,13 @@ struct ConversionTable: View {
         let isMovingForward = newLevel > currentLevel
         let screenWidth = UIScreen.main.bounds.width
         
-        // Slide out with smooth easing
-        withAnimation(.easeInOut(duration: 0.2)) {
-            slideOffset = isMovingForward ? -screenWidth * 0.3 : screenWidth * 0.3
+        // Slide out
+        withAnimation(.easeIn(duration: 0.08)) {
+            slideOffset = isMovingForward ? -screenWidth : screenWidth
         }
         
         // Change level and slide in from opposite side
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
             currentLevel = newLevel
             
             // Update conversions
@@ -200,11 +200,11 @@ struct ConversionTable: View {
                 await updateConversionsForCurrentLevel()
             }
             
-            // Position on opposite side (no animation) - closer for smoother feel
-            slideOffset = isMovingForward ? screenWidth * 0.3 : -screenWidth * 0.3
+            // Position on opposite side (no animation)
+            slideOffset = isMovingForward ? screenWidth : -screenWidth
             
-            // Slide in with spring animation for natural feel
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            // Slide in
+            withAnimation(.easeOut(duration: 0.08)) {
                 slideOffset = 0
             }
         }

@@ -8,8 +8,11 @@
 import SwiftUI
 import Charts
 import WidgetKit
+import StoreKit
 
 struct HomeView: View {
+    @Environment(\.requestReview) var requestReview
+    
     @State private var selectedTab = 0
     
     @State private var fromCurrencyName = UserDefaults.standard.string(forKey: "fromCurrencyName") ?? "US Dollar"
@@ -32,6 +35,7 @@ struct HomeView: View {
     @State private var isSwapping: Bool = false
     @State private var showError: Bool = false
     @State private var errorMessage: String = ""
+    @State private var hasRequestedReview: Bool = UserDefaults.standard.bool(forKey: "hasRequestedReview")
     
     @StateObject private var exchangeService = ExchangeRateService.shared
     
@@ -230,6 +234,20 @@ struct HomeView: View {
         return formatter.string(from: NSNumber(value: rate)) ?? String(format: "%.4f", rate)
     }
     
+    // Request App Store review after first manual conversion
+    private func triggerReviewIfNeeded() {
+        guard !hasRequestedReview else { return }
+        
+        // Mark as requested so we only ask once
+        hasRequestedReview = true
+        UserDefaults.standard.set(true, forKey: "hasRequestedReview")
+        
+        // Delay slightly so user sees their conversion result first
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            requestReview()
+        }
+    }
+    
     // Get appropriate chip amounts based on currency value category
     private func getChipAmounts(for currencyCode: String) -> [Double] {
         // Very high-value currencies - [10, 50, 100, 200, 500, 1000]
@@ -318,6 +336,8 @@ struct HomeView: View {
                                             Task {
                                                 await updateConversion()
                                             }
+                                            // Request review after first manual conversion
+                                            triggerReviewIfNeeded()
                                         },
                                         onEditingChanged: { isEditing in
                                             isEditingTopCard = isEditing
@@ -360,6 +380,8 @@ struct HomeView: View {
                                             Task {
                                                 await updateConversionReverse()
                                             }
+                                            // Request review after first manual conversion
+                                            triggerReviewIfNeeded()
                                         },
                                         onEditingChanged: { isEditing in
                                             isEditingBottomCard = isEditing
@@ -462,8 +484,8 @@ struct HomeView: View {
                         .padding(.horizontal, max(16, geometry.size.width * 0.04))
                         .padding(.bottom, min(40, geometry.size.height * 0.05))
                     }
-                    .scrollDismissesKeyboard(.interactively)
                     }
+                    .scrollDismissesKeyboard(.immediately)
                 }
             }
             .ignoresSafeArea(.keyboard)
@@ -477,7 +499,7 @@ struct HomeView: View {
                 await updateConversion()
             }
             
-            // Travel view Tab
+            // Price Guide Tab
             TravelView(
                 fromCurrencyCode: $fromCurrencyCode,
                 fromCurrencyName: $fromCurrencyName,
@@ -488,7 +510,7 @@ struct HomeView: View {
             )
                 .tabItem {
                 Image(systemName: "tablecells.fill")
-                Text("Travel view")
+                Text("Price guide")
                 }
                 .tag(1)
         }

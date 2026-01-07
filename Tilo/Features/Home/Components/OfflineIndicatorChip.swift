@@ -46,7 +46,7 @@ struct OfflineIndicatorChip: View {
         HStack(spacing: 6) {
             Image(systemName: "wifi.slash")
                 .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(Color(red: 1.0, green: 0.4, blue: 0.4)) // Accessible red
+                .foregroundStyle(.white)
             
             Text("Offline")
                 .font(.system(size: 13, weight: .semibold))

@@ -58,16 +58,37 @@ struct OfflineIndicatorChip: View {
                 .font(.system(size: 13, weight: .regular))
         }
         .foregroundStyle(.white)
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .background(
-            .ultraThinMaterial,
-            in: Capsule()
+            ZStack {
+                // Glass effect as base layer (same as CurrencyCard)
+                Capsule()
+                    .glassEffect(in: .capsule)
+                
+                // Dark purple overlay to match CurrencyCard
+                Capsule()
+                    .fill(Color(red: 20/255, green: 8/255, blue: 58/255).opacity(0.75))
+            }
+            .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
         )
         .overlay(
+            // Subtle highlight for glassy elevation effect (same as CurrencyCard)
             Capsule()
-                .stroke(.white.opacity(0.2), lineWidth: 0.5)
+                .fill(
+                    LinearGradient(
+                        gradient: Gradient(colors: [
+                            Color.white.opacity(0.08),
+                            Color.white.opacity(0.02),
+                            Color.clear
+                        ]),
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .allowsHitTesting(false)
         )
+        .clipShape(Capsule())
     }
 }
 

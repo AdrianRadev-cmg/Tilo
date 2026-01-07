@@ -466,8 +466,8 @@ struct HomeView: View {
                         // Offline indicator - only shown when disconnected
                         if !networkMonitor.isConnected {
                             HStack {
-                                Spacer()
                                 OfflineIndicatorChip(lastUpdated: exchangeService.lastUpdated)
+                                Spacer()
                             }
                             .padding(.horizontal, max(16, geometry.size.width * 0.04))
                             .padding(.top, min(40, geometry.size.height * 0.05))

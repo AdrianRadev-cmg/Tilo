@@ -161,6 +161,7 @@ struct HomeView: View {
     @State private var errorMessage: String = ""
     
     @StateObject private var exchangeService = ExchangeRateService.shared
+    @StateObject private var networkMonitor = NetworkMonitor.shared
     @Environment(\.requestReview) private var requestReview
     
     // Preview-only debug controls
@@ -462,6 +463,17 @@ struct HomeView: View {
                 GeometryReader { geometry in
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
+                        // Offline indicator - only shown when disconnected
+                        if !networkMonitor.isConnected {
+                            HStack {
+                                Spacer()
+                                OfflineIndicatorChip(lastUpdated: exchangeService.lastUpdated)
+                            }
+                            .padding(.horizontal, max(16, geometry.size.width * 0.04))
+                            .padding(.top, min(40, geometry.size.height * 0.05))
+                            .padding(.bottom, 12)
+                        }
+                        
                         // Purple section with currency cards
                         ZStack {
                             VStack(alignment: .leading, spacing: 12) {
@@ -555,9 +567,9 @@ struct HomeView: View {
                             }
                             
                             // SwapButton centered and always on top
-                            SwapButton(action: swapCurrencies)
+                                SwapButton(action: swapCurrencies)
                         }
-                        .padding(.top, min(40, geometry.size.height * 0.05))
+                        .padding(.top, networkMonitor.isConnected ? min(40, geometry.size.height * 0.05) : 0)
                         
                         // Error banner (if any)
                         if showError {

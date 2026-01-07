@@ -46,9 +46,11 @@ struct OfflineIndicatorChip: View {
         HStack(spacing: 6) {
             Image(systemName: "wifi.slash")
                 .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(Color(red: 1.0, green: 0.4, blue: 0.4)) // Accessible red
             
             Text("Offline")
                 .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Color(red: 1.0, green: 0.4, blue: 0.4)) // Accessible red
             
             Text("•")
                 .font(.system(size: 13))
@@ -56,8 +58,8 @@ struct OfflineIndicatorChip: View {
             
             Text("Last updated \(formattedTime)")
                 .font(.system(size: 13, weight: .regular))
+                .foregroundStyle(.white)
         }
-        .foregroundStyle(.white)
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(

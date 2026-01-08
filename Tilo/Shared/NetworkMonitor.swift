@@ -37,9 +37,9 @@ class NetworkMonitor: ObservableObject {
                 self?.connectionType = self?.getConnectionType(path) ?? .unknown
                 
                 if path.status == .satisfied {
-                    print("📶 Network: Connected")
+                    debugLog("📶 Network: Connected")
                 } else {
-                    print("📵 Network: Disconnected")
+                    debugLog("📵 Network: Disconnected")
                 }
             }
         }

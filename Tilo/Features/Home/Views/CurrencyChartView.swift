@@ -29,7 +29,7 @@ final class CurrencyChartViewModel: ObservableObject {
         isLoading = true
         error = nil
         
-        print("📊 ViewModel fetchRates: \(fromCurrency) → \(toCurrency)")
+        debugLog("📊 ViewModel fetchRates: \(fromCurrency) → \(toCurrency)")
         
         // INSTANT: Show estimated data immediately using current rate
         // This makes the chart appear instantly while real data loads
@@ -37,13 +37,13 @@ final class CurrencyChartViewModel: ObservableObject {
             let estimatedData = generateEstimatedHistory(currentRate: currentRate, days: 14)
             rates = estimatedData
             isEstimatedData = true
-            print("📊 Showing estimated data instantly (current rate: \(currentRate))")
+            debugLog("📊 Showing estimated data instantly (current rate: \(currentRate))")
         }
         
         // BACKGROUND: Fetch real historical data
         // Note: Data is now fetched from yesterday backwards (today's data isn't available)
         if let historicalData = await exchangeService.fetchHistoricalRates(from: fromCurrency, to: toCurrency, days: 14) {
-            print("📊 Received \(historicalData.count) historical data points")
+            debugLog("📊 Received \(historicalData.count) historical data points")
             // Convert to ExchangeRate format (already starts from yesterday, no need to remove any days)
             let ratesArray = historicalData.map { histRate in
                 ExchangeRate(date: histRate.date, rate: histRate.rate)
@@ -52,15 +52,15 @@ final class CurrencyChartViewModel: ObservableObject {
             // Replace estimated with real data
             rates = ratesArray
             isEstimatedData = false
-            print("📊 Chart updated with real data: \(rates.count) points")
+            debugLog("📊 Chart updated with real data: \(rates.count) points")
         } else if rates.isEmpty {
             // Only show error if we have no data at all
-            print("❌ No historical data received!")
+            debugLog("❌ No historical data received!")
             error = NSError(domain: "CurrencyChart", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to fetch historical data"])
         }
         
         isLoading = false
-        print("📊 fetchRates completed, isLoading: \(isLoading), rates count: \(rates.count)")
+        debugLog("📊 fetchRates completed, isLoading: \(isLoading), rates count: \(rates.count)")
     }
     
     /// Generate estimated historical data based on current rate
@@ -149,7 +149,7 @@ struct CurrencyChartView: View {
     @GestureState private var isSwapPressed: Bool = false
     
     init(fromCurrency: String, toCurrency: String) {
-        print("🔄 CurrencyChartView init: \(fromCurrency) → \(toCurrency)")
+        debugLog("🔄 CurrencyChartView init: \(fromCurrency) → \(toCurrency)")
         self._fromCurrencyCode = State(initialValue: fromCurrency)
         self._toCurrencyCode = State(initialValue: toCurrency)
         self._viewModel = StateObject(wrappedValue: CurrencyChartViewModel(
@@ -201,18 +201,18 @@ struct CurrencyChartView: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .task {
-            print("📊 .task triggered for chart")
+            debugLog("📊 .task triggered for chart")
             await viewModel.fetchRates(for: selectedRange)
         }
         .onChange(of: fromCurrencyCode) { oldValue, newValue in
-            print("📊 fromCurrencyCode changed: \(oldValue) → \(newValue)")
+            debugLog("📊 fromCurrencyCode changed: \(oldValue) → \(newValue)")
             viewModel.updateCurrencies(from: newValue, to: toCurrencyCode)
             Task {
                 await viewModel.fetchRates(for: selectedRange)
             }
         }
         .onChange(of: toCurrencyCode) { oldValue, newValue in
-            print("📊 toCurrencyCode changed: \(oldValue) → \(newValue)")
+            debugLog("📊 toCurrencyCode changed: \(oldValue) → \(newValue)")
             viewModel.updateCurrencies(from: fromCurrencyCode, to: newValue)
             Task {
                 await viewModel.fetchRates(for: selectedRange)

@@ -227,7 +227,7 @@ class ExchangeRateService: ObservableObject {
         if let rates = cachedRates {
             lastUpdated = rates.timestamp
             cacheAge = rates.ageDescription
-            print("📦 Loaded cached rates from disk (age: \(rates.ageDescription))")
+            debugLog("📦 Loaded cached rates from disk (age: \(rates.ageDescription))")
         }
     }
     
@@ -236,7 +236,7 @@ class ExchangeRateService: ObservableObject {
     private func saveCachedRatesToDisk(_ rates: CachedRates) {
         if let data = try? JSONEncoder().encode(rates) {
             UserDefaults.shared.set(data, forKey: cachedRatesKey)
-            print("💾 Saved rates to disk")
+            debugLog("💾 Saved rates to disk")
         }
     }
     
@@ -250,7 +250,7 @@ class ExchangeRateService: ObservableObject {
     private func saveCachedHistoricalToDisk(_ historical: [String: CachedHistoricalData]) {
         if let data = try? JSONEncoder().encode(historical) {
             UserDefaults.shared.set(data, forKey: cachedHistoricalKey)
-            print("💾 Saved historical data to disk")
+            debugLog("💾 Saved historical data to disk")
         }
     }
     
@@ -258,7 +258,7 @@ class ExchangeRateService: ObservableObject {
         if let data = UserDefaults.shared.data(forKey: cachedHistoricalKey),
            let historical = try? JSONDecoder().decode([String: CachedHistoricalData].self, from: data) {
             cachedHistoricalData = historical
-            print("📦 Loaded \(historical.count) historical cache entries from disk")
+            debugLog("📦 Loaded \(historical.count) historical cache entries from disk")
         }
     }
     
@@ -267,13 +267,13 @@ class ExchangeRateService: ObservableObject {
     /// Toggle between mock mode and real API mode
     func toggleMockMode() {
         isMockMode.toggle()
-        print("🔄 Mock mode: \(isMockMode ? "ON" : "OFF")")
+        debugLog("🔄 Mock mode: \(isMockMode ? "ON" : "OFF")")
     }
     
     /// Set mock mode explicitly
     func setMockMode(_ enabled: Bool) {
         isMockMode = enabled
-        print("🔄 Mock mode: \(enabled ? "ON" : "OFF")")
+        debugLog("🔄 Mock mode: \(enabled ? "ON" : "OFF")")
     }
     
     /// Get current mode status
@@ -288,7 +288,7 @@ class ExchangeRateService: ObservableObject {
         UserDefaults.shared.removeObject(forKey: cachedRatesKey)
         UserDefaults.shared.removeObject(forKey: cachedHistoricalKey)
         cacheAge = ""
-        print("🗑️ All cache cleared (memory + disk) - next requests will use API")
+        debugLog("🗑️ All cache cleared (memory + disk) - next requests will use API")
     }
     
     // MARK: - Public Methods
@@ -298,7 +298,7 @@ class ExchangeRateService: ObservableObject {
     func fetchRates() async throws -> [String: Double] {
         // Mock mode - return mock data immediately
         if isMockMode {
-            print("🧪 Mock mode: Using mock exchange rates")
+            debugLog("🧪 Mock mode: Using mock exchange rates")
             lastUpdated = Date()
             errorMessage = nil
             isOffline = false
@@ -311,14 +311,14 @@ class ExchangeRateService: ObservableObject {
             
             // Fresh cache - use immediately
             if !cached.isExpired {
-                print("✅ Using cached rates (age: \(ageMinutes) minutes, market hours: \(CacheConfig.isMarketHours))")
+                debugLog("✅ Using cached rates (age: \(ageMinutes) minutes, market hours: \(CacheConfig.isMarketHours))")
                 lastUpdated = cached.timestamp
                 cacheAge = cached.ageDescription
                 isOffline = false
                 
                 // If stale (>1h), trigger background refresh with cooldown check
                 if cached.isStale && canBackgroundRefresh() {
-                    print("🔄 Cache is stale, triggering background refresh...")
+                    debugLog("🔄 Cache is stale, triggering background refresh...")
                     Task {
                         await refreshRatesInBackground()
                     }
@@ -328,7 +328,7 @@ class ExchangeRateService: ObservableObject {
             }
             
             // Expired cache - try to refresh, but return cached if offline
-            print("⏰ Cache expired (age: \(ageMinutes) minutes), fetching fresh data...")
+            debugLog("⏰ Cache expired (age: \(ageMinutes) minutes), fetching fresh data...")
         }
         
         // No cache or expired - fetch fresh data
@@ -337,7 +337,7 @@ class ExchangeRateService: ObservableObject {
     
     /// Force refresh rates (ignores cache)
     func forceRefresh() async throws -> [String: Double] {
-        print("🔄 Force refresh requested")
+        debugLog("🔄 Force refresh requested")
         return try await fetchFreshRates()
     }
     
@@ -352,7 +352,7 @@ class ExchangeRateService: ObservableObject {
         
         if !canRefresh {
             let minutesRemaining = Int((CacheConfig.backgroundRefreshCooldown - timeSinceLastRefresh) / 60)
-            print("⏳ Background refresh on cooldown (\(minutesRemaining) min remaining)")
+            debugLog("⏳ Background refresh on cooldown (\(minutesRemaining) min remaining)")
         }
         
         return canRefresh
@@ -374,17 +374,17 @@ class ExchangeRateService: ObservableObject {
             
             lastUpdated = Date()
             isOffline = false
-            print("✅ Background refresh completed")
+            debugLog("✅ Background refresh completed")
             
         } catch {
-            print("⚠️ Background refresh failed: \(error.localizedDescription)")
+            debugLog("⚠️ Background refresh failed: \(error.localizedDescription)")
             // Don't update error state - we still have cached data
         }
     }
     
     /// Fetch fresh rates from API
     private func fetchFreshRates() async throws -> [String: Double] {
-        print("🌐 Fetching fresh rates from API...")
+        debugLog("🌐 Fetching fresh rates from API...")
         isLoading = true
         errorMessage = nil
         
@@ -402,7 +402,7 @@ class ExchangeRateService: ObservableObject {
             isLoading = false
             isOffline = false
             
-            print("✅ Successfully fetched \(rates.count) currency rates")
+            debugLog("✅ Successfully fetched \(rates.count) currency rates")
             return rates
             
         } catch {
@@ -412,12 +412,12 @@ class ExchangeRateService: ObservableObject {
             
             // Fallback to cached data even if expired (offline support)
             if let cached = cachedRates {
-                print("⚠️ API failed, using cached rates (age: \(cached.ageDescription)) - OFFLINE MODE")
+                debugLog("⚠️ API failed, using cached rates (age: \(cached.ageDescription)) - OFFLINE MODE")
                 return cached.rates
             }
             
             // No cache available - use mock rates as last resort
-            print("⚠️ No cache available, using mock rates as fallback")
+            debugLog("⚠️ No cache available, using mock rates as fallback")
             return mockRates
         }
     }
@@ -448,22 +448,22 @@ class ExchangeRateService: ObservableObject {
             return convertedAmount
             
         } catch {
-            print("❌ Conversion error: \(error.localizedDescription)")
+            debugLog("❌ Conversion error: \(error.localizedDescription)")
             return nil
         }
     }
     
     /// Get exchange rate between two currencies
     func getRate(from: String, to: String) async -> Double? {
-        print("🔍 Getting rate: \(from) → \(to)")
+        debugLog("🔍 Getting rate: \(from) → \(to)")
         do {
             let rates = try await fetchRates()
-            print("🔍 Available rates: \(rates.keys.sorted())")
+            debugLog("🔍 Available rates: \(rates.keys.sorted())")
             
             // If getting rate from base currency (USD)
             if from == baseCurrency {
                 let rate = rates[to]
-                print("🔍 USD → \(to): \(rate ?? 0)")
+                debugLog("🔍 USD → \(to): \(rate ?? 0)")
                 return rate
             }
             
@@ -471,24 +471,24 @@ class ExchangeRateService: ObservableObject {
             if to == baseCurrency {
                 let fromRate = rates[from] ?? 1.0
                 let rate = 1.0 / fromRate
-                print("🔍 \(from) → USD: \(rate) (from rate: \(fromRate))")
+                debugLog("🔍 \(from) → USD: \(rate) (from rate: \(fromRate))")
                 return rate
             }
             
             // Cross-rate: EUR → GBP = (USD → GBP) ÷ (USD → EUR)
             guard let fromRate = rates[from], let toRate = rates[to] else {
-                print("❌ Missing rates - \(from): \(rates[from] ?? 0), \(to): \(rates[to] ?? 0)")
+                debugLog("❌ Missing rates - \(from): \(rates[from] ?? 0), \(to): \(rates[to] ?? 0)")
                 return nil
             }
             
             let rate = toRate / fromRate
-            print("🔍 \(from) → \(to): \(rate) (fromRate: \(fromRate), toRate: \(toRate))")
+            debugLog("🔍 \(from) → \(to): \(rate) (fromRate: \(fromRate), toRate: \(toRate))")
             return rate
             
         } catch {
-            print("❌ Get rate error: \(error.localizedDescription)")
+            debugLog("❌ Get rate error: \(error.localizedDescription)")
             // Fallback to mock rate if API fails
-            print("⚠️ API failed, falling back to mock rate")
+            debugLog("⚠️ API failed, falling back to mock rate")
             if from == "USD" {
                 return mockRates[to]
             } else if to == "USD" {
@@ -504,29 +504,29 @@ class ExchangeRateService: ObservableObject {
     /// Fetch historical rates for the past 14 days (matches API plan limit)
     /// Uses ROLLING CACHE: Only fetches missing days, not all 14 every time
     func fetchHistoricalRates(from: String, to: String, days: Int = 14) async -> [HistoricalRate]? {
-        print("📊 fetchHistoricalRates called: \(from) → \(to), \(days) days, mockMode: \(isMockMode)")
+        debugLog("📊 fetchHistoricalRates called: \(from) → \(to), \(days) days, mockMode: \(isMockMode)")
         let cacheKey = "\(from)_\(to)"
         
         // Mock mode - return mock historical data
         if isMockMode {
             let data = generateMockHistoricalData(from: from, to: to, days: days)
-            print("📊 Returning \(data.count) mock data points")
+            debugLog("📊 Returning \(data.count) mock data points")
             return data
         }
         
         // Check if we have cached data
         if let cached = cachedHistoricalData[cacheKey] {
             let daysMissing = cached.daysMissing
-            print("🔍 CACHE FOUND: \(cached.data.count) points, missing \(daysMissing) day(s)")
+            debugLog("🔍 CACHE FOUND: \(cached.data.count) points, missing \(daysMissing) day(s)")
             
             // Cache is up to date - return it
             if daysMissing == 0 {
-                print("✅ Cache is current, returning \(cached.data.count) cached points (0 tokens used)")
+                debugLog("✅ Cache is current, returning \(cached.data.count) cached points (0 tokens used)")
                 return cached.data.suffix(days).map { $0 } // Return last N days
             }
             
             // Need to fetch only the missing days (rolling update)
-            print("🌐 ROLLING UPDATE: Fetching \(daysMissing) missing day(s) for \(from)→\(to) (USES \(daysMissing) TOKEN(S))")
+            debugLog("🌐 ROLLING UPDATE: Fetching \(daysMissing) missing day(s) for \(from)→\(to) (USES \(daysMissing) TOKEN(S))")
             do {
                 let newData = try await fetchHistoricalIndividualFromAPI(from: from, to: to, days: daysMissing)
                 
@@ -551,17 +551,17 @@ class ExchangeRateService: ObservableObject {
                     toCurrency: to
                 )
                 
-                print("✅ Rolling update complete: \(trimmedData.count) total points (fetched \(daysMissing) new)")
+                debugLog("✅ Rolling update complete: \(trimmedData.count) total points (fetched \(daysMissing) new)")
                 return trimmedData
                 
             } catch {
-                print("⚠️ Rolling update failed, returning existing cache: \(error.localizedDescription)")
+                debugLog("⚠️ Rolling update failed, returning existing cache: \(error.localizedDescription)")
                 return cached.data.suffix(days).map { $0 }
             }
         }
         
         // No cache exists - fetch all days (initial load)
-        print("🌐 INITIAL LOAD: Fetching all \(days) days for \(from)→\(to) (USES \(days) TOKENS)")
+        debugLog("🌐 INITIAL LOAD: Fetching all \(days) days for \(from)→\(to) (USES \(days) TOKENS)")
         do {
             let data = try await fetchHistoricalIndividualFromAPI(from: from, to: to, days: days)
             
@@ -573,20 +573,20 @@ class ExchangeRateService: ObservableObject {
                 toCurrency: to
             )
             
-            print("✅ Initial load complete: \(data.count) days cached")
+            debugLog("✅ Initial load complete: \(data.count) days cached")
             return data
             
         } catch {
-            print("❌ Historical fetch error: \(error.localizedDescription)")
+            debugLog("❌ Historical fetch error: \(error.localizedDescription)")
             // Fallback to mock data if API fails
-            print("⚠️ API failed, falling back to mock historical data")
+            debugLog("⚠️ API failed, falling back to mock historical data")
             return generateMockHistoricalData(from: from, to: to, days: days)
         }
     }
     
     /// Generate mock historical data for testing
     private func generateMockHistoricalData(from: String, to: String, days: Int) -> [HistoricalRate] {
-        print("🧪 Generating mock historical data: \(from) → \(to) for \(days) days")
+        debugLog("🧪 Generating mock historical data: \(from) → \(to) for \(days) days")
         
         let calendar = Calendar.current
         let endDate = Date()
@@ -604,7 +604,7 @@ class ExchangeRateService: ObservableObject {
             todaysRate = toRate / fromRate
         }
         
-        print("🧪 Today's rate for \(from)→\(to): \(todaysRate)")
+        debugLog("🧪 Today's rate for \(from)→\(to): \(todaysRate)")
         
         // Generate historical data working backwards from today
         var currentRate = todaysRate
@@ -623,7 +623,7 @@ class ExchangeRateService: ObservableObject {
             mockData.append(HistoricalRate(date: date, rate: currentRate))
         }
         
-        print("🧪 Generated \(mockData.count) data points, last rate: \(mockData.last?.rate ?? 0)")
+        debugLog("🧪 Generated \(mockData.count) data points, last rate: \(mockData.last?.rate ?? 0)")
         return mockData
     }
     
@@ -667,10 +667,10 @@ class ExchangeRateService: ObservableObject {
         }
         
         // Log all available currencies (for development)
-        print("🌍 Available currencies from API (\(rates.count) total):")
+        debugLog("🌍 Available currencies from API (\(rates.count) total):")
         let sortedCodes = rates.keys.sorted()
         for code in sortedCodes {
-            print("  - \(code): \(rates[code] ?? 0)")
+            debugLog("  - \(code): \(rates[code] ?? 0)")
         }
         
         return rates
@@ -690,7 +690,7 @@ class ExchangeRateService: ObservableObject {
         let startDateString = dateFormatter.string(from: startDate)
         let endDateString = dateFormatter.string(from: endDate)
         
-        print("📅 Fetching range: \(startDateString) to \(endDateString)")
+        debugLog("📅 Fetching range: \(startDateString) to \(endDateString)")
         
         guard var urlComponents = URLComponents(string: rangeURL) else {
             throw ExchangeRateError.invalidURL
@@ -708,14 +708,14 @@ class ExchangeRateService: ObservableObject {
             throw ExchangeRateError.invalidURL
         }
         
-        print("🌐 Making SINGLE range API call to: \(url)")
+        debugLog("🌐 Making SINGLE range API call to: \(url)")
         let (data, response) = try await URLSession.shared.data(from: url)
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw ExchangeRateError.invalidResponse
         }
         
-        print("📡 HTTP Status: \(httpResponse.statusCode)")
+        debugLog("📡 HTTP Status: \(httpResponse.statusCode)")
         guard httpResponse.statusCode == 200 else {
             throw ExchangeRateError.httpError(statusCode: httpResponse.statusCode)
         }
@@ -723,7 +723,7 @@ class ExchangeRateService: ObservableObject {
         let decoder = JSONDecoder()
         let apiResponse = try decoder.decode(RangeAPIResponse.self, from: data)
         
-        print("🔍 Range API Response: \(apiResponse.data.keys.count) dates received")
+        debugLog("🔍 Range API Response: \(apiResponse.data.keys.count) dates received")
         
         var historicalData: [HistoricalRate] = []
         
@@ -731,11 +731,11 @@ class ExchangeRateService: ObservableObject {
             if let rate = currencies[to]?.value,
                let date = dateFormatter.date(from: dateString) {
                 historicalData.append(HistoricalRate(date: date, rate: rate))
-                print("✅ Added rate for \(dateString): \(rate)")
+                debugLog("✅ Added rate for \(dateString): \(rate)")
             }
         }
         
-        print("🏁 Range API completed. Total data points: \(historicalData.count)")
+        debugLog("🏁 Range API completed. Total data points: \(historicalData.count)")
         return historicalData.sorted { $0.date < $1.date }
     }
     
@@ -755,15 +755,15 @@ class ExchangeRateService: ObservableObject {
         dateFormatter.dateFormat = "yyyy-MM-dd"
         
         // Start from yesterday (offset 0 = yesterday, offset 1 = day before, etc.)
-        print("🔄 Starting loop for \(days) days (from yesterday backwards)...")
+        debugLog("🔄 Starting loop for \(days) days (from yesterday backwards)...")
         for dayOffset in (0..<days) {
-            print("🔄 Processing day \(dayOffset + 1)/\(days) (offset: \(dayOffset))")
+            debugLog("🔄 Processing day \(dayOffset + 1)/\(days) (offset: \(dayOffset))")
             guard let date = calendar.date(byAdding: .day, value: -dayOffset, to: yesterday) else { 
-                print("❌ Failed to create date for offset \(dayOffset)")
+                debugLog("❌ Failed to create date for offset \(dayOffset)")
                 continue 
             }
             let dateString = dateFormatter.string(from: date)
-            print("📅 Fetching data for date: \(dateString)")
+            debugLog("📅 Fetching data for date: \(dateString)")
             
             guard var urlComponents = URLComponents(string: historicalURL) else {
                 throw ExchangeRateError.invalidURL
@@ -781,42 +781,42 @@ class ExchangeRateService: ObservableObject {
             }
             
             do {
-                print("🌐 Making API call \(dayOffset + 1)/\(days) to: \(url)")
+                debugLog("🌐 Making API call \(dayOffset + 1)/\(days) to: \(url)")
                 let (data, response) = try await URLSession.shared.data(from: url)
                 
                 guard let httpResponse = response as? HTTPURLResponse else {
-                    print("❌ Invalid response for \(dateString), skipping...")
+                    debugLog("❌ Invalid response for \(dateString), skipping...")
                     continue
                 }
                 
-                print("📡 HTTP Status for \(dateString): \(httpResponse.statusCode)")
+                debugLog("📡 HTTP Status for \(dateString): \(httpResponse.statusCode)")
                 guard httpResponse.statusCode == 200 else {
-                    print("❌ HTTP Error \(httpResponse.statusCode) for \(dateString), skipping...")
+                    debugLog("❌ HTTP Error \(httpResponse.statusCode) for \(dateString), skipping...")
                     continue
                 }
                 
                 let decoder = JSONDecoder()
                 let apiResponse = try decoder.decode(CurrencyAPIResponse.self, from: data)
                 
-                print("🔍 API Response for \(dateString): \(apiResponse)")
+                debugLog("🔍 API Response for \(dateString): \(apiResponse)")
                 
                 if let rate = apiResponse.data[to]?.value {
-                    print("✅ Found rate for \(to): \(rate)")
+                    debugLog("✅ Found rate for \(to): \(rate)")
                     historicalData.append(HistoricalRate(date: date, rate: rate))
                 } else {
-                    print("❌ No rate found for \(to) in response: \(apiResponse.data.keys)")
+                    debugLog("❌ No rate found for \(to) in response: \(apiResponse.data.keys)")
                 }
                 
                 // Add small delay to avoid rate limiting
                 try await Task.sleep(nanoseconds: 100_000_000) // 0.1 second delay
                 
             } catch {
-                print("❌ Error fetching data for \(dateString): \(error.localizedDescription), skipping...")
+                debugLog("❌ Error fetching data for \(dateString): \(error.localizedDescription), skipping...")
                 continue
             }
         }
         
-        print("🏁 Loop completed. Total data points collected: \(historicalData.count)")
+        debugLog("🏁 Loop completed. Total data points collected: \(historicalData.count)")
         return historicalData.sorted { $0.date < $1.date }
     }
 }

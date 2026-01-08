@@ -761,7 +761,6 @@ struct CurrencyLineChart: View {
                 Spacer()
             }
         }
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Exchange rate chart showing historical rates. High: \(String(format: "%.4f", highRate)), Median: \(String(format: "%.4f", medianRate)), Low: \(String(format: "%.4f", lowRate))")
         .accessibilityHint("Drag horizontally to explore rates on different dates")

@@ -35,7 +35,6 @@ struct QuickAmountChip: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(PlainButtonStyle())
-        .dynamicTypeSize(.large) // Fixed size for display UI consistency
         .accessibilityLabel("Convert \(symbol)\(formattedAmount)")
         .accessibilityHint("Double tap to convert this amount")
         .accessibilityAddTraits(isSelected ? .isSelected : [])

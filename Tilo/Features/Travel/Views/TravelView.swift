@@ -867,7 +867,6 @@ private struct ConversionRowView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(isAlternate ? Color.white.opacity(0.03) : Color.clear)
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(fromText) equals \(toText)")
     }
@@ -989,7 +988,6 @@ struct WidgetGuideView: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
         }
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .background(Color("grey800"))
     }
 }

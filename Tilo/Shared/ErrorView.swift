@@ -67,7 +67,6 @@ struct ErrorView: View {
             }
         }
         .padding(24)
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .frame(maxWidth: .infinity)
         .background(
             ZStack {
@@ -128,7 +127,6 @@ struct ErrorBanner: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color(red: 40/255, green: 20/255, blue: 60/255).opacity(0.95))
@@ -180,7 +178,6 @@ struct ToastView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
-        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .background(
             Capsule()
                 .fill(Color(red: 30/255, green: 20/255, blue: 60/255).opacity(0.95))

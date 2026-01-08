@@ -30,7 +30,6 @@ struct CurrencySelectorChip: View {
             .glassEffect()
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
-        .dynamicTypeSize(.large) // Fixed size for display UI consistency
         .accessibilityLabel("\(currencyCode) currency selector")
         .accessibilityHint("Double tap to choose a different currency")
     }

@@ -591,7 +591,6 @@ struct HomeView: View {
                             Text("Quick conversions")
                                 .font(.title2)
                                 .foregroundColor(.white)
-                                .dynamicTypeSize(.large) // Fixed size for layout stability
                                 .padding(.horizontal, max(16, geometry.size.width * 0.04))
                             
                             ScrollView(.horizontal, showsIndicators: false) {
@@ -624,7 +623,6 @@ struct HomeView: View {
                             Text("Rate history")
                                 .font(.title2)
                                 .foregroundColor(.white)
-                                .dynamicTypeSize(.large) // Fixed size for layout stability
                             
                         CurrencyChartView(fromCurrency: fromCurrencyCode, toCurrency: toCurrencyCode)
                                 .id("\(fromCurrencyCode)-\(toCurrencyCode)")

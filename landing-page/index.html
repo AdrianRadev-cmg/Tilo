@@ -279,8 +279,11 @@
 
         .phone-main.mockup img {
             max-height: 800px;
+            max-width: 95vw;
             width: auto;
+            height: auto;
             margin: 0 auto;
+            object-fit: contain;
         }
 
         /* Hero bottom fade - lighter purple like Flighty */
@@ -599,7 +602,17 @@
             color: #fff;
         }
 
-        /* Responsive */
+        /* Responsive - Tablet */
+        @media (max-width: 1200px) {
+            .phone-main.mockup img {
+                max-height: 700px;
+            }
+            
+            .phone-container {
+                transform: translateY(30%);
+            }
+        }
+
         @media (max-width: 968px) {
             .container {
                 padding: 0 var(--padding-x-mobile);
@@ -653,11 +666,22 @@
             }
 
             .phone-main.mockup img {
-                max-height: 480px;
+                max-height: 420px;
+                max-width: 100%;
             }
 
             .phone-showcase {
                 overflow: visible;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .phone-main.mockup img {
+                max-height: 380px;
+            }
+            
+            .phone-container {
+                transform: translateY(8%);
             }
 
             .matrix-row {

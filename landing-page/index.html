@@ -165,21 +165,18 @@
 
         /* Hero Section */
         .hero-wrapper {
-            height: 100svh;
-            height: 100dvh;
-            max-height: 100svh;
-            max-height: 100dvh;
+            min-height: 100svh;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
             position: relative;
-            overflow: hidden;
+            overflow: visible;
         }
 
         /* Fallback for older browsers */
         @supports not (height: 100svh) {
             .hero-wrapper {
-                height: calc(100vh - 60px);
-                max-height: calc(100vh - 60px);
+                min-height: calc(100vh - 60px);
             }
         }
 
@@ -189,6 +186,7 @@
             text-align: center;
             position: relative;
             z-index: 10;
+            flex-shrink: 0;
         }
 
         .hero h1 {
@@ -242,22 +240,23 @@
             height: 18px;
         }
 
-        /* Phone Showcase - Peeking from bottom */
+        /* Phone Showcase - Always fully visible */
         .phone-showcase {
             flex: 1;
             display: flex;
-            align-items: flex-end;
+            align-items: center;
             justify-content: center;
             position: relative;
-            overflow: hidden;
-            z-index: 10;
+            overflow: visible;
+            z-index: 5;
+            padding: 20px 0;
+            min-height: 400px;
         }
 
         .phone-container {
             display: flex;
             justify-content: center;
-            align-items: flex-end;
-            transform: translateY(35%);
+            align-items: center;
             width: 100%;
         }
 
@@ -278,8 +277,8 @@
         }
 
         .phone-main.mockup img {
-            max-height: 800px;
-            max-width: 95vw;
+            max-height: min(600px, 50vh);
+            max-width: 90vw;
             width: auto;
             height: auto;
             margin: 0 auto;
@@ -293,9 +292,9 @@
             bottom: 0;
             left: 0;
             right: 0;
-            height: 120px;
+            height: 80px;
             background: linear-gradient(to bottom, transparent, #0d0518);
-            z-index: 20;
+            z-index: 2;
             pointer-events: none;
         }
 
@@ -605,11 +604,7 @@
         /* Responsive - Tablet */
         @media (max-width: 1200px) {
             .phone-main.mockup img {
-                max-height: 700px;
-            }
-            
-            .phone-container {
-                transform: translateY(30%);
+                max-height: min(500px, 45vh);
             }
         }
 
@@ -657,31 +652,22 @@
             }
 
             .phone-showcase {
-                z-index: 10;
-                margin-top: 10px;
-            }
-
-            .phone-container {
-                transform: translateY(5%);
+                min-height: 300px;
             }
 
             .phone-main.mockup img {
-                max-height: 420px;
+                max-height: min(380px, 40vh);
                 max-width: 100%;
-            }
-
-            .phone-showcase {
-                overflow: visible;
             }
         }
 
         @media (max-width: 768px) {
             .phone-main.mockup img {
-                max-height: 380px;
+                max-height: min(320px, 35vh);
             }
             
-            .phone-container {
-                transform: translateY(8%);
+            .phone-showcase {
+                min-height: 220px;
             }
 
             .matrix-row {
@@ -783,6 +769,14 @@
 
             .hero p {
                 font-size: 16px;
+            }
+
+            .phone-main.mockup img {
+                max-height: min(280px, 32vh);
+            }
+
+            .phone-showcase {
+                min-height: 200px;
             }
         }
     </style>

@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import UIKit
 
 /// Analytics wrapper for Aptabase
 /// Usage: Analytics.shared.track("event_name", with: ["key": "value"])

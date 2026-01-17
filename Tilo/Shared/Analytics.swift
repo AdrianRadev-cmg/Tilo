@@ -86,7 +86,8 @@ final class Analytics {
                 "appVersion": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown",
                 "appBuildNumber": Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown",
                 "deviceModel": UIDevice.current.model,
-                "locale": Locale.current.identifier
+                "locale": Locale.current.identifier,
+                "sdkVersion": "aptabase-swift@0.3.0"
             ]
         ]
         

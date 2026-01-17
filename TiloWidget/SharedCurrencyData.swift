@@ -38,14 +38,57 @@ struct CurrencyPair: Codable, Equatable {
     }
 }
 
+// MARK: - Widget Analytics Event (stored for later sending)
+struct WidgetAnalyticsEvent: Codable {
+    let eventName: String
+    let timestamp: Date
+    let properties: [String: String]
+}
+
 // MARK: - Shared Data Manager
 class SharedCurrencyDataManager {
     static let shared = SharedCurrencyDataManager()
     
     private let currencyPairKey = "currentCurrencyPair"
     private let cachedConversionsKey = "cachedWidgetConversions"
+    private let widgetEventsKey = "pendingWidgetEvents"
     
     private init() {}
+    
+    // MARK: - Widget Analytics
+    
+    /// Store a widget event to be sent when main app opens
+    func trackWidgetEvent(_ eventName: String, properties: [String: String] = [:]) {
+        var events = pendingWidgetEvents
+        events.append(WidgetAnalyticsEvent(
+            eventName: eventName,
+            timestamp: Date(),
+            properties: properties
+        ))
+        pendingWidgetEvents = events
+    }
+    
+    /// Get and clear pending widget events (called by main app)
+    func flushWidgetEvents() -> [WidgetAnalyticsEvent] {
+        let events = pendingWidgetEvents
+        pendingWidgetEvents = []
+        return events
+    }
+    
+    private var pendingWidgetEvents: [WidgetAnalyticsEvent] {
+        get {
+            guard let data = UserDefaults.shared.data(forKey: widgetEventsKey),
+                  let events = try? JSONDecoder().decode([WidgetAnalyticsEvent].self, from: data) else {
+                return []
+            }
+            return events
+        }
+        set {
+            if let data = try? JSONEncoder().encode(newValue) {
+                UserDefaults.shared.set(data, forKey: widgetEventsKey)
+            }
+        }
+    }
     
     // MARK: - Currency Pair
     

@@ -221,6 +221,9 @@ struct HomeView: View {
         
         // Show satisfaction prompt after a short delay so the app loads first
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            // Track that we showed the prompt
+            Analytics.shared.track(Analytics.Event.reviewPromptShown)
+            
             withAnimation(.easeOut(duration: 0.25)) {
                 showSatisfactionPrompt = true
             }
@@ -229,6 +232,9 @@ struct HomeView: View {
     
     /// Called when user taps "Yes" on satisfaction prompt
     private func handleSatisfactionYes() {
+        // Track positive response
+        Analytics.shared.track(Analytics.Event.reviewPromptYes)
+        
         // Mark that we've prompted (so it never shows again)
         UserDefaults.standard.set(true, forKey: "hasPromptedForReview")
         
@@ -239,12 +245,17 @@ struct HomeView: View {
         
         // Show native review prompt after a brief delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            // Track that native review dialog was shown
+            Analytics.shared.track(Analytics.Event.nativeReviewShown)
             requestReview()
         }
     }
     
     /// Called when user taps "No" or dismisses the satisfaction prompt
     private func handleSatisfactionNo() {
+        // Track negative response
+        Analytics.shared.track(Analytics.Event.reviewPromptNo)
+        
         // Mark that we've prompted (so it never shows again)
         UserDefaults.standard.set(true, forKey: "hasPromptedForReview")
         
@@ -258,6 +269,12 @@ struct HomeView: View {
         // Prevent multiple swaps during animation
         guard !isSwapping else { return }
         isSwapping = true
+        
+        // Track swap
+        Analytics.shared.track(Analytics.Event.swapButtonTapped, with: [
+            "from_currency": fromCurrencyCode,
+            "to_currency": toCurrencyCode
+        ])
         
         // Add haptic feedback
         let generator = UIImpactFeedbackGenerator(style: .medium)
@@ -321,6 +338,13 @@ struct HomeView: View {
             // Convert amount from top card to bottom card
             if let converted = await exchangeService.convert(amount: fromAmount, from: fromCurrencyCode, to: toCurrencyCode) {
                 toAmount = converted
+                
+                // Track conversion
+                Analytics.shared.track(Analytics.Event.conversionPerformed, with: [
+                    "from_currency": fromCurrencyCode,
+                    "to_currency": toCurrencyCode,
+                    "amount": fromAmount
+                ])
             }
             
             // Update widget with new rate
@@ -526,6 +550,14 @@ struct HomeView: View {
                                                 isEditingBottomCard = false
                                             } else {
                                                 activeEditingCard = nil
+                                                // Track manual amount entry when user finishes typing
+                                                if fromAmount > 0 {
+                                                    Analytics.shared.track(Analytics.Event.manualAmountEntered, with: [
+                                                        "card": "from",
+                                                        "currency": fromCurrencyCode,
+                                                        "amount": fromAmount
+                                                    ])
+                                                }
                                             }
                                         },
                                         isEditable: true,
@@ -568,6 +600,14 @@ struct HomeView: View {
                                                 isEditingTopCard = false
                                             } else {
                                                 activeEditingCard = nil
+                                                // Track manual amount entry when user finishes typing
+                                                if toAmount > 0 {
+                                                    Analytics.shared.track(Analytics.Event.manualAmountEntered, with: [
+                                                        "card": "to",
+                                                        "currency": toCurrencyCode,
+                                                        "amount": toAmount
+                                                    ])
+                                                }
                                             }
                                         },
                                         isEditable: true,
@@ -625,6 +665,12 @@ struct HomeView: View {
                                         amount: amount,
                                         selectedAmount: .constant(0),
                                             onSelect: { selectedAmount in
+                                                // Track quick chip tap
+                                                Analytics.shared.track(Analytics.Event.quickChipTapped, with: [
+                                                    "amount": selectedAmount,
+                                                    "currency": fromCurrencyCode
+                                                ])
+                                                
                                                 // Fill top card with selected amount
                                                 fromAmount = selectedAmount
                                                 saveCurrencyState()
@@ -696,6 +742,14 @@ struct HomeView: View {
                 .tag(1)
         }
         .tint(Color("primary100"))
+        .onChange(of: selectedTab) { oldValue, newValue in
+            // Track tab changes
+            let tabName = newValue == 0 ? "convert" : "price_guide"
+            Analytics.shared.track(Analytics.Event.tabChanged, with: [
+                "tab": tabName,
+                "from_tab": oldValue == 0 ? "convert" : "price_guide"
+            ])
+        }
         .overlay {
             if showSatisfactionPrompt {
                 SatisfactionPromptView(

@@ -13,6 +13,9 @@ struct TiloApp: App {
             UITabBar.appearance().scrollEdgeAppearance = appearance
         }
         
+        // MARK: - Initialize Analytics
+        Analytics.shared.initialize()
+        
         // MARK: - Early Adopter Flag
         // Set this flag on first launch to identify early users for future grandfathering
         // When adding a paywall later, check this flag to give early adopters free access
@@ -25,6 +28,12 @@ struct TiloApp: App {
         // MARK: - App Open Count (for review prompt on 2nd open)
         let currentOpenCount = UserDefaults.standard.integer(forKey: "appOpenCount")
         UserDefaults.standard.set(currentOpenCount + 1, forKey: "appOpenCount")
+        
+        // Track app open
+        Analytics.shared.track(Analytics.Event.appOpened, with: [
+            "open_count": currentOpenCount + 1,
+            "is_early_adopter": UserDefaults.standard.bool(forKey: "isEarlyAdopter")
+        ])
     }
     
     var body: some Scene {
@@ -35,8 +44,24 @@ struct TiloApp: App {
 }
 
 struct AppContentView: View {
+    @Environment(\.scenePhase) private var scenePhase
+    
     var body: some View {
         HomeView()
             .preferredColorScheme(.dark)
+            .onOpenURL { url in
+                // Handle widget tap
+                if url.scheme == "tilo" && url.host == "widget-tap" {
+                    Analytics.shared.track(Analytics.Event.widgetTapped, with: [
+                        "source": "home_screen_widget"
+                    ])
+                }
+            }
+            .onChange(of: scenePhase) { oldPhase, newPhase in
+                if newPhase == .background {
+                    // Track session end when app goes to background
+                    Analytics.shared.trackSessionEnd()
+                }
+            }
     }
 }

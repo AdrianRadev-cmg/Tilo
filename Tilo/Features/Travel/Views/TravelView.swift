@@ -123,6 +123,11 @@ struct ConversionTable: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .task {
+            // Track price guide viewed
+            Analytics.shared.track(Analytics.Event.priceGuideViewed, with: [
+                "from_currency": fromCurrencyCode,
+                "to_currency": toCurrencyCode
+            ])
             await fetchConversions()
         }
         .onChange(of: fromCurrencyCode) { _, _ in
@@ -371,9 +376,17 @@ struct ConversionTable: View {
                     
                     if horizontalAmount < -threshold {
                         // Swiped left - go to higher values
+                        Analytics.shared.track(Analytics.Event.priceGuideScrolled, with: [
+                            "direction": "left",
+                            "to_level": String(currentLevel + 1)
+                        ])
                         navigateToLevel(currentLevel + 1)
                     } else if horizontalAmount > threshold {
                         // Swiped right - go to lower values
+                        Analytics.shared.track(Analytics.Event.priceGuideScrolled, with: [
+                            "direction": "right",
+                            "to_level": String(currentLevel - 1)
+                        ])
                         navigateToLevel(currentLevel - 1)
                     } else {
                         // Not enough swipe - bounce back
@@ -570,7 +583,10 @@ struct ConversionTable: View {
     }
     
     private var addWidgetButtonView: some View {
-        Button(action: { showWidgetGuide = true }) {
+        Button(action: {
+            Analytics.shared.track(Analytics.Event.widgetGuideOpened)
+            showWidgetGuide = true
+        }) {
             Image(systemName: "plus.rectangle.on.rectangle")
                 .font(.title3)
                 .foregroundStyle(Color("grey100"))

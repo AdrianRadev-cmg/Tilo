@@ -38,12 +38,15 @@ struct CurrencyProvider: TimelineProvider {
     }
     
     func getSnapshot(in context: Context, completion: @escaping (CurrencyEntry) -> Void) {
-        let entry = createEntry()
+        let entry = createEntry(family: context.family)
         completion(entry)
     }
     
     func getTimeline(in context: Context, completion: @escaping (Timeline<CurrencyEntry>) -> Void) {
-        let entry = createEntry()
+        let entry = createEntry(family: context.family)
+        
+        // Track widget display with size
+        trackWidgetDisplay(family: context.family)
         
         // Update every 30 minutes
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 30, to: Date()) ?? Date()
@@ -52,7 +55,51 @@ struct CurrencyProvider: TimelineProvider {
         completion(timeline)
     }
     
-    private func createEntry() -> CurrencyEntry {
+    private func trackWidgetDisplay(family: WidgetFamily) {
+        let dataManager = SharedCurrencyDataManager.shared
+        let sizeKey = widgetSizeKey(for: family)
+        let sizeName = widgetSizeName(for: family)
+        
+        // Check if this is first time this size is displayed (widget "installed")
+        let hasSeenKey = "widget_seen_\(sizeKey)"
+        let hasSeen = UserDefaults.shared.bool(forKey: hasSeenKey)
+        
+        if !hasSeen {
+            // First time seeing this widget size = "installed"
+            UserDefaults.shared.set(true, forKey: hasSeenKey)
+            dataManager.trackWidgetEvent("widget_installed", properties: [
+                "widget_size": sizeName
+            ])
+        }
+        
+        // Track every display
+        let pair = dataManager.currentCurrencyPair
+        dataManager.trackWidgetEvent("widget_displayed", properties: [
+            "widget_size": sizeName,
+            "from_currency": pair?.fromCode ?? "unknown",
+            "to_currency": pair?.toCode ?? "unknown"
+        ])
+    }
+    
+    private func widgetSizeKey(for family: WidgetFamily) -> String {
+        switch family {
+        case .systemSmall: return "small"
+        case .systemMedium: return "medium"
+        case .systemLarge: return "large"
+        default: return "unknown"
+        }
+    }
+    
+    private func widgetSizeName(for family: WidgetFamily) -> String {
+        switch family {
+        case .systemSmall: return "small"
+        case .systemMedium: return "medium"
+        case .systemLarge: return "large"
+        default: return "unknown"
+        }
+    }
+    
+    private func createEntry(family: WidgetFamily = .systemMedium) -> CurrencyEntry {
         let dataManager = SharedCurrencyDataManager.shared
         let pair = dataManager.currentCurrencyPair ?? CurrencyPair(
             fromCode: "GBP",
@@ -394,9 +441,11 @@ struct TiloWidget: Widget {
                     .containerBackground(for: .widget) {
                         widgetGradient
                     }
+                    .widgetURL(URL(string: "tilo://widget-tap"))
             } else {
                 TiloWidgetEntryView(entry: entry)
                     .background(widgetGradient)
+                    .widgetURL(URL(string: "tilo://widget-tap"))
             }
         }
         .configurationDisplayName("Currency Converter")

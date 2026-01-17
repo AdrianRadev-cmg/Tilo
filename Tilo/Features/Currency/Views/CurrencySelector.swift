@@ -79,6 +79,10 @@ struct CurrencySelector: View {
                                     .padding(.bottom, 8)
                                 ForEach(Currency.recentlyUsed) { currency in
                                     Button(action: {
+                                        Analytics.shared.track(Analytics.Event.currencySelected, with: [
+                                            "currency_code": currency.code,
+                                            "source": "recently_used"
+                                        ])
                                         Currency.addToRecentlyUsed(currency)
                                         onSelect(currency)
                                         dismiss()
@@ -109,6 +113,10 @@ struct CurrencySelector: View {
                                 .padding(.bottom, 8)
                             ForEach(filteredCurrencies) { currency in
                                 Button(action: {
+                                    Analytics.shared.track(Analytics.Event.currencySelected, with: [
+                                        "currency_code": currency.code,
+                                        "source": searchText.isEmpty ? "all_currencies" : "search_results"
+                                    ])
                                     Currency.addToRecentlyUsed(currency)
                                     onSelect(currency)
                                     dismiss()
@@ -132,6 +140,16 @@ struct CurrencySelector: View {
         }
         .background(Color("grey800").ignoresSafeArea())
         .edgesIgnoringSafeArea(.horizontal)
+        .onAppear {
+            // Track selector opened
+            Analytics.shared.track(Analytics.Event.currencySelectorOpened)
+        }
+        .onChange(of: searchText) { oldValue, newValue in
+            // Track search when user types (debounced by only tracking non-empty)
+            if !newValue.isEmpty && oldValue.isEmpty {
+                Analytics.shared.track(Analytics.Event.currencySearched)
+            }
+        }
     }
 }
 

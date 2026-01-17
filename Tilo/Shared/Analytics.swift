@@ -111,7 +111,7 @@ final class Analytics {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("App-Key \(appKey)", forHTTPHeaderField: "Authorization")
+        request.setValue(appKey, forHTTPHeaderField: "App-Key")
         
         do {
             request.httpBody = try JSONSerialization.data(withJSONObject: payload)
@@ -120,9 +120,20 @@ final class Analytics {
             return
         }
         
-        URLSession.shared.dataTask(with: request) { _, response, error in
+        URLSession.shared.dataTask(with: request) { data, response, error in
             if let error = error {
                 debugLog("📊 Analytics send error: \(error.localizedDescription)")
+                return
+            }
+            
+            // Debug: Log response status
+            if let httpResponse = response as? HTTPURLResponse {
+                if httpResponse.statusCode != 200 && httpResponse.statusCode != 204 {
+                    debugLog("📊 Analytics response: \(httpResponse.statusCode)")
+                    if let data = data, let body = String(data: data, encoding: .utf8) {
+                        debugLog("📊 Response body: \(body)")
+                    }
+                }
             }
         }.resume()
     }

@@ -206,13 +206,6 @@ struct CurrencyChartView: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .task {
             debugLog("📊 .task triggered for chart")
-            
-            // Track chart viewed
-            Analytics.shared.track(Analytics.Event.chartViewed, with: [
-                "from_currency": fromCurrencyCode,
-                "to_currency": toCurrencyCode
-            ])
-            
             await viewModel.fetchRates(for: selectedRange)
         }
         .onChange(of: selectedRate) { oldValue, newValue in

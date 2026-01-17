@@ -222,7 +222,7 @@ struct HomeView: View {
         // Show satisfaction prompt after a short delay so the app loads first
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             // Track that we showed the prompt
-            Analytics.shared.track(Analytics.Event.reviewPromptShown)
+            Analytics.shared.track(Analytics.Event.satisfactionPromptShown)
             
             withAnimation(.easeOut(duration: 0.25)) {
                 showSatisfactionPrompt = true
@@ -233,7 +233,7 @@ struct HomeView: View {
     /// Called when user taps "Yes" on satisfaction prompt
     private func handleSatisfactionYes() {
         // Track positive response
-        Analytics.shared.track(Analytics.Event.reviewPromptYes)
+        Analytics.shared.track(Analytics.Event.satisfactionYesTapped)
         
         // Mark that we've prompted (so it never shows again)
         UserDefaults.standard.set(true, forKey: "hasPromptedForReview")
@@ -246,7 +246,7 @@ struct HomeView: View {
         // Show native review prompt after a brief delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             // Track that native review dialog was shown
-            Analytics.shared.track(Analytics.Event.nativeReviewShown)
+            Analytics.shared.track(Analytics.Event.nativeReviewPromptShown)
             requestReview()
         }
     }
@@ -254,7 +254,7 @@ struct HomeView: View {
     /// Called when user taps "No" or dismisses the satisfaction prompt
     private func handleSatisfactionNo() {
         // Track negative response
-        Analytics.shared.track(Analytics.Event.reviewPromptNo)
+        Analytics.shared.track(Analytics.Event.satisfactionNoTapped)
         
         // Mark that we've prompted (so it never shows again)
         UserDefaults.standard.set(true, forKey: "hasPromptedForReview")

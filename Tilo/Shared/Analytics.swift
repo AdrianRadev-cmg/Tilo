@@ -166,7 +166,6 @@ extension Analytics {
         static let currencySelected = "currency_selected"
         
         // Chart
-        static let chartViewed = "chart_viewed"
         static let chartInteraction = "chart_interaction"
         
         // Price guide
@@ -174,11 +173,13 @@ extension Analytics {
         static let priceGuideScrolled = "price_guide_scrolled"
         static let widgetGuideOpened = "widget_guide_opened"
         
-        // Review flow
-        static let reviewPromptShown = "review_prompt_shown"
-        static let reviewPromptYes = "review_prompt_yes"
-        static let reviewPromptNo = "review_prompt_no"
-        static let nativeReviewShown = "native_review_shown"
+        // Review flow - Satisfaction prompt
+        static let satisfactionPromptShown = "satisfaction_prompt_shown"
+        static let satisfactionYesTapped = "satisfaction_yes_tapped"
+        static let satisfactionNoTapped = "satisfaction_no_tapped"
+        
+        // Review flow - Native iOS prompt (Note: Apple doesn't allow tracking user actions inside the native prompt)
+        static let nativeReviewPromptShown = "native_review_prompt_shown"
         
         // Widget
         static let widgetDisplayed = "widget_displayed"

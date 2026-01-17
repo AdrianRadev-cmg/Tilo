@@ -2,10 +2,14 @@ import SwiftUI
 import Charts
 
 // MARK: - Models
-struct ExchangeRate: Identifiable {
+struct ExchangeRate: Identifiable, Equatable {
     let id = UUID()
     let date: Date
     let rate: Double
+    
+    static func == (lhs: ExchangeRate, rhs: ExchangeRate) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
 // MARK: - ViewModel

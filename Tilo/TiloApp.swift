@@ -21,6 +21,10 @@ struct TiloApp: App {
             UserDefaults.standard.set(Date(), forKey: "firstLaunchDate")
             UserDefaults.standard.set(true, forKey: "hasLaunchedBefore")
         }
+        
+        // MARK: - App Open Count (for review prompt on 2nd open)
+        let currentOpenCount = UserDefaults.standard.integer(forKey: "appOpenCount")
+        UserDefaults.standard.set(currentOpenCount + 1, forKey: "appOpenCount")
     }
     
     var body: some Scene {
@@ -31,46 +35,8 @@ struct TiloApp: App {
 }
 
 struct AppContentView: View {
-    @State private var showSplash = false
-    
     var body: some View {
-        ZStack {
-            HomeView()
-                .preferredColorScheme(.dark)
-            
-            if showSplash {
-                SplashScreenView(onFinished: {
-                    // Mark that user has seen splash screen today
-                    let today = Calendar.current.startOfDay(for: Date())
-                    UserDefaults.standard.set(today, forKey: "lastSplashDate")
-                    
-                    withAnimation(.easeOut(duration: 0.3)) {
-                        showSplash = false
-                    }
-                })
-                .transition(.opacity)
-                .zIndex(1)
-            }
-        }
-        .onAppear {
-            checkShouldShowSplash()
-        }
-    }
-    
-    private func checkShouldShowSplash() {
-        let today = Calendar.current.startOfDay(for: Date())
-        
-        // Get last date splash was shown
-        if let lastSplashDate = UserDefaults.standard.object(forKey: "lastSplashDate") as? Date {
-            let lastSplashDay = Calendar.current.startOfDay(for: lastSplashDate)
-            
-            // Show splash if it's a different day
-            if today != lastSplashDay {
-                showSplash = true
-            }
-        } else {
-            // First time ever - show splash
-            showSplash = true
-        }
+        HomeView()
+            .preferredColorScheme(.dark)
     }
 }

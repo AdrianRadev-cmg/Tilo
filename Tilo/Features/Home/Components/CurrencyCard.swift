@@ -25,7 +25,7 @@ struct CurrencyCard: View {
     // State for focus and text input
     @State private var isAmountFocused: Bool = false
     @State private var amountInput: String = ""
-    @FocusState private var amountFieldIsFocused: Bool
+    @State private var textFieldIsFocused: Bool = false // For UIKit text field focus
     @State private var isInputError: Bool = false // State for error tracking
     @State private var showCurrencySelector: Bool = false // Add state for currency selector
     @State private var sheetDetent: PresentationDetent = .large // Default to expanded
@@ -121,37 +121,31 @@ struct CurrencyCard: View {
     @ViewBuilder
     private var amountInputField: some View {
         if isAmountFocused && isEditable {
-            TextField("", text: $amountInput)
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundColor(.white)
-                .keyboardType(.decimalPad)
-                .tint(.white)
-                .focused($amountFieldIsFocused)
-                .lineLimit(1)
-                .frame(height: 28) // Fixed height prevents vertical jump when comma added
-                .toolbar {
-                    ToolbarItemGroup(placement: .keyboard) {
-                        Spacer()
-                        Button("Done") {
-                            amountInput = "" // Clear so it shows formatted amount
-                            isAmountFocused = false
-                            amountFieldIsFocused = false
-                            onEditingChanged?(false)
-                        }
-                        .font(.system(size: 17, weight: .semibold))
-                    }
-                }
-                .onChange(of: amountInput) { oldValue, newValue in
-                    handleAmountInputChange(oldValue: oldValue, newValue: newValue)
-                }
-                .onChange(of: amountFieldIsFocused) { _, newValue in
-                    // Sync state when keyboard is dismissed externally (e.g., by scrolling)
-                    if !newValue && isAmountFocused {
+            KeyboardAccessoryTextField(
+                text: $amountInput,
+                font: .systemFont(ofSize: 22, weight: .semibold),
+                textColor: .white,
+                keyboardType: .decimalPad,
+                textAlignment: .left,
+                onEditingChanged: { editing in
+                    if !editing {
+                        // Sync state when keyboard is dismissed
                         amountInput = "" // Clear so it shows formatted amount
                         isAmountFocused = false
                         onEditingChanged?(false)
                     }
-                }
+                },
+                onCommit: {
+                    amountInput = "" // Clear so it shows formatted amount
+                    isAmountFocused = false
+                    onEditingChanged?(false)
+                },
+                isFirstResponder: $textFieldIsFocused
+            )
+            .frame(height: 28) // Fixed height prevents vertical jump
+            .onChange(of: amountInput) { oldValue, newValue in
+                handleAmountInputChange(oldValue: oldValue, newValue: newValue)
+            }
         } else {
             Text(amount) // Always show the formatted amount prop when not editing
                 .font(.system(size: 22, weight: .semibold))
@@ -188,15 +182,23 @@ struct CurrencyCard: View {
         .accessibilityLabel("Amount to convert: \(currencyName)")
         .contentShape(Rectangle())
         .onTapGesture {
-            // Allow tap even if another card is active - this enables switching between cards
-            if isEditable && !isAmountFocused {
+            // Allow tap to activate this card for editing
+            if isEditable {
                 amountInput = ""
                 isInputError = false
                 isAmountFocused = true
+                textFieldIsFocused = true // Open keyboard immediately
                 onEditingChanged?(true) // This will deactivate the other card via parent
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    amountFieldIsFocused = true
+            }
+        }
+        .onChange(of: isCurrentlyActive) { _, newValue in
+            // When another card becomes active, deactivate this one's UI state
+            // Use a small delay to let the other card's text field become first responder first
+            // This keeps the keyboard open during switches
+            if !newValue && isAmountFocused {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    isAmountFocused = false
+                    amountInput = ""
                 }
             }
         }
@@ -247,7 +249,7 @@ struct CurrencyCard: View {
                  // Dismiss keyboard and show formatted amount
                  amountInput = "" // Clear so it shows formatted amount
                  isAmountFocused = false
-                 amountFieldIsFocused = false 
+                 textFieldIsFocused = false 
                  onEditingChanged?(false)
              }
          }

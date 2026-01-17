@@ -159,6 +159,7 @@ struct HomeView: View {
     @State private var isSwapping: Bool = false
     @State private var showError: Bool = false
     @State private var errorMessage: String = ""
+    @State private var showSatisfactionPrompt: Bool = false
     
     @StateObject private var exchangeService = ExchangeRateService.shared
     @StateObject private var networkMonitor = NetworkMonitor.shared
@@ -210,19 +211,46 @@ struct HomeView: View {
     }
     
     // MARK: - App Store Review Prompt
-    /// Triggers review prompt after first manual conversion (not from quick chips)
-    private func triggerReviewIfFirstManualConversion() {
+    /// Checks if we should show the satisfaction prompt on this app open (2nd open only)
+    private func checkForReviewPrompt() {
         let hasPromptedReview = UserDefaults.standard.bool(forKey: "hasPromptedForReview")
+        let appOpenCount = UserDefaults.standard.integer(forKey: "appOpenCount")
         
-        // Only prompt once, after first manual conversion
-        guard !hasPromptedReview else { return }
+        // Only prompt once, on second app open
+        guard !hasPromptedReview && appOpenCount == 2 else { return }
         
-        // Mark that we've prompted
+        // Show satisfaction prompt after a short delay so the app loads first
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            withAnimation(.easeOut(duration: 0.25)) {
+                showSatisfactionPrompt = true
+            }
+        }
+    }
+    
+    /// Called when user taps "Yes" on satisfaction prompt
+    private func handleSatisfactionYes() {
+        // Mark that we've prompted (so it never shows again)
         UserDefaults.standard.set(true, forKey: "hasPromptedForReview")
         
-        // Delay slightly so user sees their conversion result first
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+        // Dismiss the prompt
+        withAnimation(.easeOut(duration: 0.2)) {
+            showSatisfactionPrompt = false
+        }
+        
+        // Show native review prompt after a brief delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             requestReview()
+        }
+    }
+    
+    /// Called when user taps "No" or dismisses the satisfaction prompt
+    private func handleSatisfactionNo() {
+        // Mark that we've prompted (so it never shows again)
+        UserDefaults.standard.set(true, forKey: "hasPromptedForReview")
+        
+        // Just dismiss - don't show native review
+        withAnimation(.easeOut(duration: 0.2)) {
+            showSatisfactionPrompt = false
         }
     }
     
@@ -498,8 +526,6 @@ struct HomeView: View {
                                                 isEditingBottomCard = false
                                             } else {
                                                 activeEditingCard = nil
-                                                // Trigger review prompt after first manual conversion
-                                                triggerReviewIfFirstManualConversion()
                                             }
                                         },
                                         isEditable: true,
@@ -542,8 +568,6 @@ struct HomeView: View {
                                                 isEditingTopCard = false
                                             } else {
                                                 activeEditingCard = nil
-                                                // Trigger review prompt after first manual conversion
-                                                triggerReviewIfFirstManualConversion()
                                             }
                                         },
                                         isEditable: true,
@@ -651,6 +675,10 @@ struct HomeView: View {
                 // Fetch rates when view appears
                 await updateConversion()
             }
+            .onAppear {
+                // Check if we should show the satisfaction prompt (on 2nd app open)
+                checkForReviewPrompt()
+            }
             
             // Price guide Tab
             TravelView(
@@ -668,6 +696,15 @@ struct HomeView: View {
                 .tag(1)
         }
         .tint(Color("primary100"))
+        .overlay {
+            if showSatisfactionPrompt {
+                SatisfactionPromptView(
+                    onYes: handleSatisfactionYes,
+                    onNo: handleSatisfactionNo
+                )
+                .transition(.opacity)
+            }
+        }
     }
 }
 

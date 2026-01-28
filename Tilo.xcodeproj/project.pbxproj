@@ -7,10 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		FB0000012EE000000000003 /* FBSDKCoreKit in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000012EE000000000002 /* FBSDKCoreKit */; };
 		C9CF53BE2EDD5CC00076C3D4 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C9CF53BD2EDD5CC00076C3D4 /* WidgetKit.framework */; };
 		C9CF53C02EDD5CC00076C3D4 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C9CF53BF2EDD5CC00076C3D4 /* SwiftUI.framework */; };
 		C9CF53CD2EDD5CC10076C3D4 /* TiloWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C9CF53BB2EDD5CC00076C3D4 /* TiloWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		FB0000012EE000000000003 /* FacebookCore in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000012EE000000000002 /* FacebookCore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -53,11 +53,21 @@
 			);
 			target = C9CF53BA2EDD5CC00076C3D4 /* TiloWidgetExtension */;
 		};
+		FB0000012EE000000000010 /* Exceptions for "Tilo" folder in "Tilo" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = C9CD21BC2DAAAD0D006F6BEA /* Tilo */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		C9CD21BF2DAAAD0D006F6BEA /* Tilo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				FB0000012EE000000000010 /* Exceptions for "Tilo" folder in "Tilo" target */,
+			);
 			path = Tilo;
 			sourceTree = "<group>";
 		};
@@ -76,7 +86,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FB0000012EE000000000003 /* FBSDKCoreKit in Frameworks */,
+				FB0000012EE000000000003 /* FacebookCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -143,7 +153,7 @@
 			);
 			name = Tilo;
 			packageProductDependencies = (
-				FB0000012EE000000000002 /* FBSDKCoreKit */,
+				FB0000012EE000000000002 /* FacebookCore */,
 			);
 			productName = Tilo;
 			productReference = C9CD21BD2DAAAD0D006F6BEA /* Tilo.app */;
@@ -198,10 +208,10 @@
 			);
 			mainGroup = C9CD21B42DAAAD0D006F6BEA;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			packageReferences = (
 				FB0000012EE000000000001 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */,
 			);
+			preferredProjectObjectVersion = 77;
 			productRefGroup = C9CD21BE2DAAAD0D006F6BEA /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -390,7 +400,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Tilo/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -430,7 +440,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = Tilo/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -568,10 +578,10 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		FB0000012EE000000000002 /* FBSDKCoreKit */ = {
+		FB0000012EE000000000002 /* FacebookCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = FB0000012EE000000000001 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
-			productName = FBSDKCoreKit;
+			productName = FacebookCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

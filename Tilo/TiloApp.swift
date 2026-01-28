@@ -1,6 +1,6 @@
 import SwiftUI
 import UIKit
-import FBSDKCoreKit
+import FacebookCore
 
 @main
 struct TiloApp: App {

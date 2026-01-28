@@ -143,6 +143,17 @@ struct CurrencySelector: View {
         .onAppear {
             // Track selector opened
             Analytics.shared.track(Analytics.Event.currencySelectorOpened)
+            // #region agent log - Verify currency list in selector
+            let filtered = filteredCurrencies
+            let hasCVE = filtered.contains { $0.code == "CVE" }
+            let hasBGN = filtered.contains { $0.code == "BGN" }
+            appendDebugLog(location: "CurrencySelector.swift:onAppear", message: "SELECTOR_CURRENCIES", data: [
+                "hypothesis": "SELECTOR_SHOWS_NEW",
+                "filtered_count": filtered.count,
+                "has_CVE_in_selector": hasCVE,
+                "has_BGN_in_selector": hasBGN
+            ])
+            // #endregion
         }
         .onChange(of: searchText) { oldValue, newValue in
             // Track search when user types (debounced by only tracking non-empty)

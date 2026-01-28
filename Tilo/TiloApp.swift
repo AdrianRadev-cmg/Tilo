@@ -1,5 +1,7 @@
 import SwiftUI
 import UIKit
+import AppTrackingTransparency
+import FBSDKCoreKit
 
 @main
 struct TiloApp: App {
@@ -12,6 +14,12 @@ struct TiloApp: App {
         if #available(iOS 15.0, *) {
             UITabBar.appearance().scrollEdgeAppearance = appearance
         }
+        
+        // MARK: - Initialize Facebook SDK
+        ApplicationDelegate.shared.application(
+            UIApplication.shared,
+            didFinishLaunchingWithOptions: nil
+        )
         
         // MARK: - Initialize Analytics
         Analytics.shared.initialize()
@@ -47,21 +55,46 @@ struct AppContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     
     var body: some View {
-        HomeView()
-            .preferredColorScheme(.dark)
+            HomeView()
+                .preferredColorScheme(.dark)
             .onOpenURL { url in
                 // Handle widget tap
                 if url.scheme == "tilo" && url.host == "widget-tap" {
                     Analytics.shared.track(Analytics.Event.widgetTapped, with: [
                         "source": "home_screen_widget"
                     ])
-                }
             }
+        }
             .onChange(of: scenePhase) { oldPhase, newPhase in
                 if newPhase == .background {
                     // Track session end when app goes to background
                     Analytics.shared.trackSessionEnd()
                 }
+        }
+            .onAppear {
+                // Request App Tracking Transparency permission
+                // Delayed slightly to ensure app is fully loaded
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    requestTrackingPermission()
+                }
             }
+    }
+    
+    private func requestTrackingPermission() {
+        ATTrackingManager.requestTrackingAuthorization { status in
+            switch status {
+            case .authorized:
+                // Enable Facebook tracking
+                Settings.shared.isAdvertiserTrackingEnabled = true
+                debugLog("📊 ATT: Authorized - tracking enabled")
+            case .denied, .restricted:
+                Settings.shared.isAdvertiserTrackingEnabled = false
+                debugLog("📊 ATT: Denied/Restricted - tracking disabled")
+            case .notDetermined:
+                debugLog("📊 ATT: Not determined")
+            @unknown default:
+                debugLog("📊 ATT: Unknown status")
+            }
+        }
     }
 }

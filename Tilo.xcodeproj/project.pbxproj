@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		FB0000012EE000000000003 /* FBSDKCoreKit in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000012EE000000000002 /* FBSDKCoreKit */; };
 		C9CF53BE2EDD5CC00076C3D4 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C9CF53BD2EDD5CC00076C3D4 /* WidgetKit.framework */; };
 		C9CF53C02EDD5CC00076C3D4 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C9CF53BF2EDD5CC00076C3D4 /* SwiftUI.framework */; };
 		C9CF53CD2EDD5CC10076C3D4 /* TiloWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = C9CF53BB2EDD5CC00076C3D4 /* TiloWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -75,6 +76,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FB0000012EE000000000003 /* FBSDKCoreKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -141,6 +143,7 @@
 			);
 			name = Tilo;
 			packageProductDependencies = (
+				FB0000012EE000000000002 /* FBSDKCoreKit */,
 			);
 			productName = Tilo;
 			productReference = C9CD21BD2DAAAD0D006F6BEA /* Tilo.app */;
@@ -196,6 +199,9 @@
 			mainGroup = C9CD21B42DAAAD0D006F6BEA;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
+			packageReferences = (
+				FB0000012EE000000000001 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */,
+			);
 			productRefGroup = C9CD21BE2DAAAD0D006F6BEA /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -385,6 +391,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Tilo/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -424,6 +431,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Tilo/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -547,6 +555,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		FB0000012EE000000000001 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/facebook/facebook-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 17.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		FB0000012EE000000000002 /* FBSDKCoreKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB0000012EE000000000001 /* XCRemoteSwiftPackageReference "facebook-ios-sdk" */;
+			productName = FBSDKCoreKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C9CD21B52DAAAD0D006F6BEA /* Project object */;
 }

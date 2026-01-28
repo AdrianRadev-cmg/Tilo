@@ -145,7 +145,7 @@ struct CurrencyCard: View {
             .frame(height: 28) // Fixed height prevents vertical jump
             .onChange(of: amountInput) { oldValue, newValue in
                 handleAmountInputChange(oldValue: oldValue, newValue: newValue)
-            }
+                }
         } else {
             Text(amount) // Always show the formatted amount prop when not editing
                 .font(.system(size: 22, weight: .semibold))

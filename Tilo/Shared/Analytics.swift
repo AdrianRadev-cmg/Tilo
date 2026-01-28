@@ -107,6 +107,18 @@ final class Analytics {
     }
     
     private func sendEvent(_ payload: [String: Any]) {
+        // Skip analytics in debug builds (Xcode development)
+        #if DEBUG
+        debugLog("📊 [SKIPPED - DEBUG BUILD] Event: \(payload["eventName"] ?? "unknown")")
+        return
+        #endif
+        
+        // Skip analytics on simulator
+        #if targetEnvironment(simulator)
+        debugLog("📊 [SKIPPED - SIMULATOR] Event: \(payload["eventName"] ?? "unknown")")
+        return
+        #endif
+        
         guard let url = URL(string: "\(baseURL)/api/v0/event") else { return }
         
         var request = URLRequest(url: url)

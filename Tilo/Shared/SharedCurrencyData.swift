@@ -140,7 +140,7 @@ class SharedCurrencyDataManager {
     
     private func getTableAmounts(for currencyCode: String) -> [Double] {
         // Very high-value currencies
-        let veryHighValue = ["KWD", "BHD", "OMR", "JOD", "GBP", "CHF"]
+        let veryHighValue = ["KWD", "BHD", "OMR", "JOD", "GBP", "CHF", "KYD", "GIP", "FKP"]
         if veryHighValue.contains(currencyCode) {
             return [10, 20, 50, 100, 200, 500, 1000, 2000]
         }
@@ -148,8 +148,9 @@ class SharedCurrencyDataManager {
         // High-value currencies
         let highValue = [
             "EUR", "USD", "CAD", "AUD", "NZD", "SGD", "AED", "SAR", "QAR",
-            "ILS", "BND", "BSD", "PAB", "FJD", "BWP", "AZN", "RON", "BGN", "GEL",
-            "PEN", "BOB", "GTQ", "BBD", "TTD", "MUR", "MVR"
+            "ILS", "BND", "BSD", "PAB", "FJD", "BWP", "AZN", "RON", "GEL",
+            "PEN", "BOB", "GTQ", "BBD", "TTD", "MUR", "MVR",
+            "BMD", "BZD", "AWG", "XCD", "SHP", "GGP", "IMP", "JEP", "BAM", "BYN"
         ]
         if highValue.contains(currencyCode) {
             return [10, 20, 50, 100, 200, 500, 1000, 2000]
@@ -159,14 +160,17 @@ class SharedCurrencyDataManager {
         let mediumValue = [
             "CNY", "HKD", "TWD", "SEK", "NOK", "DKK", "PLN", "CZK", "MXN", "ZAR",
             "BRL", "MYR", "TRY", "EGP", "RUB", "MDL", "MKD", "UAH", "RSD", "JMD",
-            "DOP", "HNL", "NIO", "MAD", "TND", "GHS", "NAD"
+            "DOP", "HNL", "NIO", "MAD", "TND", "GHS", "NAD",
+            "DZD", "CRC", "MOP", "CVE", "GYD", "SRD", "LSL", "SZL", "ANG", "SCR",
+            "GMD", "MWK", "MZN", "HTG", "LYD", "IQD", "SVC", "XAF", "XOF", "XPF",
+            "AOA", "ERN", "ETB", "CDF", "SDG", "TOP", "WST"
         ]
         if mediumValue.contains(currencyCode) {
             return [50, 100, 200, 500, 1000, 2000, 5000, 10000]
         }
         
         // Lower-medium currencies
-        let lowerMedium = ["THB", "INR", "PHP", "KES", "UGX", "TZS"]
+        let lowerMedium = ["THB", "INR", "PHP", "KES", "UGX", "TZS", "NPR", "BTN", "AFN", "MRU", "LRD"]
         if lowerMedium.contains(currencyCode) {
             return [100, 200, 500, 1000, 2000, 5000, 10000, 20000]
         }
@@ -175,7 +179,9 @@ class SharedCurrencyDataManager {
         let lowValue = [
             "JPY", "KRW", "HUF", "ISK", "CLP", "ARS", "COP", "PKR", "LKR", "BDT",
             "MMK", "NGN", "AMD", "KZT", "KGS", "ALL", "RWF", "BIF", "DJF", "GNF",
-            "KMF", "MGA", "PYG", "KHR", "MNT"
+            "KMF", "MGA", "PYG", "KHR", "MNT",
+            "UYU", "CUP", "CUC", "SOS", "TJS", "TMT", "YER", "ZMW", "PGK", "SBD",
+            "VUV", "KPW", "SLE", "CLF"
         ]
         if lowValue.contains(currencyCode) {
             return [500, 1000, 2000, 5000, 10000, 20000, 50000, 100000]
@@ -183,7 +189,7 @@ class SharedCurrencyDataManager {
         
         // Very low-value currencies
         let veryLowValue = [
-            "VND", "IDR", "IRR", "LAK", "UZS", "SLL", "LBP", "SYP", "STN", "VES"
+            "VND", "IDR", "IRR", "LAK", "UZS", "SLL", "LBP", "SYP", "STN", "VES", "ZWG"
         ]
         if veryLowValue.contains(currencyCode) {
             return [10000, 20000, 50000, 100000, 200000, 500000, 1000000, 2000000]

@@ -180,21 +180,24 @@ class ExchangeRateService: ObservableObject {
     // Background refresh cooldown tracking
     private var lastBackgroundRefresh: Date?
     
-    // Mock data for development (all 100 currencies with realistic rates vs USD)
+    // Mock data for development (all 160 currencies with realistic rates vs USD)
     private let mockRates: [String: Double] = [
         // USD is base (1.0)
         "USD": 1.0,
         
         // Very High-value
         "KWD": 0.31, "BHD": 0.38, "OMR": 0.38, "JOD": 0.71, "GBP": 0.79,
+        "KYD": 0.83, "GIP": 0.79, "FKP": 0.79,
         
         // High-value
         "EUR": 0.92, "CHF": 0.91, "CAD": 1.36, "AUD": 1.52, "NZD": 1.65,
         "SGD": 1.35, "AED": 3.67, "SAR": 3.75, "QAR": 3.64, "ILS": 3.72,
         "BND": 1.35, "BSD": 1.0, "PAB": 1.0, "FJD": 2.27, "BWP": 13.5,
-        "AZN": 1.70, "RON": 4.56, "BGN": 1.80, "GEL": 2.70, "PEN": 3.75,
+        "AZN": 1.70, "RON": 4.56, "GEL": 2.70, "PEN": 3.75,
         "BOB": 6.91, "GTQ": 7.75, "UAH": 41.2, "RSD": 107.5, "JMD": 154.5,
         "BBD": 2.0, "TTD": 6.78, "MUR": 45.8, "MVR": 15.4,
+        "BMD": 1.0, "BZD": 2.0, "AWG": 1.79, "XCD": 2.70, "SHP": 0.79,
+        "GGP": 0.79, "IMP": 0.79, "JEP": 0.79, "BAM": 1.80, "BYN": 3.25,
         
         // Medium-value
         "CNY": 7.23, "HKD": 7.82, "TWD": 31.5, "SEK": 10.35, "NOK": 10.62,
@@ -203,6 +206,12 @@ class ExchangeRateService: ObservableObject {
         "TRY": 32.5, "EGP": 48.8, "RUB": 92.5, "MDL": 17.8, "MKD": 56.4,
         "DOP": 59.8, "HNL": 24.7, "NIO": 36.8, "MAD": 9.87, "TND": 3.11,
         "KES": 129.5, "UGX": 3685.0, "TZS": 2505.0, "GHS": 15.2, "NAD": 18.5,
+        "DZD": 135.0, "CRC": 520.0, "MOP": 8.05, "CVE": 101.5, "GYD": 209.0,
+        "SRD": 35.5, "LSL": 18.5, "SZL": 18.5, "ANG": 1.79, "SCR": 13.2,
+        "GMD": 67.5, "MWK": 1735.0, "MZN": 63.8, "HTG": 131.5, "LYD": 4.85,
+        "IQD": 1310.0, "SVC": 8.75, "XAF": 605.0, "XOF": 605.0, "XPF": 110.0,
+        "AOA": 920.0, "ERN": 15.0, "ETB": 125.0, "CDF": 2820.0, "SDG": 601.0,
+        "TOP": 2.35, "WST": 2.72,
         
         // Low-value
         "JPY": 149.5, "KRW": 1325.0, "HUF": 360.5, "ISK": 137.2, "CLP": 920.0,
@@ -210,10 +219,15 @@ class ExchangeRateService: ObservableObject {
         "MMK": 2098.0, "NGN": 1580.0, "AMD": 386.0, "KZT": 452.0, "KGS": 87.5,
         "ALL": 92.3, "RWF": 1298.0, "BIF": 2865.0, "DJF": 178.0, "GNF": 8590.0,
         "KMF": 452.0, "MGA": 4520.0, "PYG": 7350.0, "KHR": 4095.0, "MNT": 3420.0,
+        "NPR": 133.0, "BTN": 83.5, "AFN": 70.5, "MRU": 39.8, "LRD": 193.0,
+        "UYU": 39.2, "CUP": 24.0, "CUC": 1.0, "SOS": 571.0, "TJS": 10.9,
+        "TMT": 3.5, "YER": 250.0, "ZMW": 27.2, "PGK": 3.95, "SBD": 8.45,
+        "VUV": 118.5, "KPW": 900.0, "SLE": 22750.0, "CLF": 0.034,
         
         // Very low-value
         "VND": 24500.0, "IDR": 15780.0, "IRR": 42050.0, "LAK": 21850.0, "UZS": 12750.0,
-        "SLL": 19750.0, "LBP": 89500.0, "SYP": 13000.0, "STN": 22.5, "VES": 36.5
+        "SLL": 19750.0, "LBP": 89500.0, "SYP": 13000.0, "STN": 22.5, "VES": 36.5,
+        "ZWG": 13.8, "XCG": 1.79
     ]
     
     // Singleton instance

@@ -1,6 +1,5 @@
 import SwiftUI
 import UIKit
-import AppTrackingTransparency
 import FBSDKCoreKit
 
 @main
@@ -70,31 +69,6 @@ struct AppContentView: View {
                     // Track session end when app goes to background
                     Analytics.shared.trackSessionEnd()
                 }
-        }
-            .onAppear {
-                // Request App Tracking Transparency permission
-                // Delayed slightly to ensure app is fully loaded
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    requestTrackingPermission()
-                }
-            }
-    }
-    
-    private func requestTrackingPermission() {
-        ATTrackingManager.requestTrackingAuthorization { status in
-            switch status {
-            case .authorized:
-                // Enable Facebook tracking
-                Settings.shared.isAdvertiserTrackingEnabled = true
-                debugLog("📊 ATT: Authorized - tracking enabled")
-            case .denied, .restricted:
-                Settings.shared.isAdvertiserTrackingEnabled = false
-                debugLog("📊 ATT: Denied/Restricted - tracking disabled")
-            case .notDetermined:
-                debugLog("📊 ATT: Not determined")
-            @unknown default:
-                debugLog("📊 ATT: Unknown status")
-            }
         }
     }
 }

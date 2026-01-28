@@ -19,16 +19,29 @@
 	<string>b30101e698a800860ad16a5a30d6e01a</string>
 	<key>FacebookDisplayName</key>
 	<string>Tilo</string>
-	
-	<!-- App Tracking Transparency Description -->
-	<key>NSUserTrackingUsageDescription</key>
-	<string>This allows Tilo to provide you with a better ads experience and helps us improve the app.</string>
+	<key>FacebookAutoLogAppEventsEnabled</key>
+	<true/>
+	<key>FacebookAdvertiserIDCollectionEnabled</key>
+	<false/>
 	
 	<!-- Allow Facebook domains for SDK -->
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>fbapi</string>
 		<string>fb-messenger-share-api</string>
+	</array>
+	
+	<!-- SKAdNetwork IDs for Facebook attribution -->
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>v9wttpbfk9.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>n38lu8286q.skadnetwork</string>
+		</dict>
 	</array>
 </dict>
 </plist>
